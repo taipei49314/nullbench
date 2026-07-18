@@ -9,6 +9,12 @@ import { defineConfig } from "vite";
 const frontendDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(frontendDir, "..");
 const resultsDir = path.join(repoDir, "simulation", "results");
+const forwardStatusFile = path.join(
+  repoDir,
+  "simulation",
+  "forward",
+  "status.json",
+);
 
 function readRecentEvents(game, limit) {
   const file = path.join(resultsDir, `${game}.jsonl`);
@@ -52,6 +58,9 @@ function readManifest() {
 
 function publicManifest() {
   const manifest = readManifest();
+  manifest.forward_experiment = fs.existsSync(forwardStatusFile)
+    ? JSON.parse(fs.readFileSync(forwardStatusFile, "utf8"))
+    : null;
   for (const game of Object.values(manifest.games)) {
     const decision = game.next_decision;
     decision.critique_count = decision.critiques.length;

@@ -40,6 +40,30 @@ def _manifest(super_count=10, lotto_count=20):
     }
 
 
+def _forward_result():
+    return {
+        "settlements_created": 1,
+        "registrations": {
+            SUPER: {"status": "created", "registration_hash": "super-sha"},
+            LOTTO649: {
+                "status": "created",
+                "registration_hash": "lotto-sha",
+            },
+        },
+        "summary": {
+            "evidence_status": "collecting_forward_data",
+            "recommendation": "keep_rule_as_control",
+            "verification": {
+                "chain_valid": True,
+                "events": 2,
+                "registrations": 2,
+                "settlements": 0,
+                "pending": 2,
+            },
+        },
+    }
+
+
 def test_sync_rebuilds_only_when_new_draws_exist(tmp_path, monkeypatch):
     output = tmp_path / "simulation" / "results"
     output.mkdir(parents=True)
@@ -59,15 +83,21 @@ def test_sync_rebuilds_only_when_new_draws_exist(tmp_path, monkeypatch):
     monkeypatch.setattr("engine.sync_service.Env", FakeEnv)
     phases = []
     runner_calls = []
+    forward_calls = []
 
     def runner(store, output_dir):
         runner_calls.append((store, output_dir))
         return _manifest(11, 20)
 
+    def forward_syncer(base, store, manifest):
+        forward_calls.append((base, store, manifest))
+        return _forward_result()
+
     result = sync_latest(
         tmp_path,
         fetcher=lambda game, data_dir: (1, 1),
         runner=runner,
+        forward_syncer=forward_syncer,
         progress=lambda phase, message, details: phases.append(phase),
     )
 
@@ -75,7 +105,17 @@ def test_sync_rebuilds_only_when_new_draws_exist(tmp_path, monkeypatch):
     assert result["new_draws_total"] == 1
     assert result["games"][SUPER]["new_draws"] == 1
     assert len(runner_calls) == 1
-    assert phases == ["checking", "reviewing", "optimizing", "ready"]
+    assert len(forward_calls) == 1
+    assert result["forward_experiment"]["evidence_status"] == (
+        "collecting_forward_data"
+    )
+    assert phases == [
+        "checking",
+        "reviewing",
+        "optimizing",
+        "preregistering",
+        "ready",
+    ]
 
 
 def test_sync_keeps_verified_artifacts_when_counts_are_unchanged(
@@ -101,11 +141,16 @@ def test_sync_keeps_verified_artifacts_when_counts_are_unchanged(
     def unexpected_runner(store, output_dir):
         raise AssertionError("沒有新開獎時不應重建")
 
+    phases = []
     result = sync_latest(
         tmp_path,
         fetcher=lambda game, data_dir: (1, 1),
         runner=unexpected_runner,
+        forward_syncer=lambda base, store, manifest: _forward_result(),
+        progress=lambda phase, message, details: phases.append(phase),
     )
 
     assert result["regenerated"] is False
     assert result["new_draws_total"] == 0
+    assert result["forward_experiment"]["verification"]["chain_valid"] is True
+    assert phases == ["checking", "preregistering", "ready"]

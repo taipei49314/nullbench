@@ -8,6 +8,7 @@
   python lotto.py status    總覽：權重、累計損益 vs null、下次開獎
   python lotto.py loop      逐期 agent 提案→辯論→裁決→揭曉→檢討的完整純模擬
   python lotto.py sync      偵測官方新開獎；有新增才重建 agent 閉環
+  python lotto.py forward   結算既有前向 A/B 並凍結目前下一期三臂
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ from engine import (
     agent_loop,
     config,
     debate,
+    forward_lab,
     picker,
     qwen_judge,
     report,
@@ -148,6 +150,17 @@ def cmd_status(env: Env) -> None:
         waiting = sorted({w for w in pending if w not in settled})
         if waiting:
             print(f"\n待核對週：{waiting}（開獎後跑 python lotto.py check）")
+    forward_status = env.base / "simulation" / "forward" / "status.json"
+    if forward_status.exists():
+        import json
+
+        status = json.loads(forward_status.read_text(encoding="utf-8"))
+        print(
+            "\n前向終局裁判 A/B："
+            f"{status['evidence_status']}｜"
+            f"帳本 {status['verification']['registrations']} 筆登記、"
+            f"{status['verification']['settlements']} 筆結算"
+        )
 
 
 def _print_loop_decision(decision: dict) -> None:
@@ -194,8 +207,52 @@ def cmd_loop(env: Env, output: str | None) -> None:
             f"｜ledger SHA-256 {result['ledger_sha256']}"
         )
         _print_loop_decision(result["next_decision"])
+    if output is None:
+        forward = forward_lab.reconcile_forward_registry(
+            env.base,
+            env.store,
+            manifest,
+        )
+        print(
+            "\n前向 A/B："
+            f"新結算 {forward['settlements_created']} 期｜"
+            f"證據狀態 {forward['summary']['evidence_status']}"
+        )
     print(f"\n模擬產物：{output_dir}")
     print(f"manifest_hash：{manifest['manifest_hash']}")
+
+
+def cmd_forward(env: Env) -> None:
+    import json
+
+    manifest_path = env.base / "simulation" / "results" / "manifest.json"
+    if not manifest_path.exists():
+        raise RuntimeError(
+            "找不到逐期 manifest，請先執行 python lotto.py loop"
+        )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    result = forward_lab.reconcile_forward_registry(
+        env.base,
+        env.store,
+        manifest,
+    )
+    summary = result["summary"]
+    print(
+        "前向終局裁判 A/B 已同步："
+        f"新結算 {result['settlements_created']} 期｜"
+        f"登記 {summary['verification']['registrations']} 筆｜"
+        f"結算 {summary['verification']['settlements']} 筆｜"
+        f"狀態 {summary['evidence_status']}"
+    )
+    for game in picker.GAMES:
+        game_summary = summary["games"][game]
+        pending = game_summary["pending"]
+        target = pending[-1]["target"] if pending else None
+        print(
+            f"  {GAME_NAMES[game]}：有效配對 "
+            f"{game_summary['eligible_qwen_rule_pairs']}｜"
+            f"待開獎 {target or '無'}"
+        )
 
 
 def cmd_sync(env: Env, json_output: bool = False) -> None:
@@ -258,6 +315,7 @@ def main(argv=None):
         action="store_true",
         help="輸出供本地前端讀取的 JSON Lines 進度",
     )
+    sub.add_parser("forward")
     args = ap.parse_args(argv)
 
     env = Env()
@@ -275,6 +333,8 @@ def main(argv=None):
         cmd_loop(env, args.output)
     elif args.cmd == "sync":
         cmd_sync(env, args.json)
+    elif args.cmd == "forward":
+        cmd_forward(env)
 
 
 if __name__ == "__main__":

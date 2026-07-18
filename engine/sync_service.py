@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from . import agent_loop, qwen_judge
+from . import agent_loop, forward_lab, qwen_judge
 from .env import Env
 from .fetch import ingest
 from .games import GAME_NAMES, LOTTO649, SUPER
@@ -57,8 +57,9 @@ def sync_latest(
     progress: Progress | None = None,
     fetcher=ingest,
     runner=_run_with_qwen,
+    forward_syncer=forward_lab.reconcile_forward_registry,
 ) -> dict:
-    """檢查官方新資料，必要時重建 agent 閉環產物。"""
+    """檢查官方新資料、必要時重建閉環，並結算/凍結前向 A/B。"""
     base = Path(base)
     output_dir = base / "simulation" / "results"
     previous_manifest = _read_manifest(output_dir)
@@ -105,6 +106,17 @@ def sync_latest(
     else:
         manifest = previous_manifest
 
+    emit(
+        "preregistering",
+        "正在結算終局裁判 A/B 並凍結下一期三組對照",
+        None,
+    )
+    forward_experiment = forward_syncer(
+        base,
+        fresh_env.store,
+        manifest,
+    )
+
     games = {
         game: {
             "game_name": GAME_NAMES[game],
@@ -123,13 +135,26 @@ def sync_latest(
         "fetched_months": fetched_months,
         "games": games,
         "manifest_hash": manifest["manifest_hash"],
+        "forward_experiment": {
+            "settlements_created": forward_experiment[
+                "settlements_created"
+            ],
+            "registrations": forward_experiment["registrations"],
+            "evidence_status": forward_experiment["summary"][
+                "evidence_status"
+            ],
+            "recommendation": forward_experiment["summary"][
+                "recommendation"
+            ],
+            "verification": forward_experiment["summary"]["verification"],
+        },
     }
     emit(
         "ready",
         (
-            "新開獎已完成檢討與策略狀態更新"
+            "新開獎已完成檢討、前向 A/B 結算與下一期凍結"
             if needs_rebuild
-            else "官方資料無新增，使用既有已驗證策略狀態"
+            else "官方資料無新增，下一期前向 A/B 已確認凍結"
         ),
         result,
     )

@@ -40,6 +40,7 @@ python lotto.py report   # 重新產報告；python lotto.py status 看總覽
 python lotto.py ingest   # 手動更新歷史資料（check 會自動做）
 python lotto.py loop     # 逐期 agent 辯論閉環：完整歷史回放＋下一期模擬號碼
 python lotto.py sync     # 偵測官方新開獎；有新增才重建 agent 閉環
+python lotto.py forward  # 不抓網路：結算/凍結目前終局裁判前向 A/B
 ```
 
 ## 逐期 agent 自動閉環（純模擬）
@@ -67,6 +68,26 @@ python agent_loop_verify.py
 `qwen3:8b` 不進入全歷史逐期裁決，以維持位元級重現；它只裁決兩遊戲各一個下一期結果。
 模型名稱、五個 proposal ID、合法性、重複組合與理由格式都會再次驗證；失敗時畫面會明確
 標示「規則降級」，不會把降級結果冒充為 Qwen。
+
+## 終局裁判前向 A/B
+
+歷史回放不呼叫語言模型，所以歷史帳本不能證明 Qwen 是否比規則裁判好。
+`final-judge-forward-v1` 會在每個下一期開獎前，同時凍結：
+
+- 規則裁判五注；
+- `qwen3:8b` 從同一批 15 組提案改選的五注；
+- 固定種子的均勻隨機五注。
+
+`python lotto.py sync` 會先結算已揭曉的舊登記，再凍結新的下一期；沒有開獎前
+登記、超過 20:30 才登記或 Qwen 降級的期數永不補做有效配對。前向 JSONL
+與摘要位於 `simulation/forward/`，不會修改正式 `records/`。門檻、最低樣本
+與禁止事後改指標的規則見 [FORWARD_PREREG.md](FORWARD_PREREG.md)。
+
+完整驗收：
+
+```
+python forward_verify.py
+```
 
 ## 全歷史策略研究（與正式 v1 隔離）
 
@@ -143,6 +164,8 @@ research/             全歷史走步回測、兩階段搜尋與封存外驗
 agent_ablation.py     2 至 5 人共 26 個子議會的正式消融研究
 agent_ablation_verify.py
                       分階段測試、正式消融與完整後測入口
+forward_verify.py     前向三臂帳本、sync、前端與完整回歸驗收
+FORWARD_PREREG.md     Qwen／規則前向比較的凍結門檻
 output/jupyter-notebook/
                       可重跑的策略研究伴隨筆記本
 tests/                研究與正式流程完整測試

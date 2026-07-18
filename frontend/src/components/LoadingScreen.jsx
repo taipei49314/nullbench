@@ -4,12 +4,14 @@ import {
   Check,
   CloudDownload,
   History,
+  ShieldCheck,
 } from "lucide-react";
 
 const STEPS = [
   ["checking", "偵測官方開獎", CloudDownload],
   ["reviewing", "檢討新開獎", History],
   ["optimizing", "更新 Agent 狀態", BrainCircuit],
+  ["preregistering", "凍結前向 A/B", ShieldCheck],
   ["ready", "準備下一期候選", Check],
 ];
 

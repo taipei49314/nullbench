@@ -6,6 +6,7 @@
 3. 完整歷史回放兩次，驗證位元級重現與 JSONL 雜湊鏈。
 4. 再跑全專案測試，並確認正式 records 樹完全未變。
 5. 以 qwen3:8b 產生兩遊戲的下一期終局裁決並驗證來源。
+6. 將規則、Qwen、隨機三臂寫入前向帳本並驗證。
 """
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from pathlib import Path
 
 from engine.agent_loop import run_all, verify_replay
 from engine.env import Env
+from engine.forward_lab import reconcile_forward_registry
 from engine.games import LOTTO649, SUPER
 from engine.qwen_judge import adjudicate as qwen_adjudicate
 
@@ -46,7 +48,11 @@ def main() -> None:
     env = Env(ROOT)
     records_before = tree_hash(env.records)
 
-    run_tests("階段 1：逐期 agent 閉環專用測試", "tests/test_agent_loop.py")
+    run_tests(
+        "階段 1：逐期 agent 閉環與前向 A/B 專用測試",
+        "tests/test_agent_loop.py",
+        "tests/test_forward_lab.py",
+    )
     run_tests("階段 2：全專案前置回歸測試", "tests")
 
     print("\n== 階段 3：第一次完整歷史回放 ==")
@@ -88,6 +94,13 @@ def main() -> None:
         if len(judge["selected_proposal_ids"]) != 5 or len(judge["reasons"]) != 5:
             raise RuntimeError(f"{game} qwen3:8b 裁決不是五組完整理由")
 
+    print("\n== 階段 7：凍結下一期三臂前向 A/B ==")
+    forward = reconcile_forward_registry(ROOT, env.store, final)
+    if not forward["summary"]["verification"]["chain_valid"]:
+        raise RuntimeError("前向 A/B 帳本鏈驗證失敗")
+    if set(forward["registrations"]) != {SUPER, LOTTO649}:
+        raise RuntimeError("前向 A/B 未涵蓋兩款遊戲")
+
     print("\n== 全部通過 ==")
     for game in (SUPER, LOTTO649):
         result = final["games"][game]
@@ -98,6 +111,12 @@ def main() -> None:
         )
     print(f"manifest_hash：{final['manifest_hash']}")
     print(f"records tree hash（前後一致）：{records_after}")
+    print(
+        "forward A/B："
+        f"{forward['summary']['verification']['registrations']} 筆登記｜"
+        f"{forward['summary']['verification']['settlements']} 筆結算｜"
+        f"{forward['summary']['evidence_status']}"
+    )
 
 
 if __name__ == "__main__":

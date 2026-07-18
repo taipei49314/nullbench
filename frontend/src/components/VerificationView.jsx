@@ -3,6 +3,7 @@ import {
   Check,
   FileLock2,
   Fingerprint,
+  GitCompareArrows,
   ShieldCheck,
 } from "lucide-react";
 
@@ -15,6 +16,9 @@ const CHECKS = [
 ];
 
 export default function VerificationView({ gameData, manifest }) {
+  const forward = manifest.forward_experiment;
+  const forwardGame = forward?.games?.[gameData.game];
+  const pending = forwardGame?.pending?.at(-1);
   return (
     <div className="workspace-view verification-view">
       <header className="workspace-heading">
@@ -26,7 +30,7 @@ export default function VerificationView({ gameData, manifest }) {
           <ShieldCheck size={26} />
           <span>
             <strong>ALL GREEN</strong>
-            <small>129 / 129 TESTS</small>
+            <small>VERIFIED PIPELINE</small>
           </span>
         </div>
       </header>
@@ -72,6 +76,62 @@ export default function VerificationView({ gameData, manifest }) {
           ))}
         </section>
       </div>
+
+      <section className="forward-proof-panel">
+        <header>
+          <div>
+            <GitCompareArrows size={22} />
+            <span>
+              <strong>QWEN / RULE 前向 A/B</strong>
+              <small>開獎前凍結 · 缺登與晚登永不回填</small>
+            </span>
+          </div>
+          <b
+            className={
+              forward?.verification?.chain_valid ? "is-valid" : "is-pending"
+            }
+          >
+            {forward?.verification?.chain_valid
+              ? "CHAIN VERIFIED"
+              : "WAITING FOR FIRST REGISTRATION"}
+          </b>
+        </header>
+        <div className="forward-proof-metrics">
+          <div>
+            <small>有效配對</small>
+            <strong>
+              {forwardGame?.eligible_qwen_rule_pairs ?? 0}
+              <i> / {forward?.methodology?.minimum_paired_draws_per_game ?? 52}</i>
+            </strong>
+          </div>
+          <div>
+            <small>Qwen / 和局 / 規則</small>
+            <strong>
+              {forwardGame
+                ? `${forwardGame.qwen_vs_rule.qwen_wins} / ${forwardGame.qwen_vs_rule.ties} / ${forwardGame.qwen_vs_rule.rule_wins}`
+                : "0 / 0 / 0"}
+            </strong>
+          </div>
+          <div>
+            <small>待開獎目標</small>
+            <strong>
+              {pending
+                ? `${pending.target.date} · ${pending.target.period}`
+                : "尚未凍結"}
+            </strong>
+          </div>
+          <div>
+            <small>證據狀態</small>
+            <strong>
+              {forward?.evidence_status ?? "尚未建立前向樣本"}
+            </strong>
+          </div>
+        </div>
+        <p>
+          只有 Qwen 與規則裁判都在截止前成功凍結的期數才會進入比較；
+          均勻隨機五注同時保存為零假設。這裡不顯示事後補算的「預測」。
+        </p>
+      </section>
 
       <div className="verification-footer">
         <div>
