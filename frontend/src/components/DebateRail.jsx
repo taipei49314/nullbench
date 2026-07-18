@@ -16,6 +16,8 @@ const STANCE_LABELS = {
   oppose: "反對",
 };
 
+const WINDOW_SIZE = 5;
+
 function interleaveCritiques(critiques) {
   const byCritic = new Map();
   for (const critique of critiques) {
@@ -47,8 +49,11 @@ export default function DebateRail({
     filter === "all"
       ? interleaved
       : interleaved.filter((critique) => critique.stance === filter);
-  const start = visible.length > 6 ? activeIndex % (visible.length - 5) : 0;
-  const windowed = visible.slice(start, start + 6);
+  const start =
+    visible.length > WINDOW_SIZE
+      ? activeIndex % (visible.length - WINDOW_SIZE + 1)
+      : 0;
+  const windowed = visible.slice(start, start + WINDOW_SIZE);
 
   return (
     <aside className="debate-rail">
@@ -70,7 +75,7 @@ export default function DebateRail({
           </button>
         ))}
       </div>
-      <div className="debate-stream">
+      <div aria-live="polite" className="debate-stream">
         {windowed.map((critique, index) => {
           const target = proposals.get(critique.target);
           return (
@@ -100,7 +105,8 @@ export default function DebateRail({
       </div>
       <div className="debate-footer">
         <SlidersHorizontal size={14} />
-        正在顯示 {start + 1}–{Math.min(start + 6, visible.length)} /{" "}
+        正在顯示 {start + 1}–
+        {Math.min(start + WINDOW_SIZE, visible.length)} /{" "}
         {visible.length} 筆
       </div>
     </aside>

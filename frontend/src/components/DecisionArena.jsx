@@ -1,4 +1,10 @@
-import { ChevronDown, Pause, Play, SkipForward } from "lucide-react";
+import {
+  ChevronDown,
+  Pause,
+  Play,
+  Radio,
+  SkipForward,
+} from "lucide-react";
 
 import { AGENTS, formatDate } from "../domain";
 import ArenaRadar from "./ArenaRadar";
@@ -7,6 +13,7 @@ import NumberBall from "./NumberBall";
 export default function DecisionArena({
   activeGame,
   activeSlot,
+  debateStep,
   gameData,
   isPlaying,
   onGameChange,
@@ -14,8 +21,15 @@ export default function DecisionArena({
   onSelectTicket,
   onStep,
   selectedSlot,
+  totalCritiques,
 }) {
   const decision = gameData.next_decision;
+  const focusedTicket = decision.selected_tickets[activeSlot - 1];
+  const focusedRanking = decision.adjudication.ranking.find(
+    (ranking) => ranking.proposal_id === focusedTicket.source_proposal,
+  );
+  const debateProgress = `${(debateStep / totalCritiques) * 100}%`;
+
   return (
     <section className="decision-arena">
       <ArenaRadar pulse={isPlaying} />
@@ -37,7 +51,8 @@ export default function DecisionArena({
         </div>
         <div className="debate-controls">
           <button
-            className="primary-control"
+            aria-pressed={isPlaying}
+            className={`primary-control ${isPlaying ? "is-playing" : ""}`}
             type="button"
             onClick={onPlayToggle}
           >
@@ -64,16 +79,34 @@ export default function DecisionArena({
         </p>
       </div>
 
+      <div
+        aria-live="polite"
+        className={`playback-status ${isPlaying ? "is-live" : ""}`}
+      >
+        <span>
+          <Radio size={15} />
+          {isPlaying ? "議會正在辯論" : "議會待命"}
+        </span>
+        <i aria-hidden="true">
+          <b style={{ "--progress": debateProgress }} />
+        </i>
+        <strong>
+          評議 {String(debateStep).padStart(2, "0")} / {totalCritiques}
+        </strong>
+      </div>
+
       <div className="ticket-stack" aria-label="裁決出的五注號碼">
         {decision.selected_tickets.map((ticket) => {
           const active = ticket.slot === activeSlot;
           const selected = ticket.slot === selectedSlot;
           return (
             <button
+              aria-pressed={selected}
               className={`ticket-row ${active ? "is-live" : ""} ${
                 selected ? "is-selected" : ""
               }`}
               key={ticket.slot}
+              style={{ "--row": ticket.slot }}
               type="button"
               onClick={() => onSelectTicket(ticket.slot)}
             >
@@ -110,9 +143,12 @@ export default function DecisionArena({
         })}
       </div>
 
-      <div className="decision-footnote">
-        <span>{decision.adjudication.method}</span>
-        <code>{decision.decision_hash.slice(0, 20)}</code>
+      <div className="ticket-readout" key={activeSlot}>
+        <span>FOCUS {String(activeSlot).padStart(2, "0")}</span>
+        <strong>{AGENTS[focusedTicket.source_agent].name}</strong>
+        <small>{focusedTicket.source_proposal}</small>
+        <b>裁決分數 {focusedRanking?.final_score.toFixed(8) ?? "—"}</b>
+        <code>{decision.decision_hash.slice(0, 16)}</code>
       </div>
     </section>
   );

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeftRight,
   CheckCircle2,
@@ -13,9 +14,22 @@ export default function AppHeader({
   gameData,
   onNavigate,
 }) {
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef(null);
   const decision = gameData.next_decision;
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(copyTimer.current);
+    },
+    [],
+  );
+
   const copyHash = () => {
     navigator.clipboard?.writeText(decision.decision_hash);
+    setCopied(true);
+    window.clearTimeout(copyTimer.current);
+    copyTimer.current = window.setTimeout(() => setCopied(false), 1400);
   };
 
   return (
@@ -64,10 +78,11 @@ export default function AppHeader({
       </div>
 
       <button className="hash-lockup" type="button" onClick={copyHash}>
-        <span>決策鏈</span>
+        <span>{copied ? "已複製完整雜湊" : "決策鏈"}</span>
         <code>
-          {decision.decision_hash.slice(0, 8)}…
-          {decision.decision_hash.slice(-8)}
+          {copied
+            ? "COPIED"
+            : `${decision.decision_hash.slice(0, 8)}…${decision.decision_hash.slice(-8)}`}
         </code>
         <Copy size={14} />
       </button>

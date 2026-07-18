@@ -48,6 +48,7 @@ export default function CommandCenter({
         <DecisionArena
           activeGame={activeGame}
           activeSlot={activeSlot}
+          debateStep={(cursor % decision.critiques.length) + 1}
           gameData={gameData}
           isPlaying={isPlaying}
           onGameChange={onGameChange}
@@ -58,6 +59,7 @@ export default function CommandCenter({
           }}
           onStep={() => setCursor((value) => value + 1)}
           selectedSlot={selectedSlot}
+          totalCritiques={decision.critiques.length}
         />
         <DebateRail
           activeIndex={cursor}

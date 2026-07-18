@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ArrowRight, ScanSearch } from "lucide-react";
 
 import { formatDate } from "../domain";
@@ -9,6 +10,7 @@ export default function ReplayDock({
   latestReview,
   onOpenHistory,
 }) {
+  const [position, setPosition] = useState(100);
   const error = latestReview?.error_analysis;
   const target = latestReview?.target;
   return (
@@ -36,15 +38,21 @@ export default function ReplayDock({
           </div>
           <input
             aria-label="歷史回放位置"
-            defaultValue="100"
-            min="0"
+            aria-valuetext={`歷史回放 ${position}%`}
             max="100"
+            min="0"
+            style={{ "--position": `${position}%` }}
             type="range"
+            value={position}
+            onChange={(event) => setPosition(Number(event.target.value))}
+            onInput={(event) => setPosition(Number(event.target.value))}
           />
         </div>
         <div className="timeline-current">
-          <span>目前</span>
-          <strong>{gameData.last_target.period}</strong>
+          <span>{position === 100 ? "目前" : "回放位置"}</span>
+          <strong>
+            {position === 100 ? gameData.last_target.period : `${position}%`}
+          </strong>
         </div>
       </div>
 
