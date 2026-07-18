@@ -145,10 +145,6 @@ export default function App() {
           官方同步失敗，目前顯示本地已驗證快取：{dashboard.syncWarning}
         </div>
       ) : null}
-      <div className="desktop-guard" role="alert">
-        <strong>LOTTO//LAB 桌機戰情室</strong>
-        <span>請將瀏覽器視窗拉寬至至少 1180px。</span>
-      </div>
     </div>
   );
 }

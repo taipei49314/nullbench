@@ -1990,6 +1990,55 @@ code {
   text-align: center;
 }
 
+.app-error-screen {
+  display: grid;
+  min-width: 1180px;
+  min-height: 100vh;
+  place-content: center;
+  justify-items: center;
+  padding: 48px;
+  background:
+    radial-gradient(circle at 50% 42%, rgb(255 85 72 / 9%), transparent 34%),
+    var(--bg);
+  color: var(--coral);
+  text-align: center;
+}
+
+.app-error-screen > strong {
+  margin-top: 18px;
+  color: var(--text);
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 24px;
+}
+
+.app-error-screen > p {
+  max-width: 680px;
+  margin: 10px 0 22px;
+  color: var(--muted);
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.app-error-screen > button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 18px;
+  border: 1px solid var(--coral);
+  color: var(--coral);
+  font-size: 12px;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.app-error-screen > button:hover {
+  background: var(--coral);
+  color: var(--bg-deep);
+}
+
 .loading-mark {
   display: flex;
   margin-bottom: 30px;
@@ -2056,10 +2105,6 @@ code {
   to {
     opacity: 0.35;
   }
-}
-
-.desktop-guard {
-  display: none;
 }
 
 /* Desktop legibility and interaction pass */
@@ -3369,38 +3414,6 @@ body {
 
   .ticket-readout > code {
     display: none;
-  }
-}
-
-@media (max-width: 1179px) {
-  html {
-    min-width: 0;
-  }
-
-  .app-header,
-  .app-stage,
-  .inspector-backdrop {
-    display: none;
-  }
-
-  .desktop-guard {
-    position: fixed;
-    inset: 0;
-    display: grid;
-    place-content: center;
-    justify-items: center;
-    background: var(--bg);
-  }
-
-  .desktop-guard strong {
-    color: var(--lime);
-    font-size: 18px;
-  }
-
-  .desktop-guard span {
-    margin-top: 12px;
-    color: var(--muted);
-    font-size: 11px;
   }
 }
 
