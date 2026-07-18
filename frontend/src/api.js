@@ -29,13 +29,18 @@ export function revealDecision(game) {
 }
 
 export async function loadDashboard() {
-  const [manifest, superReplay, lottoReplay] = await Promise.all([
+  const [manifest, superReplay, lottoReplay, councilQuality] =
+    await Promise.all([
     fetchJson("/api/manifest"),
     fetchJson("/api/replay/super?limit=18"),
     fetchJson("/api/replay/lotto649?limit=18"),
+    fetchJson("/api/research/council-quality"),
   ]);
   return {
     manifest,
+    research: {
+      councilQuality,
+    },
     recent: {
       super: superReplay.events,
       lotto649: lottoReplay.events,

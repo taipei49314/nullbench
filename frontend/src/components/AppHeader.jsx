@@ -73,7 +73,7 @@ export default function AppHeader({
         </span>
         <span>
           <CheckCircle2 size={15} />
-          129 項測試通過
+          完整測試鏈
         </span>
       </div>
 

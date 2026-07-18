@@ -8,6 +8,7 @@ import CommandCenter from "./components/CommandCenter";
 import CouncilView from "./components/CouncilView";
 import HistoryView from "./components/HistoryView";
 import LoadingScreen from "./components/LoadingScreen";
+import ResearchView from "./components/ResearchView";
 import VerificationView from "./components/VerificationView";
 
 export default function App() {
@@ -105,6 +106,15 @@ export default function App() {
       <VerificationView
         gameData={gameData}
         manifest={dashboard.manifest}
+      />
+    );
+  } else if (activeView === "research") {
+    activeContent = (
+      <ResearchView
+        activeGame={activeGame}
+        key={activeGame}
+        onGameChange={setActiveGame}
+        study={dashboard.research.councilQuality}
       />
     );
   } else {

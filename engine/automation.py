@@ -262,6 +262,7 @@ def _history_result(result: dict) -> dict:
         "regenerated": result.get("regenerated"),
         "manifest_hash": result.get("manifest_hash"),
         "forward_experiment": result.get("forward_experiment"),
+        "shadow_research": result.get("shadow_research"),
     }
 
 

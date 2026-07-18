@@ -142,6 +142,17 @@ python agent_ablation_verify.py
 是否真的提高五注中最佳一注的主號命中」。結果只寫入 `research/results/`，
 正式 `records/` 雜湊前後必須一致。
 
+### Agent 品質影子研究
+
+```
+python council_quality_verify.py
+```
+
+這一層逐席測試移除與「覆蓋稽核員」替換，並量測評論校準、聲音重複及
+裁判敏感度。development 選席、holdout 驗證，兩款遊戲未共同通過前只保留
+shadow；目前正式五席與 7/20、7/21 已凍結號碼完全不變。桌機前端的
+「策略實驗」可點選最近 52 期、Agent 席位、評論模式與裁判旋鈕。
+
 ## 五個選號人格（每遊戲每週 5 席）
 
 | 人格 | 席位 | 手法 |
@@ -195,12 +206,16 @@ research/             全歷史走步回測、兩階段搜尋與封存外驗
 agent_ablation.py     2 至 5 人共 26 個子議會的正式消融研究
 agent_ablation_verify.py
                       分階段測試、正式消融與完整後測入口
+council_quality.py    Agent 品質、覆蓋替換、評論校準與裁判敏感度研究
+council_quality_verify.py
+                      分階段測試、正式影子研究、前端與完整後測入口
 forward_verify.py     前向三臂帳本、sync、前端與完整回歸驗收
 FORWARD_PREREG.md     Qwen／規則前向比較的凍結門檻
 FORWARD_FEEDBACK.md   開獎後先檢討、再裁決下一期的回饋契約
 OPS_TELEMETRY.md      Qwen 運作遙測與聯合部署閘門
 automation_verify.py  背景 Loop、故障恢復、前端與完整回歸驗收
 AUTOMATION.md         桌機 watcher、監督重啟與持久狀態契約
+SHADOW_RESEARCH.md    Agent 替換、辯論校準、裁判敏感度與升級閘門
 output/jupyter-notebook/
                       可重跑的策略研究伴隨筆記本
 tests/                研究與正式流程完整測試

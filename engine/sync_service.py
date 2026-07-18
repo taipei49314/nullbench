@@ -51,6 +51,48 @@ def _read_manifest(output_dir: Path) -> dict | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _shadow_research_stale(base: Path, manifest: dict) -> bool:
+    path = Path(base) / "research" / "results" / "council_quality.json"
+    try:
+        study = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return True
+    source_dates = study.get("data_quality", {}).get(
+        "source_last_dates", {}
+    )
+    return any(
+        source_dates.get(game)
+        != manifest["games"][game]["last_target"]["date"]
+        for game in GAMES
+    )
+
+
+def _refresh_shadow_research(base: Path, output_dir: Path) -> dict:
+    """在正式下一期凍結後，唯讀重算 Agent 品質影子研究。"""
+    from research.council_quality import run_quality_study, write_results
+
+    result = run_quality_study(
+        {
+            game: Path(output_dir) / f"{game}.jsonl"
+            for game in GAMES
+        },
+        base=base,
+        verify_ledgers=True,
+    )
+    paths = write_results(
+        result,
+        Path(base) / "research" / "results",
+    )
+    return {
+        "experiment_id": result["experiment_id"],
+        "generated_at": result["generated_at"],
+        "status": result["conclusion"]["status"],
+        "recommendation": result["conclusion"]["recommendation"],
+        "records_unchanged": result["records_integrity"]["unchanged"],
+        "result_file": str(paths["json"].relative_to(base)),
+    }
+
+
 def compare_draw_counts(
     previous: dict[str, int], current: dict[str, int]
 ) -> dict[str, int]:
@@ -76,6 +118,7 @@ def sync_latest(
     pre_settler=forward_lab.settle_forward_registry,
     feedback_loader=forward_lab.feedback_for_target,
     forward_syncer=forward_lab.reconcile_forward_registry,
+    shadow_researcher=_refresh_shadow_research,
 ) -> dict:
     """檢查官方新資料、必要時重建閉環，並結算/凍結前向 A/B。"""
     base = Path(base)
@@ -150,6 +193,23 @@ def sync_latest(
         fresh_env.store,
         manifest,
     )
+    shadow_research = None
+    ledger_files_ready = all(
+        (output_dir / f"{game}.jsonl").exists() for game in GAMES
+    )
+    if (
+        ledger_files_ready
+        and _shadow_research_stale(base, manifest)
+    ):
+        emit(
+            "researching",
+            "下一期已凍結，正在重算 Agent 品質影子研究",
+            {
+                "formal_decision_frozen": True,
+                "writes_formal_records": False,
+            },
+        )
+        shadow_research = shadow_researcher(base, output_dir)
 
     games = {
         game: {
@@ -196,6 +256,7 @@ def sync_latest(
                 "operations", {}
             ).get("deployment_gate"),
         },
+        "shadow_research": shadow_research,
     }
     emit(
         "ready",

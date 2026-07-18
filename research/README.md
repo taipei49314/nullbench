@@ -65,3 +65,17 @@ holdout。每期另跑 200 組固定種子的均勻隨機五注，主要指標�
 - `agent_ablation_summary.csv`：2 至 5 人的 development/holdout 摘要。
 - `agent_ablation_subsets.csv`：26 個子議會的分段結果。
 - `agent_ablation_artifact.json`：已驗證的 Data Analytics 報告資料。
+
+## Agent 品質與替換影子研究
+
+`council-quality-shadow-v1` 不是再增加 Agent 數量，而是在相同 15 組提案、
+60 次評論與五注預算下，逐席比較移除與「覆蓋稽核員」替換；同時量測評論
+校準、評論者重複度與五種裁判旋鈕敏感度。
+
+```powershell
+python -X utf8 council_quality_verify.py
+```
+
+development 只用來選被替換席位，最近 30% holdout 只開封一次。兩款遊戲都
+通過配對區塊 bootstrap 閘門前，候選只留在 shadow，不能修改正式下一期
+號碼。完整方法與目前結論見 `SHADOW_RESEARCH.md`。

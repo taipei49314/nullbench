@@ -14,6 +14,7 @@ import {
 const frontendDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(frontendDir, "..");
 const resultsDir = path.join(repoDir, "simulation", "results");
+const researchResultsDir = path.join(repoDir, "research", "results");
 const forwardStatusFile = path.join(
   repoDir,
   "simulation",
@@ -220,6 +221,23 @@ function simulationApi(supervisor) {
       } catch (error) {
         jsonResponse(response, 503, {
           error: "找不到模擬結果，請先在專案根目錄執行 python lotto.py loop。",
+          detail: error.message,
+        });
+      }
+      return;
+    }
+    if (url.pathname === "/api/research/council-quality") {
+      try {
+        const study = JSON.parse(
+          fs.readFileSync(
+            path.join(researchResultsDir, "council_quality.json"),
+            "utf8",
+          ),
+        );
+        jsonResponse(response, 200, study);
+      } catch (error) {
+        jsonResponse(response, 503, {
+          error: "Agent 品質影子研究尚未產生。",
           detail: error.message,
         });
       }

@@ -264,3 +264,106 @@ def test_sync_never_registers_new_target_when_decision_rebuild_fails(
         )
 
     assert registered == []
+
+
+def test_sync_refreshes_stale_shadow_research_only_after_registration(
+    tmp_path,
+    monkeypatch,
+):
+    output = tmp_path / "simulation" / "results"
+    output.mkdir(parents=True)
+    for game in (SUPER, LOTTO649):
+        (output / f"{game}.jsonl").write_text("{}\n", encoding="utf-8")
+
+    class FakeStore:
+        def draws(self, game):
+            return [object()] * ({SUPER: 11, LOTTO649: 20}[game])
+
+    class FakeEnv:
+        def __init__(self, base):
+            self.data_dir = base / "data"
+            self.store = FakeStore()
+
+    monkeypatch.setattr("engine.sync_service.Env", FakeEnv)
+    order = []
+
+    def runner(store, output_dir, feedback_provider):
+        order.append("runner")
+        return _manifest(11, 20)
+
+    def register(base, store, manifest):
+        order.append("register")
+        return _forward_result()
+
+    def research(base, output_dir):
+        order.append("research")
+        return {
+            "experiment_id": "council-quality-shadow-v1",
+            "status": "retain_current_council",
+        }
+
+    phases = []
+    result = sync_latest(
+        tmp_path,
+        fetcher=lambda game, data_dir: (1, 1),
+        runner=runner,
+        pre_settler=lambda base, store: {"settlements_created": 0},
+        forward_syncer=register,
+        shadow_researcher=research,
+        progress=lambda phase, message, details: phases.append(phase),
+    )
+
+    assert order == ["runner", "register", "research"]
+    assert result["shadow_research"]["status"] == (
+        "retain_current_council"
+    )
+    assert phases == [
+        "checking",
+        "reviewing",
+        "optimizing",
+        "preregistering",
+        "researching",
+        "ready",
+    ]
+
+
+def test_stale_shadow_research_retries_without_new_draws(
+    tmp_path,
+    monkeypatch,
+):
+    output = tmp_path / "simulation" / "results"
+    output.mkdir(parents=True)
+    (output / "manifest.json").write_text(
+        json.dumps(_manifest()), encoding="utf-8"
+    )
+    for game in (SUPER, LOTTO649):
+        (output / f"{game}.jsonl").write_text("{}\n", encoding="utf-8")
+
+    class FakeStore:
+        def draws(self, game):
+            return [object()] * ({SUPER: 10, LOTTO649: 20}[game])
+
+    class FakeEnv:
+        def __init__(self, base):
+            self.data_dir = base / "data"
+            self.store = FakeStore()
+
+    monkeypatch.setattr("engine.sync_service.Env", FakeEnv)
+    calls = []
+    result = sync_latest(
+        tmp_path,
+        fetcher=lambda game, data_dir: (1, 1),
+        runner=lambda *args: (_ for _ in ()).throw(
+            AssertionError("沒有新開獎不得重建正式決策")
+        ),
+        forward_syncer=lambda base, store, manifest: _forward_result(),
+        shadow_researcher=lambda base, output_dir: calls.append(
+            (base, output_dir)
+        )
+        or {"status": "refreshed"},
+    )
+
+    assert result["new_draws_total"] == 0
+    assert result["regenerated"] is False
+    assert result["shadow_research"] == {"status": "refreshed"}
+    assert len(calls) == 1

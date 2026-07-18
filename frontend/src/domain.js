@@ -35,6 +35,7 @@ export const NAV_ITEMS = [
   { id: "decision", label: "即時裁決" },
   { id: "history", label: "歷史回放" },
   { id: "council", label: "Agent 議會" },
+  { id: "research", label: "策略實驗" },
   { id: "verification", label: "驗證" },
 ];
 
