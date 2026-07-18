@@ -24,10 +24,16 @@
 ## 執行
 
 ```powershell
-python -X utf8 research_backtest.py
+python -X utf8 research_verify.py
 ```
 
-預設使用 8 個 replica 與 1,000 次 13 週區塊 bootstrap。可重現分析筆記本：
+這個單一入口依序執行資料品質、策略搜尋、validation/holdout、決策報告
+四組完整測試，再跑全套測試、8 個 replica 與 1,000 次 13 週區塊
+bootstrap 的正式研究，最後重跑全套測試與 `git diff --check`。任何階段失敗
+都不會繼續。若只要開發期快速驗證，可用 `python research_verify.py
+--tests-only`。
+
+可重現分析筆記本：
 
 `output/jupyter-notebook/strategy-walkforward-research.ipynb`
 

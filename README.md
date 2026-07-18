@@ -20,7 +20,8 @@ python lotto.py ingest   # 手動更新歷史資料（check 會自動做）
 ## 全歷史策略研究（與正式 v1 隔離）
 
 ```
-python research_backtest.py
+python research_verify.py     # 建議：四階段測試 → 正式回測 → 全套驗收
+python research_backtest.py   # 只重跑正式研究
 ```
 
 研究管線會逐週回放全部官方歷史，只允許使用當週以前的資料。前 50% 週用於
@@ -75,10 +76,12 @@ records/              picks / settlements / weights / commentary 帳本＋report
 research/             全歷史走步回測、兩階段搜尋與封存外驗
 output/jupyter-notebook/
                       可重跑的策略研究伴隨筆記本
-tests/                73 tests
+tests/                研究與正式流程完整測試
 ```
 
 ## 驗證紀律
 
 改任何 engine 邏輯後：`python -X utf8 -m pytest tests -q` 必須全綠。
+正式策略研究使用 `python research_verify.py`；資料品質、策略搜尋、
+validation/holdout 與決策報告四個階段任一測試或閘門失敗都會立即停止。
 改參數＝開新 experiment_id（見 PREREG.md），禁止原地調參沿用舊帳。
