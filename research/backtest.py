@@ -45,8 +45,12 @@ from engine.picker import GAMES
 from engine.stats import gaps, special_gaps
 from engine.store import week_id_of
 from research.gates import (
+    FINAL_POLICY_IDS,
     build_data_quality_gate,
     build_strategy_search_gate,
+    build_validation_holdout_gate,
+    create_holdout_seal,
+    edge_is_proven,
     require_gate,
 )
 
@@ -807,6 +811,50 @@ def _summary_lookup(
     )
 
 
+def select_validation_policy(summaries: list[dict], game: str) -> dict:
+    """只使用 validation 指標選一次最終政策。"""
+    rows = [
+        row
+        for row in summaries
+        if row["game"] == game and row["split"] == "validation"
+    ]
+    ids = [row["policy_id"] for row in rows]
+    if set(ids) != set(FINAL_POLICY_IDS) or len(ids) != len(set(ids)):
+        raise ValueError(f"{game}: validation 政策覆蓋不完整或重複")
+    return sorted(
+        rows,
+        key=lambda row: (
+            -row["delta_robust_roi_mean"],
+            row["policy_id"],
+        ),
+    )[0]
+
+
+def select_and_open_holdout(summaries: list[dict], game: str) -> dict:
+    """先用 validation 定案，再讀取該政策唯一一列 holdout。"""
+    choice = select_validation_policy(summaries, game)
+    holdout_rows = [
+        row
+        for row in summaries
+        if row["policy_id"] == choice["policy_id"]
+        and row["game"] == game
+        and row["split"] == "holdout"
+    ]
+    if len(holdout_rows) != 1:
+        raise ValueError(f"{game}: 選定政策必須恰有一列 holdout")
+    holdout = holdout_rows[0]
+    edge_proven = edge_is_proven(holdout)
+    return {
+        "policy_id": choice["policy_id"],
+        "validation": choice,
+        "holdout": holdout,
+        "edge_proven": edge_proven,
+        "conditional_decision": (
+            choice["policy_id"] if edge_proven else "random_5"
+        ),
+    }
+
+
 def _rank_family(
     summaries: list[dict],
     candidates: list[Candidate],
@@ -1227,16 +1275,6 @@ def run_study(
         )
         policies = build_final_policies(refined_winners[game], all_ranked)
         final_policies[game] = policies
-        game_final_results = evaluate_policies(contexts[game], policies, replicates)
-        final_results.extend(game_final_results)
-        final_summaries.extend(
-            summarize(
-                game_final_results,
-                baseline_policy_id="random_5",
-                bootstrap_samples=bootstrap_samples,
-            )
-        )
-
     determinism_probe = strategy_determinism_probe(contexts, final_policies)
     strategy_search_gate = build_strategy_search_gate(
         contexts,
@@ -1248,38 +1286,38 @@ def run_study(
     )
     require_gate(strategy_search_gate)
 
-    selected = {}
+    dataset_fingerprints = {
+        profile["game"]: profile["dataset_sha256"] for profile in data_quality
+    }
+    holdout_seal = create_holdout_seal(
+        contexts, final_policies, dataset_fingerprints
+    )
+
     for game in GAMES:
-        validation_rows = [
-            row
-            for row in final_summaries
-            if row["game"] == game and row["split"] == "validation"
-        ]
-        choice = sorted(
-            validation_rows,
-            key=lambda row: (
-                -row["delta_robust_roi_mean"],
-                row["policy_id"],
-            ),
-        )[0]
-        holdout = _summary_lookup(
-            final_summaries, choice["policy_id"], game, "holdout"
+        game_final_results = evaluate_policies(
+            contexts[game], final_policies[game], replicates
         )
-        edge_proven = (
-            holdout["delta_ci_low"] > 0
-            and holdout["delta_fixed_roi_mean"] >= 0
-            and holdout["positive_replicate_rate"] >= 0.75
-            and holdout["active_week_win_rate"] > 0.50
+        final_results.extend(game_final_results)
+        final_summaries.extend(
+            summarize(
+                game_final_results,
+                baseline_policy_id="random_5",
+                bootstrap_samples=bootstrap_samples,
+            )
         )
-        selected[game] = {
-            "policy_id": choice["policy_id"],
-            "validation": choice,
-            "holdout": holdout,
-            "edge_proven": edge_proven,
-            "conditional_decision": (
-                choice["policy_id"] if edge_proven else "random_5"
-            ),
-        }
+
+    selected = {
+        game: select_and_open_holdout(final_summaries, game) for game in GAMES
+    }
+    validation_holdout_gate = build_validation_holdout_gate(
+        final_summaries,
+        selected,
+        holdout_seal,
+        contexts,
+        final_policies,
+        dataset_fingerprints,
+    )
+    require_gate(validation_holdout_gate)
 
     study = {
         "schema_version": "1",
@@ -1300,9 +1338,11 @@ def run_study(
             ],
         },
         "data_quality": data_quality,
+        "holdout_seal": holdout_seal,
         "stage_gates": {
             "data_quality": data_quality_gate,
             "strategy_search": strategy_search_gate,
+            "validation_holdout": validation_holdout_gate,
         },
         "coarse_candidates": [c.as_dict() for c in coarse],
         "coarse_train_winners": {

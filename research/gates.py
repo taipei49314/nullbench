@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+import hashlib
+import json
 from typing import Iterable
 
 from engine.games import LOTTO649, SUPER
@@ -14,6 +16,13 @@ from engine.store import monday_of, week_id_of
 
 
 EXPECTED_GAMES = (SUPER, LOTTO649)
+FINAL_POLICY_IDS = (
+    "random_5",
+    "current_ensemble",
+    "trained_family_ensemble",
+    "trained_best_5",
+    "trained_blend",
+)
 
 
 @dataclass(frozen=True)
@@ -278,13 +287,7 @@ def build_strategy_search_gate(
                 )
             )
 
-    expected_policy_ids = {
-        "random_5",
-        "current_ensemble",
-        "trained_family_ensemble",
-        "trained_best_5",
-        "trained_blend",
-    }
+    expected_policy_ids = set(FINAL_POLICY_IDS)
     for game in EXPECTED_GAMES:
         policies = list(final_policies.get(game, ()))
         ids = [_policy_id(policy) for policy in policies]
@@ -313,6 +316,244 @@ def build_strategy_search_gate(
     failed = [check["id"] for check in checks if not check["passed"]]
     return {
         "stage": "strategy_search",
+        "status": "pass" if not failed else "fail",
+        "checks": checks,
+        "failed_checks": failed,
+    }
+
+
+def _serialized_policy(policy) -> dict:
+    if isinstance(policy, dict):
+        return policy
+    return policy.as_dict()
+
+
+def _holdout_seal_material(
+    contexts_by_game: dict,
+    final_policies: dict,
+    dataset_fingerprints: dict[str, str],
+) -> dict:
+    games = {}
+    for game in EXPECTED_GAMES:
+        holdout = [
+            context
+            for context in contexts_by_game.get(game, ())
+            if context.split == "holdout"
+        ]
+        policies = sorted(
+            (
+                _serialized_policy(policy)
+                for policy in final_policies.get(game, ())
+            ),
+            key=lambda policy: policy["policy_id"],
+        )
+        games[game] = {
+            "dataset_sha256": dataset_fingerprints.get(game),
+            "weeks": [
+                {
+                    "week": context.week,
+                    "periods": [draw.period for draw in context.draws],
+                    "dates": [draw.date for draw in context.draws],
+                }
+                for context in holdout
+            ],
+            "policies": policies,
+        }
+    return {"games": games}
+
+
+def create_holdout_seal(
+    contexts_by_game: dict,
+    final_policies: dict,
+    dataset_fingerprints: dict[str, str],
+) -> dict:
+    """在 validation 選擇與 holdout 評估之前封存資料與政策集合。"""
+    material = _holdout_seal_material(
+        contexts_by_game, final_policies, dataset_fingerprints
+    )
+    digest = hashlib.sha256(
+        json.dumps(
+            material,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    return {
+        "schema_version": "1",
+        "status": "sealed",
+        "sha256": digest,
+        "games": {
+            game: {
+                "dataset_sha256": material["games"][game]["dataset_sha256"],
+                "holdout_weeks": len(material["games"][game]["weeks"]),
+                "holdout_draws": sum(
+                    len(week["periods"])
+                    for week in material["games"][game]["weeks"]
+                ),
+                "policy_ids": [
+                    policy["policy_id"]
+                    for policy in material["games"][game]["policies"]
+                ],
+            }
+            for game in EXPECTED_GAMES
+        },
+    }
+
+
+def verify_holdout_seal(
+    seal: dict,
+    contexts_by_game: dict,
+    final_policies: dict,
+    dataset_fingerprints: dict[str, str],
+) -> bool:
+    expected = create_holdout_seal(
+        contexts_by_game, final_policies, dataset_fingerprints
+    )
+    return seal == expected
+
+
+def edge_is_proven(holdout: dict) -> bool:
+    """唯一允許升級條件式政策的外驗門檻。"""
+    return (
+        holdout["delta_ci_low"] > 0
+        and holdout["delta_fixed_roi_mean"] >= 0
+        and holdout["positive_replicate_rate"] >= 0.75
+        and holdout["active_week_win_rate"] > 0.50
+    )
+
+
+def build_validation_holdout_gate(
+    final_summaries: Iterable[dict],
+    selected: dict,
+    holdout_seal: dict,
+    contexts_by_game: dict,
+    final_policies: dict,
+    dataset_fingerprints: dict[str, str],
+) -> dict:
+    """驗證 validation 只選一次，且 holdout 決策符合封存門檻。"""
+    summaries = list(final_summaries)
+    checks = [
+        _check(
+            "holdout_seal_valid",
+            verify_holdout_seal(
+                holdout_seal,
+                contexts_by_game,
+                final_policies,
+                dataset_fingerprints,
+            ),
+            holdout_seal.get("sha256"),
+        ),
+        _check(
+            "selected_games_complete",
+            set(selected) == set(EXPECTED_GAMES),
+            sorted(selected),
+        ),
+    ]
+    expected_ids = set(FINAL_POLICY_IDS)
+    for game in EXPECTED_GAMES:
+        for split in ("train", "validation", "holdout"):
+            rows = [
+                row
+                for row in summaries
+                if row.get("game") == game and row.get("split") == split
+            ]
+            ids = [row.get("policy_id") for row in rows]
+            checks.append(
+                _check(
+                    f"{game}.{split}.policy_coverage",
+                    set(ids) == expected_ids and len(ids) == len(set(ids)),
+                    ids,
+                )
+            )
+        validation_rows = [
+            row
+            for row in summaries
+            if row.get("game") == game and row.get("split") == "validation"
+        ]
+        expected_choice = (
+            sorted(
+                validation_rows,
+                key=lambda row: (
+                    -row["delta_robust_roi_mean"],
+                    row["policy_id"],
+                ),
+            )[0]
+            if validation_rows
+            else None
+        )
+        decision = selected.get(game, {})
+        policy_id = decision.get("policy_id")
+        checks.append(
+            _check(
+                f"{game}.validation_choice",
+                expected_choice is not None
+                and policy_id == expected_choice["policy_id"]
+                and decision.get("validation") == expected_choice,
+                {
+                    "expected": (
+                        expected_choice["policy_id"] if expected_choice else None
+                    ),
+                    "actual": policy_id,
+                },
+            )
+        )
+        holdout_rows = [
+            row
+            for row in summaries
+            if row.get("game") == game
+            and row.get("split") == "holdout"
+            and row.get("policy_id") == policy_id
+        ]
+        actual_holdout = decision.get("holdout")
+        checks.append(
+            _check(
+                f"{game}.holdout_exact_row",
+                len(holdout_rows) == 1 and actual_holdout == holdout_rows[0],
+                len(holdout_rows),
+            )
+        )
+        expected_edge = (
+            edge_is_proven(actual_holdout) if actual_holdout is not None else False
+        )
+        checks.extend(
+            [
+                _check(
+                    f"{game}.edge_gate",
+                    decision.get("edge_proven") is expected_edge,
+                    {
+                        "expected": expected_edge,
+                        "actual": decision.get("edge_proven"),
+                    },
+                ),
+                _check(
+                    f"{game}.conditional_decision",
+                    decision.get("conditional_decision")
+                    == (policy_id if expected_edge else "random_5"),
+                    decision.get("conditional_decision"),
+                ),
+            ]
+        )
+        baseline_rows = [
+            row
+            for row in summaries
+            if row.get("game") == game and row.get("policy_id") == "random_5"
+        ]
+        checks.append(
+            _check(
+                f"{game}.paired_baseline_zero",
+                len(baseline_rows) == 3
+                and all(
+                    row.get("delta_robust_roi_mean") == 0
+                    and row.get("delta_fixed_roi_mean") == 0
+                    for row in baseline_rows
+                ),
+                len(baseline_rows),
+            )
+        )
+    failed = [check["id"] for check in checks if not check["passed"]]
+    return {
+        "stage": "validation_holdout",
         "status": "pass" if not failed else "fail",
         "checks": checks,
         "failed_checks": failed,
