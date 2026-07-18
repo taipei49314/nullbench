@@ -1,6 +1,6 @@
 """lotto-lab：虛擬彩票研究室 CLI（純模擬，不下注）。
 
-指令（全部手動觸發、零排程零推播）：
+指令（純模擬、零推播）：
   python lotto.py ingest    抓取／更新台彩官方全歷史開獎資料
   python lotto.py picks     本週出號：辯論＋威力彩/大樂透各 5 組＋凍結預註冊
   python lotto.py check     每週核對：結算所有未結算期數＋權重更新＋產報告
@@ -8,6 +8,7 @@
   python lotto.py status    總覽：權重、累計損益 vs null、下次開獎
   python lotto.py loop      逐期 agent 提案→辯論→裁決→揭曉→檢討的完整純模擬
   python lotto.py sync      偵測官方新開獎；有新增才重建 agent 閉環
+  python lotto.py watch     無分頁也持續偵測、失敗重試的桌機背景 Loop
   python lotto.py forward   結算既有前向 A/B 並凍結目前下一期三臂
 """
 from __future__ import annotations
@@ -22,6 +23,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
 
 from engine import (
     agent_loop,
+    automation,
     config,
     debate,
     forward_lab,
@@ -31,7 +33,6 @@ from engine import (
     settle,
     strategy,
 )
-from engine.sync_service import sync_latest
 from engine.analysts import NAMES
 from engine.env import Env
 from engine.fetch import ingest as fetch_ingest
@@ -161,6 +162,14 @@ def cmd_status(env: Env) -> None:
             f"帳本 {status['verification']['registrations']} 筆登記、"
             f"{status['verification']['settlements']} 筆結算"
         )
+    automation_status = automation.read_status(env.base)
+    print(
+        "\n背景自動 Loop："
+        f"{automation_status['watcher_state']} / "
+        f"{automation_status['status']}｜"
+        f"上次成功 {automation_status['last_success_at'] or '尚無'}｜"
+        f"連續失敗 {automation_status['consecutive_failures']}"
+    )
 
 
 def _print_loop_decision(decision: dict) -> None:
@@ -275,7 +284,15 @@ def cmd_sync(env: Env, json_output: bool = False) -> None:
         else:
             print(message)
 
-    result = sync_latest(env.base, progress=progress)
+    try:
+        cycle = automation.run_sync_cycle(
+            env.base,
+            progress=progress,
+            lock_wait_seconds=30,
+        )
+    except automation.SyncBusy as error:
+        raise SystemExit(str(error)) from error
+    result = cycle["result"]
     if json_output:
         import json
 
@@ -290,6 +307,35 @@ def cmd_sync(env: Env, json_output: bool = False) -> None:
         print(
             f"同步完成：新增 {result['new_draws_total']} 期｜"
             f"重建閉環 {'是' if result['regenerated'] else '否'}"
+        )
+
+
+def cmd_watch(
+    env: Env,
+    *,
+    interval: int,
+    once: bool,
+    quiet: bool,
+) -> None:
+    if not quiet:
+        print(
+            "桌機背景 Loop 已啟動："
+            f"每 {interval} 秒檢查，失敗自動退避重試。"
+        )
+    try:
+        state = automation.watch_forever(
+            env.base,
+            interval_seconds=interval,
+            once=once,
+        )
+    except KeyboardInterrupt:
+        if not quiet:
+            print("\n背景 Loop 已停止。")
+        return
+    if once and not quiet:
+        print(
+            f"單輪完成：{state['status']}｜"
+            f"上次檢查 {state['last_checked_at']}"
         )
 
 
@@ -315,6 +361,23 @@ def main(argv=None):
         action="store_true",
         help="輸出供本地前端讀取的 JSON Lines 進度",
     )
+    watch = sub.add_parser("watch")
+    watch.add_argument(
+        "--interval",
+        type=int,
+        default=automation.DEFAULT_INTERVAL_SECONDS,
+        help="成功後再次檢查秒數（預設 300）",
+    )
+    watch.add_argument(
+        "--once",
+        action="store_true",
+        help="只執行一輪後離開（驗證／維運用）",
+    )
+    watch.add_argument(
+        "--quiet",
+        action="store_true",
+        help="不輸出常駐提示（桌機伺服器監督用）",
+    )
     sub.add_parser("forward")
     args = ap.parse_args(argv)
 
@@ -333,6 +396,15 @@ def main(argv=None):
         cmd_loop(env, args.output)
     elif args.cmd == "sync":
         cmd_sync(env, args.json)
+    elif args.cmd == "watch":
+        if args.interval < 1:
+            raise SystemExit("--interval 必須至少為 1 秒")
+        cmd_watch(
+            env,
+            interval=args.interval,
+            once=args.once,
+            quiet=args.quiet,
+        )
     elif args.cmd == "forward":
         cmd_forward(env)
 

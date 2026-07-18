@@ -21,9 +21,10 @@ npm run dev
 
 開啟 `http://127.0.0.1:5173/`。前端品質檢查可用：
 
-每次開啟時，前端會自動重抓台彩官方當月資料；只有偵測到新開獎，才會重新執行
-揭曉後檢討、更新 Agent 評分並重建下一期候選。手動執行同一流程可使用
-`python lotto.py sync`。
+`npm run dev` 會同時監督桌機背景 watcher；即使關閉瀏覽器分頁，只要桌機伺服器仍在，
+它就會每五分鐘重抓台彩官方當月資料。只有偵測到新開獎，才會重新執行揭曉後檢討、
+更新 Agent 評分並重建下一期候選。watcher 異常結束會自動重啟，官方 API 失敗則指數
+退避重試。手動執行同一流程可使用 `python lotto.py sync`。
 
 ```powershell
 npm run lint
@@ -31,7 +32,7 @@ npm run test
 npm run build
 ```
 
-## CLI 手動流程（桌機前端另有每 5 分鐘自動同步，零推播）
+## CLI 與桌機背景流程（零推播）
 
 ```
 python lotto.py picks    # 週末/週一開獎前：辯論＋兩遊戲各 5 組＋凍結預註冊
@@ -40,7 +41,22 @@ python lotto.py report   # 重新產報告；python lotto.py status 看總覽
 python lotto.py ingest   # 手動更新歷史資料（check 會自動做）
 python lotto.py loop     # 逐期 agent 辯論閉環：完整歷史回放＋下一期模擬號碼
 python lotto.py sync     # 偵測官方新開獎；有新增才重建 agent 閉環
+python lotto.py watch    # 無瀏覽器分頁也每 5 分鐘同步；失敗自動重試
 python lotto.py forward  # 不抓網路：結算/凍結目前終局裁判前向 A/B
+```
+
+## 無人值守桌機 Loop
+
+桌機伺服器不再依賴 React 頁面的 timer 才同步。頁面只送出 wake request；常駐
+Python watcher 負責真正的下載、揭曉後檢討、Qwen 終局裁決、前向 A/B 結算與
+下一期凍結。CLI 與 watcher 共用 OS 單例鎖，不會同時追加同一帳本。
+
+目前 phase、心跳、上次成功、下次檢查與連續失敗會顯示在「驗證」頁。執行歷史
+另有 append-only SHA-256 鏈。詳細故障模型見 [AUTOMATION.md](AUTOMATION.md)，
+完整驗收使用：
+
+```
+python automation_verify.py
 ```
 
 ## 逐期 agent 自動閉環（純模擬）
@@ -156,6 +172,7 @@ engine/
   debate.py           董事會陳述＋AI 評論席
   agent_loop.py       逐期多 Agent 提案、交叉評議、回放與回饋閉環
   qwen_judge.py       qwen3:8b 終局裁判、結構化輸出與嚴格驗證
+  automation.py       無分頁背景 watcher、單例鎖、重試與執行歷史
   ledger.py           append-only JSONL（SHA-256 雜湊鏈）
   seeds.py / config.py / stats.py / env.py / ollama_seat.py
 data/raw/<game>/      官方 API 原始月回應（估值永遠可離線重放）
@@ -166,6 +183,8 @@ agent_ablation_verify.py
                       分階段測試、正式消融與完整後測入口
 forward_verify.py     前向三臂帳本、sync、前端與完整回歸驗收
 FORWARD_PREREG.md     Qwen／規則前向比較的凍結門檻
+automation_verify.py  背景 Loop、故障恢復、前端與完整回歸驗收
+AUTOMATION.md         桌機 watcher、監督重啟與持久狀態契約
 output/jupyter-notebook/
                       可重跑的策略研究伴隨筆記本
 tests/                研究與正式流程完整測試

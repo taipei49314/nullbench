@@ -49,11 +49,18 @@ def _qwen_payload(decision):
     }
 
 
-def _decision(game: str) -> dict:
+def _decision(
+    game: str,
+    *,
+    date: str | None = None,
+    period: int = 188000001,
+) -> dict:
     history = DrawStore(DATA).draws(game)[:80]
     target = {
-        "date": "2099-01-05" if game == SUPER else "2099-01-06",
-        "period": 188000001,
+        "date": date or (
+            "2099-01-05" if game == SUPER else "2099-01-06"
+        ),
+        "period": period,
     }
     decision = conduct_debate(game, target, history, initial_state())
     return apply_final_judge(
@@ -272,3 +279,77 @@ def test_reconcile_settles_before_registering_both_next_targets(tmp_path):
         "settlements": 1,
         "pending": 1,
     }
+
+
+def test_new_reveal_settles_old_targets_then_freezes_new_targets_once(
+    tmp_path,
+):
+    first_manifest = {
+        "games": {
+            SUPER: {"next_decision": _decision(SUPER)},
+            LOTTO649: {"next_decision": _decision(LOTTO649)},
+        }
+    }
+    next_manifest = {
+        "games": {
+            SUPER: {
+                "next_decision": _decision(
+                    SUPER,
+                    date="2099-01-08",
+                    period=188000002,
+                )
+            },
+            LOTTO649: {
+                "next_decision": _decision(
+                    LOTTO649,
+                    date="2099-01-09",
+                    period=188000002,
+                )
+            },
+        }
+    }
+    revealed_store = FakeStore(
+        {
+            SUPER: [_draw(SUPER)],
+            LOTTO649: [_draw(LOTTO649)],
+        }
+    )
+
+    first = reconcile_forward_registry(
+        tmp_path,
+        FakeStore(),
+        first_manifest,
+        registered_at="2099-01-01T12:00:00+08:00",
+    )
+    advanced = reconcile_forward_registry(
+        tmp_path,
+        revealed_store,
+        next_manifest,
+        registered_at="2099-01-07T12:00:00+08:00",
+    )
+    repeated = reconcile_forward_registry(
+        tmp_path,
+        revealed_store,
+        next_manifest,
+        registered_at="2099-01-07T13:00:00+08:00",
+    )
+
+    assert first["summary"]["verification"]["pending"] == 2
+    assert advanced["settlements_created"] == 2
+    assert all(
+        registration["status"] == "created"
+        for registration in advanced["registrations"].values()
+    )
+    assert advanced["summary"]["verification"] == {
+        "chain_valid": True,
+        "events": 6,
+        "registrations": 4,
+        "settlements": 2,
+        "pending": 2,
+    }
+    assert repeated["settlements_created"] == 0
+    assert all(
+        registration["status"] == "existing"
+        for registration in repeated["registrations"].values()
+    )
+    assert repeated["summary"]["verification"]["events"] == 6

@@ -4,6 +4,7 @@ import {
   FileLock2,
   Fingerprint,
   GitCompareArrows,
+  RadioTower,
   ShieldCheck,
 } from "lucide-react";
 
@@ -19,6 +20,12 @@ export default function VerificationView({ gameData, manifest }) {
   const forward = manifest.forward_experiment;
   const forwardGame = forward?.games?.[gameData.game];
   const pending = forwardGame?.pending?.at(-1);
+  const automation = manifest.automation;
+  const automationOnline =
+    automation?.supervisor_online &&
+    automation?.watcher_state === "online";
+  const displayTime = (value) =>
+    value ? value.replace("T", " ").slice(0, 19) : "尚未執行";
   return (
     <div className="workspace-view verification-view">
       <header className="workspace-heading">
@@ -130,6 +137,47 @@ export default function VerificationView({ gameData, manifest }) {
         <p>
           只有 Qwen 與規則裁判都在截止前成功凍結的期數才會進入比較；
           均勻隨機五注同時保存為零假設。這裡不顯示事後補算的「預測」。
+        </p>
+      </section>
+
+      <section className="automation-proof-panel">
+        <header>
+          <div>
+            <RadioTower size={22} />
+            <span>
+              <strong>桌機無人值守 LOOP</strong>
+              <small>無分頁運行 · 單例交易 · 失敗指數退避</small>
+            </span>
+          </div>
+          <b className={automationOnline ? "is-online" : "is-offline"}>
+            {automationOnline ? "AUTONOMOUS LOOP ONLINE" : "LOOP OFFLINE"}
+          </b>
+        </header>
+        <div className="automation-proof-metrics">
+          <div>
+            <small>目前狀態</small>
+            <strong>
+              {automation
+                ? `${automation.status} / ${automation.phase}`
+                : "尚未啟動"}
+            </strong>
+          </div>
+          <div>
+            <small>上次成功</small>
+            <strong>{displayTime(automation?.last_success_at)}</strong>
+          </div>
+          <div>
+            <small>下次檢查</small>
+            <strong>{displayTime(automation?.next_check_at)}</strong>
+          </div>
+          <div>
+            <small>連續失敗</small>
+            <strong>{automation?.consecutive_failures ?? 0}</strong>
+          </div>
+        </div>
+        <p>
+          桌機伺服器會監督背景 Python watcher；關閉瀏覽器分頁後仍每五分鐘檢查。
+          同步、結算與下一期凍結共用跨程序鎖，崩潰後由監督程序重啟。
         </p>
       </section>
 

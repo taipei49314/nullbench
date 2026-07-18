@@ -36,6 +36,15 @@ describe("VerificationView forward experiment", () => {
           },
         },
       },
+      automation: {
+        supervisor_online: true,
+        watcher_state: "online",
+        status: "done",
+        phase: "ready",
+        last_success_at: "2026-07-18T20:17:12+08:00",
+        next_check_at: "2026-07-18T20:22:12+08:00",
+        consecutive_failures: 0,
+      },
     };
 
     const html = renderToStaticMarkup(
@@ -47,5 +56,10 @@ describe("VerificationView forward experiment", () => {
     expect(html).toContain("3<i> / 52</i>");
     expect(html).toContain("2026-07-20 · 115000058");
     expect(html).toContain("collecting_forward_data");
+    expect(html).toContain("桌機無人值守 LOOP");
+    expect(html).toContain("AUTONOMOUS LOOP ONLINE");
+    expect(html).toContain("done / ready");
+    expect(html).toContain("2026-07-18 20:17:12");
+    expect(html).toContain("2026-07-18 20:22:12");
   });
 });

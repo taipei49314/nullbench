@@ -4,10 +4,12 @@ import {
   Check,
   CloudDownload,
   History,
+  RadioTower,
   ShieldCheck,
 } from "lucide-react";
 
 const STEPS = [
+  ["queued", "喚醒背景 Loop", RadioTower],
   ["checking", "偵測官方開獎", CloudDownload],
   ["reviewing", "檢討新開獎", History],
   ["optimizing", "更新 Agent 狀態", BrainCircuit],

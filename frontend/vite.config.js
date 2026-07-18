@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+import { createSyncCoordinator } from "./automation-runtime.js";
+
 const frontendDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(frontendDir, "..");
 const resultsDir = path.join(repoDir, "simulation", "results");
@@ -15,6 +17,8 @@ const forwardStatusFile = path.join(
   "forward",
   "status.json",
 );
+const automationDir = path.join(repoDir, "simulation", "automation");
+const automationStatusFile = path.join(automationDir, "status.json");
 
 function readRecentEvents(game, limit) {
   const file = path.join(resultsDir, `${game}.jsonl`);
@@ -56,11 +60,12 @@ function readManifest() {
   );
 }
 
-function publicManifest() {
+function publicManifest(automationStatus) {
   const manifest = readManifest();
   manifest.forward_experiment = fs.existsSync(forwardStatusFile)
     ? JSON.parse(fs.readFileSync(forwardStatusFile, "utf8"))
     : null;
+  manifest.automation = automationStatus;
   for (const game of Object.values(manifest.games)) {
     const decision = game.next_decision;
     decision.critique_count = decision.critiques.length;
@@ -83,131 +88,96 @@ function publicManifest() {
   return manifest;
 }
 
-function simulationApi() {
-  let syncProcess = null;
-  let finishedAt = 0;
-  let syncState = {
-    status: "idle",
-    phase: "idle",
-    message: "等待官方資料檢查",
-    details: null,
-    result: null,
-    error: "",
-  };
+function createAutomationSupervisor() {
+  let child = null;
+  let stopping = false;
+  let restartTimer = null;
+  let crashCount = 0;
 
-  const startSync = () => {
-    if (syncProcess) return syncState;
-    if (syncState.status === "done" && Date.now() - finishedAt < 60_000) {
-      return syncState;
-    }
+  const isOnline = () =>
+    Boolean(child && child.exitCode === null && !child.killed);
 
-    syncState = {
-      status: "running",
-      phase: "starting",
-      message: "正在啟動官方資料檢查",
-      details: null,
-      result: null,
-      error: "",
-    };
-    const python = process.env.PYTHON || (process.platform === "win32" ? "python" : "python3");
-    const child = spawn(
+  const start = () => {
+    if (stopping || isOnline()) return;
+    const python =
+      process.env.PYTHON ||
+      (process.platform === "win32" ? "python" : "python3");
+    const startedAt = Date.now();
+    child = spawn(
       python,
-      ["-X", "utf8", "lotto.py", "sync", "--json"],
+      [
+        "-B",
+        "-X",
+        "utf8",
+        "lotto.py",
+        "watch",
+        "--interval",
+        "300",
+        "--quiet",
+      ],
       {
         cwd: repoDir,
         windowsHide: true,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: "ignore",
       },
     );
-    syncProcess = child;
-    let stdout = "";
-    let stderr = "";
-    let result = null;
-
-    const consumeLines = () => {
-      const lines = stdout.split(/\r?\n/);
-      stdout = lines.pop() ?? "";
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const payload = JSON.parse(line);
-          if (payload.type === "progress") {
-            syncState = {
-              ...syncState,
-              phase: payload.phase,
-              message: payload.message,
-              details: payload.details,
-            };
-          } else if (payload.type === "result") {
-            result = payload.result;
-          }
-        } catch {
-          stderr += `${line}\n`;
-        }
-      }
-    };
-
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk;
-      consumeLines();
+    child.on("error", () => {
+      child = null;
     });
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
+    child.on("close", () => {
+      child = null;
+      if (stopping) return;
+      crashCount =
+        Date.now() - startedAt > 60_000 ? 0 : crashCount + 1;
+      const delay = Math.min(30_000, 1000 * 2 ** crashCount);
+      restartTimer = setTimeout(start, delay);
     });
-    child.on("error", (error) => {
-      syncState = {
-        ...syncState,
-        status: "error",
-        phase: "error",
-        message: "無法啟動自動同步",
-        error: error.message,
-      };
-      syncProcess = null;
-    });
-    child.on("close", (code) => {
-      consumeLines();
-      finishedAt = Date.now();
-      if (code === 0 && result) {
-        syncState = {
-          status: "done",
-          phase: "ready",
-          message:
-            result.new_draws_total > 0
-              ? "新開獎已完成檢討與策略狀態更新"
-              : "官方資料無新增，策略狀態已是最新",
-          details: result.games,
-          result,
-          error: "",
-        };
-      } else {
-        syncState = {
-          ...syncState,
-          status: "error",
-          phase: "error",
-          message: "官方資料同步失敗",
-          error: stderr.trim() || `同步程序結束碼 ${code}`,
-        };
-      }
-      syncProcess = null;
-    });
-    return syncState;
   };
+
+  const stop = () => {
+    stopping = true;
+    if (restartTimer) clearTimeout(restartTimer);
+    restartTimer = null;
+    if (child && child.exitCode === null) child.kill();
+  };
+
+  const attach = (server) => {
+    if (process.env.VITEST) return;
+    stopping = false;
+    start();
+    server.httpServer?.once("close", stop);
+  };
+
+  return {
+    isOnline,
+    plugin: {
+      name: "lotto-automation-supervisor",
+      configureServer: attach,
+      configurePreviewServer: attach,
+    },
+  };
+}
+
+function simulationApi(supervisor) {
+  const coordinator = createSyncCoordinator({
+    automationDir,
+    statusFile: automationStatusFile,
+    isOnline: supervisor.isOnline,
+  });
 
   const middleware = (request, response, next) => {
     const url = new URL(request.url, "http://127.0.0.1");
     if (url.pathname === "/api/sync" && request.method === "POST") {
-      jsonResponse(response, 202, startSync());
+      jsonResponse(response, 202, coordinator.request());
       return;
     }
     if (url.pathname === "/api/sync/status") {
-      jsonResponse(response, 200, syncState);
+      jsonResponse(response, 200, coordinator.status());
       return;
     }
     if (url.pathname === "/api/manifest") {
       try {
-        jsonResponse(response, 200, publicManifest());
+        jsonResponse(response, 200, publicManifest(coordinator.status()));
       } catch (error) {
         jsonResponse(response, 503, {
           error: "找不到模擬結果，請先在專案根目錄執行 python lotto.py loop。",
@@ -272,8 +242,14 @@ function simulationApi() {
   };
 }
 
+const automationSupervisor = createAutomationSupervisor();
+
 export default defineConfig({
-  plugins: [react(), simulationApi()],
+  plugins: [
+    react(),
+    automationSupervisor.plugin,
+    simulationApi(automationSupervisor),
+  ],
   server: {
     host: "127.0.0.1",
     port: 5173,

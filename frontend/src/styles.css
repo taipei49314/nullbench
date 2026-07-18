@@ -1678,6 +1678,137 @@ code {
   line-height: 1.7;
 }
 
+.automation-proof-panel {
+  position: relative;
+  margin-top: 18px;
+  padding: 22px 24px;
+  overflow: hidden;
+  border: 1px solid rgba(78, 242, 196, 0.24);
+  border-radius: 18px;
+  background:
+    linear-gradient(115deg, rgba(8, 32, 38, 0.96), rgba(8, 16, 28, 0.98)),
+    radial-gradient(circle at 85% 0%, rgba(78, 242, 196, 0.15), transparent 42%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.automation-proof-panel::after {
+  position: absolute;
+  top: -90px;
+  right: -60px;
+  width: 240px;
+  height: 240px;
+  border: 1px solid rgba(78, 242, 196, 0.12);
+  border-radius: 50%;
+  content: "";
+  box-shadow:
+    0 0 0 34px rgba(78, 242, 196, 0.025),
+    0 0 0 68px rgba(78, 242, 196, 0.018);
+}
+
+.automation-proof-panel > header,
+.automation-proof-panel > header > div,
+.automation-proof-panel > header span {
+  display: flex;
+  align-items: center;
+}
+
+.automation-proof-panel > header {
+  position: relative;
+  z-index: 1;
+  justify-content: space-between;
+}
+
+.automation-proof-panel > header > div {
+  gap: 12px;
+  color: var(--acid);
+}
+
+.automation-proof-panel > header span {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.automation-proof-panel > header strong {
+  color: var(--text);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+
+.automation-proof-panel > header small,
+.automation-proof-panel > p,
+.automation-proof-metrics small {
+  color: var(--muted);
+}
+
+.automation-proof-panel > header b {
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  font: 700 10px/1 var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.automation-proof-panel > header b.is-online {
+  border-color: rgba(78, 242, 196, 0.35);
+  color: var(--acid);
+  background: rgba(78, 242, 196, 0.08);
+  box-shadow: 0 0 24px rgba(78, 242, 196, 0.08);
+}
+
+.automation-proof-panel > header b.is-offline {
+  color: var(--amber);
+  background: rgba(255, 183, 92, 0.08);
+}
+
+.automation-proof-metrics {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 20px 0 15px;
+  border-block: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.automation-proof-metrics > div {
+  min-width: 0;
+  padding: 15px 18px;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.automation-proof-metrics > div:first-child {
+  padding-left: 0;
+}
+
+.automation-proof-metrics > div:last-child {
+  border-right: 0;
+}
+
+.automation-proof-metrics small {
+  display: block;
+  margin-bottom: 7px;
+  font: 600 10px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.automation-proof-metrics strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font: 700 14px/1.25 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.automation-proof-panel > p {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
 .verification-footer > div {
   display: flex;
   align-items: center;
