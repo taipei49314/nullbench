@@ -14,7 +14,6 @@ append-only 帳本（雜湊鏈）→ null model 併跑 → 繁中報告（結論
 畫面專為 1180px 以上桌機瀏覽器設計：
 
 ```powershell
-python lotto.py loop
 cd frontend
 npm install
 npm run dev
@@ -22,13 +21,17 @@ npm run dev
 
 開啟 `http://127.0.0.1:5173/`。前端品質檢查可用：
 
+每次開啟時，前端會自動重抓台彩官方當月資料；只有偵測到新開獎，才會重新執行
+揭曉後檢討、更新 Agent 評分並重建下一期候選。手動執行同一流程可使用
+`python lotto.py sync`。
+
 ```powershell
 npm run lint
 npm run test
 npm run build
 ```
 
-## 每週流程（全部手動觸發，零排程零推播）
+## CLI 手動流程（桌機前端另有每 5 分鐘自動同步，零推播）
 
 ```
 python lotto.py picks    # 週末/週一開獎前：辯論＋兩遊戲各 5 組＋凍結預註冊
@@ -36,6 +39,7 @@ python lotto.py check    # 該週開獎完（建議週六）：抓新開獎→�
 python lotto.py report   # 重新產報告；python lotto.py status 看總覽
 python lotto.py ingest   # 手動更新歷史資料（check 會自動做）
 python lotto.py loop     # 逐期 agent 辯論閉環：完整歷史回放＋下一期模擬號碼
+python lotto.py sync     # 偵測官方新開獎；有新增才重建 agent 閉環
 ```
 
 ## 逐期 agent 自動閉環（純模擬）

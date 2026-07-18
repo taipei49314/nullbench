@@ -2789,6 +2789,446 @@ body {
   font-size: 17px;
 }
 
+.agent-row:disabled {
+  cursor: default;
+}
+
+.agent-row:disabled:hover {
+  border-color: var(--line);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.agent-row:disabled.is-active {
+  border-color: var(--lime);
+  background:
+    linear-gradient(90deg, rgb(214 255 21 / 5%), transparent 72%),
+    var(--bg-deep);
+}
+
+.candidate-stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 342px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(135deg, rgb(12 20 23 / 85%), rgb(5 9 11 / 92%)),
+    var(--bg-deep);
+  animation: candidateStageIn 260ms ease both;
+}
+
+@keyframes candidateStageIn {
+  from {
+    transform: translateY(7px);
+  }
+}
+
+.candidate-stage.is-ready {
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  flex-direction: column;
+}
+
+.candidate-seal {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  color: var(--lime);
+}
+
+.candidate-seal > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.candidate-seal strong {
+  color: var(--text);
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.candidate-seal small {
+  margin-top: 6px;
+  color: var(--lime);
+  font-size: 11px;
+}
+
+.candidate-roster {
+  display: grid;
+  width: 100%;
+  max-width: 700px;
+  margin-top: 28px;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.candidate-roster > span {
+  display: flex;
+  min-width: 0;
+  min-height: 84px;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 6px;
+  flex-direction: column;
+}
+
+.candidate-roster > span + span {
+  border-left: 1px solid var(--line);
+}
+
+.candidate-roster i {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  margin-bottom: 7px;
+  place-items: center;
+  border: 1px solid #53656d;
+  border-radius: 50%;
+  color: var(--blue);
+}
+
+.candidate-roster strong {
+  overflow: hidden;
+  max-width: 100%;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.candidate-roster small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.candidate-stage.is-ready > p {
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.candidate-stage.is-debating {
+  padding: 0 28px 21px;
+  flex-direction: column;
+}
+
+.candidate-stage.is-debating > header {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  color: var(--lime);
+}
+
+.candidate-stage.is-debating > header span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.candidate-stage.is-debating > header strong {
+  font-size: 11px;
+}
+
+.candidate-exchange {
+  display: grid;
+  grid-template-columns: 1fr 35px 1fr;
+  align-items: center;
+  min-height: 78px;
+}
+
+.candidate-exchange > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.candidate-exchange > div:last-child {
+  align-items: flex-end;
+}
+
+.candidate-exchange > span {
+  color: var(--lime);
+  font-size: 22px;
+  text-align: center;
+}
+
+.candidate-exchange small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.candidate-exchange strong {
+  margin-top: 5px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 16px;
+}
+
+.candidate-exchange code {
+  margin-top: 4px;
+  color: var(--blue);
+  font-size: 9px;
+}
+
+.candidate-balls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(13px, 2.2vw, 28px);
+  min-height: 84px;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.candidate-balls > i {
+  width: 1px;
+  height: 35px;
+  background: var(--muted);
+}
+
+.candidate-stage blockquote {
+  display: flex;
+  min-height: 55px;
+  align-items: center;
+  margin: 12px 0 0;
+  padding: 0 15px;
+  border-left: 2px solid var(--blue);
+  background: rgb(117 185 245 / 4%);
+  color: #c2c9c7;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.candidate-stage.stance-support blockquote {
+  border-left-color: var(--lime);
+  background: rgb(214 255 21 / 4%);
+}
+
+.candidate-stage.stance-oppose blockquote {
+  border-left-color: var(--coral);
+  background: rgb(255 85 72 / 4%);
+}
+
+.candidate-stage.is-debating > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 11px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.candidate-stage.is-debating > footer span {
+  color: var(--lime);
+}
+
+.candidate-stage.stance-oppose > footer span {
+  color: var(--coral);
+}
+
+.candidate-stage.is-adjudicating,
+.candidate-stage.is-error {
+  align-items: center;
+  justify-content: center;
+  padding: 35px;
+  flex-direction: column;
+  text-align: center;
+}
+
+.adjudicating-orbit {
+  display: grid;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 22px;
+  place-items: center;
+  border: 1px solid var(--lime);
+  border-radius: 50%;
+  color: var(--lime);
+  box-shadow: 0 0 35px rgb(214 255 21 / 12%);
+  animation: adjudicatingOrbit 1.4s linear infinite;
+}
+
+@keyframes adjudicatingOrbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.candidate-stage.is-adjudicating > strong,
+.candidate-stage.is-error > strong {
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 20px;
+}
+
+.candidate-stage.is-adjudicating > p,
+.candidate-stage.is-error > p {
+  max-width: 520px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.candidate-stage.is-error {
+  color: var(--coral);
+}
+
+.adjudicating-scan {
+  position: relative;
+  width: min(460px, 76%);
+  height: 3px;
+  margin-top: 25px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.adjudicating-scan i {
+  position: absolute;
+  width: 28%;
+  height: 100%;
+  background: var(--lime);
+  box-shadow: 0 0 15px rgb(214 255 21 / 45%);
+  animation: adjudicatingScan 900ms ease-in-out infinite alternate;
+}
+
+@keyframes adjudicatingScan {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(360%);
+  }
+}
+
+.debate-title b {
+  color: var(--muted);
+}
+
+.debate-title b.is-live {
+  color: var(--lime);
+  animation: liveBlink 850ms ease-in-out infinite alternate;
+}
+
+.debate-empty {
+  display: flex;
+  min-height: 480px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  flex-direction: column;
+  color: var(--muted);
+  text-align: center;
+}
+
+.debate-empty svg {
+  margin-bottom: 15px;
+  color: var(--lime);
+}
+
+.debate-empty strong {
+  color: var(--text);
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 14px;
+}
+
+.debate-empty span {
+  margin-top: 8px;
+  font-size: 10px;
+}
+
+.debate-entry:disabled {
+  cursor: default;
+}
+
+.primary-control:disabled,
+.icon-control:disabled {
+  cursor: wait;
+  opacity: 0.52;
+}
+
+.playback-status.is-revealed {
+  border-color: var(--lime);
+  background: rgb(214 255 21 / 5%);
+  color: var(--lime);
+}
+
+.inspector-decision-lock {
+  padding: 28px 22px;
+  border-bottom: 1px solid var(--line);
+  background: rgb(214 255 21 / 3%);
+  color: var(--lime);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.sync-steps {
+  display: grid;
+  width: min(760px, 72vw);
+  margin-top: 30px;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.sync-steps > span {
+  display: flex;
+  min-height: 74px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.sync-steps > span + span {
+  border-left: 1px solid var(--line);
+}
+
+.sync-steps i {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+.sync-steps > span.is-active,
+.sync-steps > span.is-complete {
+  color: var(--lime);
+}
+
+.sync-steps > span.is-active i,
+.sync-steps > span.is-complete i {
+  border-color: var(--lime);
+  box-shadow: 0 0 16px rgb(214 255 21 / 14%);
+}
+
+.sync-warning {
+  position: fixed;
+  z-index: 80;
+  right: 18px;
+  bottom: 18px;
+  max-width: 560px;
+  padding: 13px 16px;
+  border: 1px solid var(--coral);
+  background: rgb(22 8 8 / 96%);
+  color: var(--coral);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
 @media (max-width: 1399px) and (min-width: 1180px) {
   .app-header {
     grid-template-columns: 210px minmax(0, 1fr) 190px;

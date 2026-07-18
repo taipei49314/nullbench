@@ -6,6 +6,7 @@ import AgentGlyph from "./AgentGlyph";
 export default function AgentCouncil({
   activeAgent,
   gameData,
+  locked = false,
   onInspectAgent,
 }) {
   const agents = getOrderedAgents(gameData);
@@ -21,6 +22,7 @@ export default function AgentCouncil({
             className={`agent-row ${
               activeAgent === agent.id ? "is-active" : ""
             }`}
+            disabled={locked}
             key={agent.id}
             type="button"
             onClick={() => onInspectAgent(agent.id)}
@@ -44,7 +46,9 @@ export default function AgentCouncil({
       </div>
       <p className="council-hint">
         <GripVertical size={14} />
-        點選 Agent 檢視本期完整論證
+        {locked
+          ? "辯論完成後開放完整論證"
+          : "點選 Agent 檢視本期完整論證"}
       </p>
     </aside>
   );

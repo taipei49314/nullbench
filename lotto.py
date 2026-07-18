@@ -7,6 +7,7 @@
   python lotto.py report    重新產出指定/最新週的報告
   python lotto.py status    總覽：權重、累計損益 vs null、下次開獎
   python lotto.py loop      逐期 agent 提案→辯論→裁決→揭曉→檢討的完整純模擬
+  python lotto.py sync      偵測官方新開獎；有新增才重建 agent 閉環
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stderr.reconfigure(encoding="utf-8")
 
 from engine import agent_loop, config, debate, picker, report, settle, strategy
+from engine.sync_service import sync_latest
 from engine.analysts import NAMES
 from engine.env import Env
 from engine.fetch import ingest as fetch_ingest
@@ -176,6 +178,44 @@ def cmd_loop(env: Env, output: str | None) -> None:
     print(f"manifest_hash：{manifest['manifest_hash']}")
 
 
+def cmd_sync(env: Env, json_output: bool = False) -> None:
+    def progress(phase: str, message: str, details: dict | None) -> None:
+        if json_output:
+            import json
+
+            print(
+                json.dumps(
+                    {
+                        "type": "progress",
+                        "phase": phase,
+                        "message": message,
+                        "details": details,
+                    },
+                    ensure_ascii=False,
+                ),
+                flush=True,
+            )
+        else:
+            print(message)
+
+    result = sync_latest(env.base, progress=progress)
+    if json_output:
+        import json
+
+        print(
+            json.dumps(
+                {"type": "result", "result": result},
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+    else:
+        print(
+            f"同步完成：新增 {result['new_draws_total']} 期｜"
+            f"重建閉環 {'是' if result['regenerated'] else '否'}"
+        )
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="lotto-lab 虛擬彩票研究室（純模擬）")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -192,6 +232,12 @@ def main(argv=None):
         "--output",
         help="相對專案根目錄的輸出資料夾（預設 simulation/results）",
     )
+    sync = sub.add_parser("sync")
+    sync.add_argument(
+        "--json",
+        action="store_true",
+        help="輸出供本地前端讀取的 JSON Lines 進度",
+    )
     args = ap.parse_args(argv)
 
     env = Env()
@@ -207,6 +253,8 @@ def main(argv=None):
         cmd_status(env)
     elif args.cmd == "loop":
         cmd_loop(env, args.output)
+    elif args.cmd == "sync":
+        cmd_sync(env, args.json)
 
 
 if __name__ == "__main__":

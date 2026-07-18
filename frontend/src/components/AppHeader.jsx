@@ -65,7 +65,7 @@ export default function AppHeader({
         </span>
         <span>
           <ArrowLeftRight size={15} />
-          {decision.critiques.length} 次交叉評議
+          {decision.critique_count ?? decision.critiques.length} 次交叉評議
         </span>
         <span>
           <Database size={15} />

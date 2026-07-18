@@ -4,6 +4,7 @@ import {
   formatDate,
   formatNumbers,
   getAgentSeries,
+  getDebateSequence,
   getOrderedAgents,
   getProposalMap,
   getRankingMap,
@@ -68,6 +69,27 @@ describe("domain indexing helpers", () => {
     expect(
       getRankingMap(sampleDecision).get("hot_hunter:1").final_score,
     ).toBe(0.63289005);
+  });
+
+  it("interleaves critics without revealing one critic in a block", () => {
+    const decision = {
+      critiques: [
+        { critic: "hot_hunter", target: "a:1" },
+        { critic: "hot_hunter", target: "a:2" },
+        { critic: "cold_keeper", target: "b:1" },
+        { critic: "cold_keeper", target: "b:2" },
+      ],
+    };
+    expect(
+      getDebateSequence(decision).map(
+        (critique) => `${critique.critic}:${critique.target}`,
+      ),
+    ).toEqual([
+      "hot_hunter:a:1",
+      "cold_keeper:b:1",
+      "hot_hunter:a:2",
+      "cold_keeper:b:2",
+    ]);
   });
 
   it("creates a bounded deterministic evidence trace", () => {

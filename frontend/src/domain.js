@@ -67,6 +67,24 @@ export function getProposalMap(decision) {
   );
 }
 
+export function getDebateSequence(decision) {
+  const byCritic = new Map();
+  for (const critique of decision.critiques) {
+    const group = byCritic.get(critique.critic) ?? [];
+    group.push(critique);
+    byCritic.set(critique.critic, group);
+  }
+  const groups = [...byCritic.values()];
+  const result = [];
+  const maxLength = Math.max(...groups.map((group) => group.length));
+  for (let index = 0; index < maxLength; index += 1) {
+    for (const group of groups) {
+      if (group[index]) result.push(group[index]);
+    }
+  }
+  return result;
+}
+
 export function getRankingMap(decision) {
   return new Map(
     decision.adjudication.ranking.map((ranking) => [

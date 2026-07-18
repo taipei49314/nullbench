@@ -1,6 +1,23 @@
-import { Activity } from "lucide-react";
+import {
+  Activity,
+  BrainCircuit,
+  Check,
+  CloudDownload,
+  History,
+} from "lucide-react";
 
-export default function LoadingScreen({ error }) {
+const STEPS = [
+  ["checking", "偵測官方開獎", CloudDownload],
+  ["reviewing", "檢討新開獎", History],
+  ["optimizing", "更新 Agent 狀態", BrainCircuit],
+  ["ready", "準備下一期候選", Check],
+];
+
+export default function LoadingScreen({ error, syncState }) {
+  const currentIndex = Math.max(
+    0,
+    STEPS.findIndex(([phase]) => phase === syncState?.phase),
+  );
   return (
     <main className="loading-screen">
       <div className="loading-mark">
@@ -17,7 +34,25 @@ export default function LoadingScreen({ error }) {
       ) : (
         <>
           <Activity size={25} />
-          <strong>正在同步演算議會</strong>
+          <strong>{syncState?.message || "正在同步演算議會"}</strong>
+          <div className="sync-steps" aria-label="自動同步進度">
+            {STEPS.map(([phase, label, Icon], index) => {
+              const complete =
+                syncState?.phase === "ready" || index < currentIndex;
+              const active = phase === syncState?.phase;
+              return (
+                <span
+                  className={`${complete ? "is-complete" : ""} ${
+                    active ? "is-active" : ""
+                  }`}
+                  key={phase}
+                >
+                  <i>{complete ? <Check size={15} /> : <Icon size={15} />}</i>
+                  {label}
+                </span>
+              );
+            })}
+          </div>
           <span className="loading-line" />
         </>
       )}

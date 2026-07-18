@@ -21,6 +21,7 @@ const STANCE_LABELS = {
 
 export default function AgentInspector({
   agentId,
+  decisionRevealed,
   gameData,
   onChangeAgent,
   onClose,
@@ -111,16 +112,19 @@ export default function AgentInspector({
           <div className="proposal-list">
             {proposals.map((proposal, index) => {
               const ranking = rankingMap.get(proposal.proposal_id);
+              const visibleRanking = decisionRevealed ? ranking : null;
               return (
                 <div
-                  className={`proposal-row ${ranking ? "is-selected" : ""}`}
+                  className={`proposal-row ${
+                    visibleRanking ? "is-selected" : ""
+                  }`}
                   key={proposal.proposal_id}
                 >
                   <span className="proposal-index">{index + 1}</span>
                   <span className="proposal-balls">
                     {proposal.numbers.map((number) => (
                       <NumberBall
-                        active={Boolean(ranking)}
+                        active={Boolean(visibleRanking)}
                         compact
                         key={number}
                         number={number}
@@ -128,10 +132,15 @@ export default function AgentInspector({
                     ))}
                   </span>
                   <span className="proposal-outcome">
-                    {ranking ? (
+                    {visibleRanking ? (
                       <>
-                        <b>入選第 {ranking.rank} 注</b>
-                        <code>{ranking.final_score.toFixed(8)}</code>
+                        <b>入選第 {visibleRanking.rank} 注</b>
+                        <code>{visibleRanking.final_score.toFixed(8)}</code>
+                      </>
+                    ) : !decisionRevealed ? (
+                      <>
+                        <small>等待裁決</small>
+                        <code>LOCKED</code>
                       </>
                     ) : (
                       <>
@@ -157,50 +166,60 @@ export default function AgentInspector({
           </p>
         </section>
 
-        <section className="inspector-section">
-          <div className="inspector-section-title">
-            <strong>交叉評議</strong>
-            <span>{critiques.length} / 12 筆聚焦顯示</span>
-          </div>
-          <div className="critique-table">
-            <div className="critique-head">
-              <span>評議者</span>
-              <span>立場</span>
-              <span>強度</span>
-              <span>意見摘要</span>
-            </div>
-            {critiques.map((critique) => {
-              const target = proposalMap.get(critique.target);
-              return (
-                <div
-                  className={`critique-row stance-${critique.stance}`}
-                  key={`${critique.critic}-${critique.target}`}
-                >
-                  <span>{AGENTS[critique.critic].name}</span>
-                  <b>{STANCE_LABELS[critique.stance]}</b>
-                  <span className="strength-bar">
-                    <i style={{ "--strength": `${critique.score * 100}%` }} />
-                    {critique.score.toFixed(2)}
-                  </span>
-                  <p>
-                    {critique.reason}
-                    <small>→ {target.proposal_id}</small>
-                  </p>
+        {decisionRevealed ? (
+          <>
+            <section className="inspector-section">
+              <div className="inspector-section-title">
+                <strong>交叉評議</strong>
+                <span>{critiques.length} / 12 筆聚焦顯示</span>
+              </div>
+              <div className="critique-table">
+                <div className="critique-head">
+                  <span>評議者</span>
+                  <span>立場</span>
+                  <span>強度</span>
+                  <span>意見摘要</span>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+                {critiques.map((critique) => {
+                  const target = proposalMap.get(critique.target);
+                  return (
+                    <div
+                      className={`critique-row stance-${critique.stance}`}
+                      key={`${critique.critic}-${critique.target}`}
+                    >
+                      <span>{AGENTS[critique.critic].name}</span>
+                      <b>{STANCE_LABELS[critique.stance]}</b>
+                      <span className="strength-bar">
+                        <i
+                          style={{ "--strength": `${critique.score * 100}%` }}
+                        />
+                        {critique.score.toFixed(2)}
+                      </span>
+                      <p>
+                        {critique.reason}
+                        <small>→ {target.proposal_id}</small>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
 
-        <section className="adjudication-equation">
-          <div>
-            <strong>裁決算式</strong>
-            <span>基礎分 × 評議權重 − 重疊懲罰 − 同 Agent 集中</span>
-          </div>
-          <code>
-            {leadingRanking?.final_score.toFixed(8) ?? "未入選"}
-          </code>
-        </section>
+            <section className="adjudication-equation">
+              <div>
+                <strong>裁決算式</strong>
+                <span>基礎分 × 評議權重 − 重疊懲罰 − 同 Agent 集中</span>
+              </div>
+              <code>
+                {leadingRanking?.final_score.toFixed(8) ?? "未入選"}
+              </code>
+            </section>
+          </>
+        ) : (
+          <section className="inspector-decision-lock">
+            完成 60 次交叉評議後，才會揭露入選狀態、評議內容與裁決分數。
+          </section>
+        )}
       </aside>
     </div>
   );
