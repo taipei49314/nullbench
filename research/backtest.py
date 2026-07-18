@@ -44,7 +44,11 @@ from engine.games import (
 from engine.picker import GAMES
 from engine.stats import gaps, special_gaps
 from engine.store import week_id_of
-from research.gates import build_data_quality_gate, require_gate
+from research.gates import (
+    build_data_quality_gate,
+    build_strategy_search_gate,
+    require_gate,
+)
 
 
 RESEARCH_ID = "walkforward-v1"
@@ -870,6 +874,37 @@ def build_final_policies(
     ]
 
 
+def strategy_determinism_probe(
+    contexts_by_game: dict[str, list[WeekContext]],
+    policies_by_game: dict[str, list[Policy]],
+) -> dict:
+    """以固定代表週重播每個最終政策，產生可稽核的決定性證據。"""
+    comparisons = 0
+    digests = {}
+    passed = True
+    for game in GAMES:
+        contexts = contexts_by_game[game]
+        context = contexts[min(10, len(contexts) - 1)]
+        for policy in policies_by_game[game]:
+            first = generate_policy_tickets(policy, context, replicate=0)
+            second = generate_policy_tickets(policy, context, replicate=0)
+            comparisons += 1
+            passed = passed and first == second
+            digests[f"{game}:{policy.policy_id}"] = hashlib.sha256(
+                json.dumps(
+                    first,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest()
+    return {
+        "passed": passed,
+        "comparisons": comparisons,
+        "ticket_sha256": digests,
+    }
+
+
 def profile_data(game: str, draws: list[Draw]) -> dict:
     periods = [draw.period for draw in draws]
     draw_dates = [draw.date for draw in draws]
@@ -1202,6 +1237,17 @@ def run_study(
             )
         )
 
+    determinism_probe = strategy_determinism_probe(contexts, final_policies)
+    strategy_search_gate = build_strategy_search_gate(
+        contexts,
+        coarse,
+        coarse_winners,
+        refined_winners,
+        final_policies,
+        determinism_probe,
+    )
+    require_gate(strategy_search_gate)
+
     selected = {}
     for game in GAMES:
         validation_rows = [
@@ -1254,7 +1300,10 @@ def run_study(
             ],
         },
         "data_quality": data_quality,
-        "stage_gates": {"data_quality": data_quality_gate},
+        "stage_gates": {
+            "data_quality": data_quality_gate,
+            "strategy_search": strategy_search_gate,
+        },
         "coarse_candidates": [c.as_dict() for c in coarse],
         "coarse_train_winners": {
             game: {

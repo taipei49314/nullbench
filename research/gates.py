@@ -6,9 +6,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Iterable
 
 from engine.games import LOTTO649, SUPER
+from engine.store import monday_of, week_id_of
 
 
 EXPECTED_GAMES = (SUPER, LOTTO649)
@@ -113,6 +115,204 @@ def build_data_quality_gate(profiles: Iterable[dict]) -> dict:
     failed = [check["id"] for check in checks if not check["passed"]]
     return {
         "stage": "data_quality",
+        "status": "pass" if not failed else "fail",
+        "checks": checks,
+        "failed_checks": failed,
+    }
+
+
+def _candidate_family(candidate) -> str | None:
+    if isinstance(candidate, dict):
+        return candidate.get("family")
+    return getattr(candidate, "family", None)
+
+
+def _policy_id(policy) -> str | None:
+    if isinstance(policy, dict):
+        return policy.get("policy_id")
+    return getattr(policy, "policy_id", None)
+
+
+def _policy_slots(policy):
+    if isinstance(policy, dict):
+        return policy.get("slots", ())
+    return getattr(policy, "slots", ())
+
+
+def _context_checks(game: str, contexts: list) -> list[dict]:
+    n = len(contexts)
+    train_end = n // 2
+    validation_end = train_end + n // 4
+    expected_splits = [
+        (
+            "train"
+            if i < train_end
+            else "validation"
+            if i < validation_end
+            else "holdout"
+        )
+        for i in range(n)
+    ]
+    weeks = [context.week for context in contexts]
+    no_lookahead = True
+    history_chain = True
+    floors_historical = True
+    draws_in_own_week = True
+    history = []
+    floors: dict[str, int] = {}
+    for context in contexts:
+        monday = monday_of(context.week)
+        no_lookahead = no_lookahead and all(
+            draw.date < monday.isoformat() for draw in context.history
+        )
+        history_chain = history_chain and tuple(history) == context.history
+        floors_historical = (
+            floors_historical and floors == context.floor_table
+        )
+        draws_in_own_week = draws_in_own_week and all(
+            week_id_of(date.fromisoformat(draw.date)) == context.week
+            for draw in context.draws
+        )
+        for draw in context.draws:
+            for key, info in draw.prizes.items():
+                per_prize = int(info.get("per_prize", 0))
+                if int(info.get("winner_count", 0)) > 0 and per_prize > 0:
+                    floors[key] = min(floors.get(key, per_prize), per_prize)
+        history.extend(context.draws)
+    return [
+        _check(f"{game}.contexts_nonempty", n > 0, n),
+        _check(
+            f"{game}.weeks_unique_ordered",
+            len(weeks) == len(set(weeks)) and weeks == sorted(weeks),
+            {"first": weeks[0] if weeks else None, "last": weeks[-1] if weeks else None},
+        ),
+        _check(
+            f"{game}.split_boundaries",
+            [context.split for context in contexts] == expected_splits,
+            {
+                "train": expected_splits.count("train"),
+                "validation": expected_splits.count("validation"),
+                "holdout": expected_splits.count("holdout"),
+            },
+        ),
+        _check(f"{game}.no_lookahead", no_lookahead, no_lookahead),
+        _check(f"{game}.history_chain", history_chain, history_chain),
+        _check(
+            f"{game}.historical_floor_table",
+            floors_historical,
+            floors_historical,
+        ),
+        _check(
+            f"{game}.draws_in_own_week",
+            draws_in_own_week,
+            draws_in_own_week,
+        ),
+    ]
+
+
+def build_strategy_search_gate(
+    contexts_by_game: dict,
+    coarse_candidates: Iterable,
+    coarse_winners: dict,
+    refined_winners: dict,
+    final_policies: dict,
+    determinism_probe: dict,
+) -> dict:
+    """驗證策略搜尋只建立在歷史切片上，且輸出可決定性重播。"""
+    checks = []
+    checks.append(
+        _check(
+            "contexts_games_complete",
+            set(contexts_by_game) == set(EXPECTED_GAMES),
+            sorted(contexts_by_game),
+        )
+    )
+    for game in EXPECTED_GAMES:
+        checks.extend(_context_checks(game, list(contexts_by_game.get(game, ()))))
+
+    coarse_candidates = list(coarse_candidates)
+    candidate_ids = [
+        (
+            candidate.get("candidate_id")
+            if isinstance(candidate, dict)
+            else getattr(candidate, "candidate_id", None)
+        )
+        for candidate in coarse_candidates
+    ]
+    checks.extend(
+        [
+            _check("coarse.count", len(coarse_candidates) == 31, len(coarse_candidates)),
+            _check(
+                "coarse.ids_unique",
+                None not in candidate_ids
+                and len(candidate_ids) == len(set(candidate_ids)),
+                len(set(candidate_ids)),
+            ),
+            _check(
+                "coarse.families_complete",
+                {_candidate_family(candidate) for candidate in coarse_candidates}
+                == {"uniform", "hot", "cold", "balance", "antipop"},
+                sorted(
+                    str(_candidate_family(candidate))
+                    for candidate in coarse_candidates
+                ),
+            ),
+        ]
+    )
+    expected_families = {"hot", "cold", "balance", "antipop"}
+    for label, winner_map in (
+        ("coarse_winners", coarse_winners),
+        ("refined_winners", refined_winners),
+    ):
+        for game in EXPECTED_GAMES:
+            winners = winner_map.get(game, {})
+            checks.append(
+                _check(
+                    f"{label}.{game}.families",
+                    set(winners) == expected_families
+                    and all(
+                        _candidate_family(winners[family]) == family
+                        for family in expected_families
+                    ),
+                    sorted(winners),
+                )
+            )
+
+    expected_policy_ids = {
+        "random_5",
+        "current_ensemble",
+        "trained_family_ensemble",
+        "trained_best_5",
+        "trained_blend",
+    }
+    for game in EXPECTED_GAMES:
+        policies = list(final_policies.get(game, ()))
+        ids = [_policy_id(policy) for policy in policies]
+        checks.extend(
+            [
+                _check(
+                    f"final_policies.{game}.ids",
+                    set(ids) == expected_policy_ids and len(ids) == len(set(ids)),
+                    ids,
+                ),
+                _check(
+                    f"final_policies.{game}.five_slots",
+                    all(len(_policy_slots(policy)) == 5 for policy in policies),
+                    [len(_policy_slots(policy)) for policy in policies],
+                ),
+            ]
+        )
+    checks.append(
+        _check(
+            "ticket_generation_deterministic",
+            determinism_probe.get("passed") is True
+            and determinism_probe.get("comparisons", 0) >= 10,
+            determinism_probe,
+        )
+    )
+    failed = [check["id"] for check in checks if not check["passed"]]
+    return {
+        "stage": "strategy_search",
         "status": "pass" if not failed else "fail",
         "checks": checks,
         "failed_checks": failed,
