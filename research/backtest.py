@@ -44,6 +44,7 @@ from engine.games import (
 from engine.picker import GAMES
 from engine.stats import gaps, special_gaps
 from engine.store import week_id_of
+from research.gates import build_data_quality_gate, require_gate
 
 
 RESEARCH_ID = "walkforward-v1"
@@ -873,56 +874,148 @@ def profile_data(game: str, draws: list[Draw]) -> dict:
     periods = [draw.period for draw in draws]
     draw_dates = [draw.date for draw in draws]
     expected_weekdays = {0, 3} if game == SUPER else {1, 4}
+    parsed_dates = []
+    invalid_dates = 0
+    for draw in draws:
+        try:
+            parsed_dates.append(date.fromisoformat(draw.date))
+        except (TypeError, ValueError):
+            parsed_dates.append(None)
+            invalid_dates += 1
     off_schedule = [
         draw
-        for draw in draws
-        if date.fromisoformat(draw.date).weekday() not in expected_weekdays
+        for draw, parsed in zip(draws, parsed_dates)
+        if parsed is not None and parsed.weekday() not in expected_weekdays
     ]
     by_week = Counter(
-        week_id_of(date.fromisoformat(draw.date)) for draw in draws
+        week_id_of(parsed) for parsed in parsed_dates if parsed is not None
     )
     invalid_numbers = sum(
-        len(draw.numbers) != 6
+        not isinstance(draw.numbers, (tuple, list))
+        or len(draw.numbers) != 6
         or len(set(draw.numbers)) != 6
-        or any(number < 1 or number > POOL[game] for number in draw.numbers)
+        or any(
+            not isinstance(number, int)
+            or isinstance(number, bool)
+            or number < 1
+            or number > POOL[game]
+            for number in draw.numbers
+        )
         for draw in draws
     )
     invalid_special = sum(
-        not (1 <= draw.special <= (8 if game == SUPER else 49))
-        or (game == LOTTO649 and draw.special in draw.numbers)
+        not isinstance(draw.special, int)
+        or isinstance(draw.special, bool)
+        or not (1 <= draw.special <= (8 if game == SUPER else 49))
+        or (
+            game == LOTTO649
+            and isinstance(draw.numbers, (tuple, list))
+            and draw.special in draw.numbers
+        )
         for draw in draws
     )
     missing_prize_fields = {
         tier.api_key: sum(tier.api_key not in draw.prizes for draw in draws)
         for tier in TIERS[game]
     }
+    invalid_prize_records = 0
+    for draw in draws:
+        for tier in TIERS[game]:
+            info = draw.prizes.get(tier.api_key)
+            if info is None:
+                continue
+            if not isinstance(info, dict):
+                invalid_prize_records += 1
+                continue
+            for field in ("winner_count", "per_prize", "pool", "last_pool"):
+                value = info.get(field, 0)
+                if (
+                    not isinstance(value, (int, float))
+                    or isinstance(value, bool)
+                    or value < 0
+                ):
+                    invalid_prize_records += 1
+                    break
+    game_mismatches = sum(draw.game != game for draw in draws)
+    invalid_periods = sum(
+        not isinstance(draw.period, int)
+        or isinstance(draw.period, bool)
+        or draw.period <= 0
+        for draw in draws
+    )
+    ordered_chronologically = bool(draws) and not (
+        invalid_dates or invalid_periods
+    )
+    if ordered_chronologically:
+        ordered_chronologically = all(
+            (draws[i].date, draws[i].period)
+            <= (draws[i + 1].date, draws[i + 1].period)
+            for i in range(len(draws) - 1)
+        )
+    canonical = [
+        {
+            "game": draw.game,
+            "period": draw.period,
+            "date": draw.date,
+            "numbers": list(draw.numbers),
+            "special": draw.special,
+            "prizes": draw.prizes,
+            "sell_amount": draw.sell_amount,
+            "total_amount": draw.total_amount,
+        }
+        for draw in draws
+    ]
+    dataset_sha256 = hashlib.sha256(
+        json.dumps(
+            canonical,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    quality_failures = []
+    conditions = {
+        "empty_dataset": not draws,
+        "duplicate_periods": len(periods) - len(set(periods)) > 0,
+        "duplicate_dates": len(draw_dates) - len(set(draw_dates)) > 0,
+        "invalid_dates": invalid_dates > 0,
+        "not_chronological": not ordered_chronologically,
+        "game_mismatches": game_mismatches > 0,
+        "invalid_periods": invalid_periods > 0,
+        "invalid_numbers": invalid_numbers > 0,
+        "invalid_special": invalid_special > 0,
+        "missing_prize_fields": any(missing_prize_fields.values()),
+        "invalid_prize_records": invalid_prize_records > 0,
+    }
+    quality_failures.extend(name for name, failed in conditions.items() if failed)
+    valid_date_strings = [
+        parsed.isoformat() for parsed in parsed_dates if parsed is not None
+    ]
     return {
         "game": game,
         "game_name": GAME_NAMES[game],
         "draws": len(draws),
         "weeks": len(by_week),
-        "date_min": draw_dates[0],
-        "date_max": draw_dates[-1],
-        "period_min": periods[0],
-        "period_max": periods[-1],
+        "date_min": min(valid_date_strings) if valid_date_strings else None,
+        "date_max": max(valid_date_strings) if valid_date_strings else None,
+        "period_min": min(periods) if periods else None,
+        "period_max": max(periods) if periods else None,
         "duplicate_periods": len(periods) - len(set(periods)),
         "duplicate_dates": len(draw_dates) - len(set(draw_dates)),
+        "invalid_dates": invalid_dates,
+        "ordered_chronologically": ordered_chronologically,
+        "game_mismatches": game_mismatches,
+        "invalid_periods": invalid_periods,
         "invalid_numbers": invalid_numbers,
         "invalid_special": invalid_special,
         "missing_prize_fields": missing_prize_fields,
+        "invalid_prize_records": invalid_prize_records,
         "off_regular_schedule_draws": len(off_schedule),
         "weeks_with_extra_draws": sum(count > 2 for count in by_week.values()),
         "draws_per_week": dict(sorted(Counter(by_week.values()).items())),
-        "quality_status": (
-            "pass"
-            if not (
-                len(periods) - len(set(periods))
-                or invalid_numbers
-                or invalid_special
-                or any(missing_prize_fields.values())
-            )
-            else "fail"
-        ),
+        "dataset_sha256": dataset_sha256,
+        "quality_failures": quality_failures,
+        "quality_status": "pass" if not quality_failures else "fail",
     }
 
 
@@ -1042,8 +1135,8 @@ def run_study(
     output_dir.mkdir(parents=True, exist_ok=True)
     contexts = {game: build_contexts(game, store.draws(game)) for game in GAMES}
     data_quality = [profile_data(game, store.draws(game)) for game in GAMES]
-    if any(profile["quality_status"] != "pass" for profile in data_quality):
-        raise RuntimeError("歷史資料品質門檻未通過，拒絕開始策略搜尋")
+    data_quality_gate = build_data_quality_gate(data_quality)
+    require_gate(data_quality_gate)
 
     coarse = coarse_candidates()
     coarse_summaries: list[dict] = []
@@ -1161,6 +1254,7 @@ def run_study(
             ],
         },
         "data_quality": data_quality,
+        "stage_gates": {"data_quality": data_quality_gate},
         "coarse_candidates": [c.as_dict() for c in coarse],
         "coarse_train_winners": {
             game: {
