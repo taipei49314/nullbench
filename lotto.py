@@ -6,6 +6,7 @@
   python lotto.py check     每週核對：結算所有未結算期數＋權重更新＋產報告
   python lotto.py report    重新產出指定/最新週的報告
   python lotto.py status    總覽：權重、累計損益 vs null、下次開獎
+  python lotto.py loop      逐期 agent 提案→辯論→裁決→揭曉→檢討的完整純模擬
 """
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stdout.reconfigure(encoding="utf-8")  # Windows cp950 教訓（ai-company）
     sys.stderr.reconfigure(encoding="utf-8")
 
-from engine import config, debate, picker, report, settle, strategy
+from engine import agent_loop, config, debate, picker, report, settle, strategy
 from engine.analysts import NAMES
 from engine.env import Env
 from engine.fetch import ingest as fetch_ingest
@@ -138,6 +139,43 @@ def cmd_status(env: Env) -> None:
             print(f"\n待核對週：{waiting}（開獎後跑 python lotto.py check）")
 
 
+def _print_loop_decision(decision: dict) -> None:
+    target = decision["target"]
+    print(f"  下一期：{target['date']}｜模擬期別 {target['period']}")
+    for ticket in decision["selected_tickets"]:
+        nums = " ".join(f"{number:02d}" for number in ticket["numbers"])
+        special = (
+            f" ＋第二區 {ticket['special']:02d}"
+            if ticket.get("special") is not None
+            else ""
+        )
+        print(
+            f"  第{ticket['slot']}注 {nums}{special}"
+            f"｜來源 {NAMES[ticket['source_agent']]}"
+        )
+    print(f"  decision_hash：{decision['decision_hash']}")
+
+
+def cmd_loop(env: Env, output: str | None) -> None:
+    output_dir = (
+        env.base / "simulation" / "results"
+        if output is None
+        else env.base / output
+    )
+    print("執行逐期 agent 閉環：歷史觀察 → 提案 → 交叉辯論 → 裁決 → 揭曉 → 檢討")
+    manifest = agent_loop.run_all(env.store, output_dir)
+    for game in picker.GAMES:
+        result = manifest["games"][game]
+        print(
+            f"\n-- {GAME_NAMES[game]}：完整回放 {result['draws_replayed']} 期"
+            f"｜鏈驗證 {result['verification']['lines']} 期"
+            f"｜ledger SHA-256 {result['ledger_sha256']}"
+        )
+        _print_loop_decision(result["next_decision"])
+    print(f"\n模擬產物：{output_dir}")
+    print(f"manifest_hash：{manifest['manifest_hash']}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="lotto-lab 虛擬彩票研究室（純模擬）")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -149,6 +187,11 @@ def main(argv=None):
     r = sub.add_parser("report")
     r.add_argument("--week")
     sub.add_parser("status")
+    loop = sub.add_parser("loop")
+    loop.add_argument(
+        "--output",
+        help="相對專案根目錄的輸出資料夾（預設 simulation/results）",
+    )
     args = ap.parse_args(argv)
 
     env = Env()
@@ -162,6 +205,8 @@ def main(argv=None):
         cmd_report(env, args.week)
     elif args.cmd == "status":
         cmd_status(env)
+    elif args.cmd == "loop":
+        cmd_loop(env, args.output)
 
 
 if __name__ == "__main__":
