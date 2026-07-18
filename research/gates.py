@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import date
 import hashlib
 import json
+from pathlib import Path
 from typing import Iterable
 
 from engine.games import LOTTO649, SUPER
@@ -554,6 +555,166 @@ def build_validation_holdout_gate(
     failed = [check["id"] for check in checks if not check["passed"]]
     return {
         "stage": "validation_holdout",
+        "status": "pass" if not failed else "fail",
+        "checks": checks,
+        "failed_checks": failed,
+    }
+
+
+def tree_sha256(root: Path) -> str:
+    """對目錄內相對路徑與檔案內容做決定性指紋。"""
+    root = root.resolve()
+    digest = hashlib.sha256()
+    if not root.exists():
+        digest.update(b"<missing>")
+        return digest.hexdigest()
+    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _is_output_isolated(base: Path, output_dir: Path) -> bool:
+    records = (base / "records").resolve()
+    output = output_dir.resolve()
+    return output != records and records not in output.parents
+
+
+def build_decision_report_gate(
+    study: dict,
+    artifact: dict,
+    records_before: str,
+    records_after: str,
+    base: Path,
+    output_dir: Path,
+) -> dict:
+    """驗證最終決策、報告結構與正式帳本不變性。"""
+    previous_gates = study.get("stage_gates", {})
+    required_previous = {
+        "data_quality",
+        "strategy_search",
+        "validation_holdout",
+    }
+    decision = study.get("decision", {})
+    selected = study.get("selected", {})
+    conditional = decision.get("conditional_simulation", {})
+    manifest = artifact.get("manifest", {})
+    snapshot = artifact.get("snapshot", {})
+    blocks = manifest.get("blocks", [])
+    charts = manifest.get("charts", [])
+    tables = manifest.get("tables", [])
+    datasets = snapshot.get("datasets", {})
+    decision_rows = datasets.get("decision_rows", [])
+    rows_by_game = {row.get("game"): row for row in decision_rows}
+
+    checks = [
+        _check(
+            "previous_gates_pass",
+            required_previous.issubset(previous_gates)
+            and all(
+                previous_gates[name].get("status") == "pass"
+                for name in required_previous
+            ),
+            {
+                name: previous_gates.get(name, {}).get("status")
+                for name in sorted(required_previous)
+            },
+        ),
+        _check(
+            "economic_decision_no_play",
+            decision.get("economic") == "no_play"
+            and bool(decision.get("reason")),
+            decision.get("economic"),
+        ),
+        _check(
+            "records_tree_unchanged",
+            len(records_before) == 64 and records_before == records_after,
+            {"before": records_before, "after": records_after},
+        ),
+        _check(
+            "output_isolated_from_records",
+            _is_output_isolated(base, output_dir),
+            str(output_dir.resolve()),
+        ),
+        _check(
+            "artifact_title_and_first_heading",
+            bool(manifest.get("title"))
+            and bool(blocks)
+            and blocks[0].get("type") == "markdown"
+            and blocks[0].get("body")
+            == f"# {manifest.get('title')}",
+            manifest.get("title"),
+        ),
+        _check(
+            "artifact_has_chart_and_table",
+            bool(charts)
+            and bool(tables)
+            and any(block.get("type") == "chart" for block in blocks)
+            and any(block.get("type") == "table" for block in blocks),
+            {"charts": len(charts), "tables": len(tables)},
+        ),
+        _check(
+            "artifact_snapshot_ready",
+            snapshot.get("status") == "ready"
+            and all(isinstance(rows, list) for rows in datasets.values()),
+            {
+                "status": snapshot.get("status"),
+                "datasets": sorted(datasets),
+            },
+        ),
+        _check(
+            "artifact_sources_have_sql",
+            all(
+                isinstance(item.get("source", {}).get("query", {}).get("sql"), str)
+                and item["source"]["query"]["sql"].lstrip().upper().startswith(
+                    "SELECT"
+                )
+                for item in charts + tables
+            ),
+            len(charts) + len(tables),
+        ),
+    ]
+    for game in EXPECTED_GAMES:
+        item = selected.get(game, {})
+        expected_conditional = (
+            item.get("policy_id")
+            if item.get("edge_proven") is True
+            else "random_5"
+        )
+        row = rows_by_game.get(game, {})
+        checks.extend(
+            [
+                _check(
+                    f"{game}.conditional_matches_edge",
+                    conditional.get(game) == expected_conditional
+                    and item.get("conditional_decision")
+                    == expected_conditional,
+                    conditional.get(game),
+                ),
+                _check(
+                    f"{game}.artifact_decision_matches",
+                    row.get("selected_policy") == item.get("policy_id")
+                    and row.get("conditional_decision")
+                    == expected_conditional
+                    and row.get("edge_proven")
+                    == ("已證明" if item.get("edge_proven") else "未證明"),
+                    row,
+                ),
+            ]
+        )
+    checks.append(
+        _check(
+            "artifact_decision_games_complete",
+            set(rows_by_game) == set(EXPECTED_GAMES)
+            and len(decision_rows) == len(EXPECTED_GAMES),
+            sorted(str(game) for game in rows_by_game),
+        )
+    )
+    failed = [check["id"] for check in checks if not check["passed"]]
+    return {
+        "stage": "decision_report",
         "status": "pass" if not failed else "fail",
         "checks": checks,
         "failed_checks": failed,

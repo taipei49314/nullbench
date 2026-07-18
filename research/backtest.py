@@ -46,12 +46,14 @@ from engine.stats import gaps, special_gaps
 from engine.store import week_id_of
 from research.gates import (
     FINAL_POLICY_IDS,
+    build_decision_report_gate,
     build_data_quality_gate,
     build_strategy_search_gate,
     build_validation_holdout_gate,
     create_holdout_seal,
     edge_is_proven,
     require_gate,
+    tree_sha256,
 )
 
 
@@ -1215,6 +1217,7 @@ def run_study(
     """執行粗搜 → training 細調 → validation 選政策 → holdout 決勝。"""
     if replicates < 2:
         raise ValueError("replicates 至少為 2")
+    records_before = tree_sha256(base / "records")
     output_dir.mkdir(parents=True, exist_ok=True)
     contexts = {game: build_contexts(game, store.draws(game)) for game in GAMES}
     data_quality = [profile_data(game, store.draws(game)) for game in GAMES]
@@ -1390,5 +1393,28 @@ def run_study(
     _write_markdown_report(output_dir / "DECISION.md", study)
     from .artifact import write_artifact
 
+    write_artifact(output_dir)
+    artifact = json.loads(
+        (output_dir / "artifact.json").read_text(encoding="utf-8")
+    )
+    records_after = tree_sha256(base / "records")
+    decision_report_gate = build_decision_report_gate(
+        study,
+        artifact,
+        records_before,
+        records_after,
+        base,
+        output_dir,
+    )
+    require_gate(decision_report_gate)
+    study["stage_gates"]["decision_report"] = decision_report_gate
+    study["records_integrity"] = {
+        "before_sha256": records_before,
+        "after_sha256": records_after,
+        "unchanged": records_before == records_after,
+    }
+    (output_dir / "strategy_research.json").write_text(
+        json.dumps(study, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     write_artifact(output_dir)
     return study

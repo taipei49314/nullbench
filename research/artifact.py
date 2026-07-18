@@ -87,7 +87,9 @@ def _build_decision_rows(study: dict) -> list[dict]:
                 "delta_fixed_roi": holdout["delta_fixed_roi_mean"],
                 "active_week_win_rate": holdout["active_week_win_rate"],
                 "positive_replicate_rate": holdout["positive_replicate_rate"],
-                "edge_proven": "通過" if selected["edge_proven"] else "未證明",
+                "edge_proven": (
+                    "已證明" if selected["edge_proven"] else "未證明"
+                ),
                 "conditional_decision": selected["conditional_decision"],
                 "conditional_decision_label": POLICY_LABELS[
                     selected["conditional_decision"]
