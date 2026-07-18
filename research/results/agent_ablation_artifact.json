@@ -1,0 +1,604 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Agent 數量消融測試",
+    "description": "比較 2、3、4、5 個 Agent 的全部子議會，在固定五注與時序 holdout 下是否比隨機基準或較少 Agent 更準。",
+    "generatedAt": "2026-07-17T23:59:59+08:00",
+    "sources": [
+      {
+        "id": "agent-count-holdout",
+        "label": "Agent 數量 holdout 消融結果",
+        "path": "research/results/agent_ablation_summary.csv",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "sql": "SELECT game, game_name, agent_count, agent_count_label,\n  combinations, draws, best_main_hits, total_main_hits,\n  any_three_plus, union_main_hits, union_size,\n  random_best_main_hits, delta_best_vs_random,\n  delta_best_vs_random_ci_low, delta_best_vs_random_ci_high,\n  delta_best_vs_two, delta_best_vs_two_ci_low,\n  delta_best_vs_two_ci_high\nFROM read_csv_auto('research/results/agent_ablation_summary.csv')\nWHERE split = 'holdout'\nORDER BY agent_count, game",
+          "description": "讀取每個 Agent 數量全部組合在最近 30% 時序 holdout 的每期平均表現與配對隨機基準。",
+          "tables_used": [
+            "research/results/agent_ablation_summary.csv"
+          ],
+          "filters": [
+            "split = holdout",
+            "每期固定五注",
+            "每遊戲先暖機 60 期"
+          ],
+          "metric_definitions": [
+            "最佳主號命中 = 每期固定五注中，主號命中最多的一注之命中數，範圍 0 至 6。",
+            "Agent 數量平均 = 同一 Agent 數量的全部組合先在每期取平均，再跨期平均，避免挑冠軍組合。",
+            "相對隨機差 = 子議會每期指標減去同一期 200 組固定種子五注均勻隨機基準的平均。",
+            "95% 區間 = 13 期循環連續區塊 bootstrap 2,000 次的配對平均差百分位區間。",
+            "至少三主號率 = 每期五注中至少一注命中三個以上主號的期數比例。"
+          ],
+          "executed_at": "2026-07-17T23:59:59+08:00"
+        }
+      },
+      {
+        "id": "development-selected-subsets",
+        "label": "Development 選定子議會的一次性 holdout",
+        "path": "research/results/agent_ablation_subsets.csv",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "sql": "WITH development AS (\n  SELECT *, ROW_NUMBER() OVER (\n    PARTITION BY game ORDER BY best_main_hits DESC,\n      total_main_hits DESC, any_three_plus DESC, subset_id\n  ) AS rank\n  FROM read_csv_auto('research/results/agent_ablation_subsets.csv')\n  WHERE split = 'development'\n), holdout AS (\n  SELECT * FROM read_csv_auto(\n    'research/results/agent_ablation_subsets.csv')\n  WHERE split = 'holdout'\n)\nSELECT h.game, h.game_name, h.subset_id, h.agents,\n  h.agent_count, d.best_main_hits AS development_best_main_hits,\n  h.best_main_hits AS holdout_best_main_hits,\n  h.delta_best_vs_random AS holdout_delta_vs_random,\n  h.delta_best_vs_random_ci_low AS holdout_ci_low,\n  h.delta_best_vs_random_ci_high AS holdout_ci_high,\n  h.any_three_plus AS holdout_any_three_plus, h.draws\nFROM development d JOIN holdout h\n  ON d.game = h.game AND d.subset_id = h.subset_id\nWHERE d.rank = 1\nORDER BY h.game",
+          "description": "只用前 70% development 選每款遊戲的冠軍子議會，再讀取最近 30% holdout 的一次性表現。",
+          "tables_used": [
+            "research/results/agent_ablation_subsets.csv"
+          ],
+          "filters": [
+            "development 排名只用 primary metric 與預先定義的 tie-break",
+            "holdout 不參與選擇"
+          ],
+          "metric_definitions": [
+            "最佳主號命中 = 每期固定五注中，主號命中最多的一注之命中數，範圍 0 至 6。",
+            "Agent 數量平均 = 同一 Agent 數量的全部組合先在每期取平均，再跨期平均，避免挑冠軍組合。",
+            "相對隨機差 = 子議會每期指標減去同一期 200 組固定種子五注均勻隨機基準的平均。",
+            "95% 區間 = 13 期循環連續區塊 bootstrap 2,000 次的配對平均差百分位區間。",
+            "至少三主號率 = 每期五注中至少一注命中三個以上主號的期數比例。"
+          ],
+          "executed_at": "2026-07-17T23:59:59+08:00"
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "report-title",
+        "type": "markdown",
+        "body": "# Agent 數量消融測試",
+        "layout": "full"
+      },
+      {
+        "id": "executive-summary",
+        "type": "markdown",
+        "body": "## Executive Summary\n\n- **本次保留測試不支持「Agent 越多越準」。增加 Agent 並未在兩款遊戲同時形成單調提升，也未讓 5 人相對 2 人的差異在兩款遊戲都通過 95% 區間門檻。**\n- 共檢查 **26 個子議會組合**、**3,962 個可評估遊戲期次**；最近 **1,189 個期次**只作 holdout。\n- **威力彩** 5 人相對 2 人為 +0.009 個主號／期，95% 區間 [-0.038, +0.056]；**大樂透** 5 人相對 2 人為 -0.010 個主號／期，95% 區間 [-0.050, +0.028]。\n- 因此不應只為了追求命中率繼續堆 Agent；新增角色應以「在全新未見期數帶來可重複的邊際增益」作為保留門檻。",
+        "layout": "full",
+        "sourceId": "agent-count-holdout"
+      },
+      {
+        "id": "count-finding",
+        "type": "markdown",
+        "body": "## Agent 數量沒有形成穩定的命中階梯\n\n下圖以每期固定五注為同一預算，先把同一人數的全部組合在每期平均，再和該期均勻隨機五注比較。這個做法回答的是「多一種 Agent 設計的平均邊際效果」，不會只挑剛好幸運的組合。柱狀值接近 0，且區間是否跨過 0 必須一起解讀；單一正柱不能視為可用預測優勢。",
+        "layout": "full",
+        "sourceId": "agent-count-holdout"
+      },
+      {
+        "id": "count-chart-block",
+        "type": "chart",
+        "chartId": "count-holdout-chart",
+        "layout": "full"
+      },
+      {
+        "id": "count-detail",
+        "type": "markdown",
+        "body": "## Holdout 數字與不確定性\n\n表格保留每種人數的最佳主號命中、隨機基準、相對差、95% 區間，以及直接相對 2 人議會的差。主指標單位是「每期最佳一注多命中幾個主號」，不是中獎機率或報酬率。",
+        "layout": "full",
+        "sourceId": "agent-count-holdout"
+      },
+      {
+        "id": "count-table-block",
+        "type": "table",
+        "tableId": "count-holdout-table",
+        "layout": "full"
+      },
+      {
+        "id": "subset-finding",
+        "type": "markdown",
+        "body": "## Development 冠軍沒有資格直接升級成答案\n\n每款遊戲各從 development 的 26 個組合選一個冠軍，再看一次 holdout。這可檢查明顯過度擬合，但仍有多重比較與有限樣本問題；即使某列在 holdout 為正，也只能當下一版預註冊實驗的候選，不能回頭改寫本次門檻。",
+        "layout": "full",
+        "sourceId": "development-selected-subsets"
+      },
+      {
+        "id": "subset-table-block",
+        "type": "table",
+        "tableId": "selected-subset-table",
+        "layout": "full"
+      },
+      {
+        "id": "recommended-actions",
+        "type": "markdown",
+        "body": "## 建議下一步\n\n1. 目前五個 Agent 保留作為可解釋的研究控制組，不因歷史排名增加權重。\n2. 不再只以「多一個角色」當升級理由；新 Agent 必須先做邊際消融，並在之後累積的全新期數通過同一門檻。\n3. 自動 loop 每次開獎後照常檢討，但策略版本、選擇規則與評估指標要先凍結；新的開獎只能評分，不能回填改寫舊決策。\n4. 下一個正式檢查點應比較：現行五人議會、精簡議會、五注均勻隨機，並同時記錄延遲與模型資源成本。",
+        "layout": "full"
+      },
+      {
+        "id": "further-questions",
+        "type": "markdown",
+        "body": "## Further Questions\n\n- qwen3:8b 終局裁判在真正逐期前向資料上，是否能比規則裁判穩定改善五注分散度？\n- 哪一個 Agent 提供的是其他角色沒有的候選覆蓋，而不是重複同一偏好？\n- 若命中沒有改善，精簡議會能否在不損失覆蓋率下顯著降低推論延遲？",
+        "layout": "full"
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "body": "## Caveats and Assumptions\n\n- **可信度：Share with caveats。** 帳本完整、時序與無前視檢查通過，但這仍是對既有歷史資料的消融，不是未來期數的預註冊實驗。\n- 彩票合法組合在理論模型下等機率；任何歷史差異都可能是抽樣噪音。\n- 26 個組合會產生多重比較；development 冠軍只列為探索性候選。\n- 隨機基準每期 200 次，區間採 13 期區塊、2,000 次 bootstrap。\n- 歷史回放採規則裁判；本報告不把結果外推為 qwen3:8b 的未來命中能力。\n- 全程純模擬，正式 records 雜湊前後一致，不構成購買或下注建議。",
+        "layout": "full"
+      }
+    ],
+    "charts": [
+      {
+        "id": "count-holdout-chart",
+        "title": "Holdout 最佳主號命中差與 Agent 數量",
+        "subtitle": "正值代表每期五注中的最佳一注平均高於均勻隨機五注；兩款遊戲未共同通過預設門檻",
+        "intent": "comparison",
+        "type": "bar",
+        "dataset": "count_holdout",
+        "sourceId": "agent-count-holdout",
+        "encodings": {
+          "x": {
+            "field": "agent_count_label",
+            "type": "nominal",
+            "label": "Agent 數量"
+          },
+          "y": {
+            "field": "delta_best_vs_random",
+            "type": "quantitative",
+            "format": "number",
+            "label": "相對隨機的最佳主號命中差"
+          },
+          "color": {
+            "field": "game_name",
+            "type": "nominal",
+            "label": "遊戲"
+          },
+          "tooltip": [
+            {
+              "field": "best_main_hits",
+              "format": "number"
+            },
+            {
+              "field": "random_best_main_hits",
+              "format": "number"
+            },
+            {
+              "field": "delta_best_vs_random_ci_low",
+              "format": "number"
+            },
+            {
+              "field": "delta_best_vs_random_ci_high",
+              "format": "number"
+            },
+            {
+              "field": "draws",
+              "format": "number"
+            },
+            {
+              "field": "combinations",
+              "format": "number"
+            }
+          ]
+        },
+        "valueFormat": "number",
+        "layout": "full",
+        "palette": {
+          "kind": "categorical"
+        },
+        "settings": {
+          "orientation": "vertical",
+          "groupMode": "grouped",
+          "showValues": true,
+          "sort": "custom"
+        },
+        "legend": {
+          "position": "bottom",
+          "title": "遊戲"
+        },
+        "referenceLines": [
+          {
+            "axis": "y",
+            "value": 0,
+            "label": "均勻隨機基準",
+            "lineStyle": "dashed",
+            "color": "neutral"
+          }
+        ],
+        "surface": {
+          "viewMode": "both",
+          "showControls": true
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "count-holdout-table",
+        "title": "Agent 數量 holdout 詳細結果",
+        "subtitle": "同一人數的全部組合先在每期平均",
+        "dataset": "count_holdout",
+        "sourceId": "agent-count-holdout",
+        "layout": "full",
+        "density": "spacious",
+        "defaultSort": {
+          "field": "agent_count",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "field": "game_name",
+            "label": "遊戲",
+            "type": "text"
+          },
+          {
+            "field": "agent_count",
+            "label": "Agent 數",
+            "format": "number"
+          },
+          {
+            "field": "combinations",
+            "label": "組合數",
+            "format": "number"
+          },
+          {
+            "field": "best_main_hits",
+            "label": "最佳主號命中",
+            "format": "number"
+          },
+          {
+            "field": "random_best_main_hits",
+            "label": "隨機基準",
+            "format": "number"
+          },
+          {
+            "field": "delta_best_vs_random",
+            "label": "相對隨機差",
+            "format": "number",
+            "movement": true
+          },
+          {
+            "field": "delta_best_vs_random_ci_low",
+            "label": "95% 下界",
+            "format": "number"
+          },
+          {
+            "field": "delta_best_vs_random_ci_high",
+            "label": "95% 上界",
+            "format": "number"
+          },
+          {
+            "field": "delta_best_vs_two",
+            "label": "相對 2 人差",
+            "format": "number",
+            "movement": true
+          },
+          {
+            "field": "any_three_plus",
+            "label": "至少三主號率",
+            "format": "percent"
+          },
+          {
+            "field": "draws",
+            "label": "Holdout 期數",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "selected-subset-table",
+        "title": "Development 冠軍的一次性 holdout",
+        "subtitle": "每款遊戲各選一個組合，僅供探索性下一版候選",
+        "dataset": "selected_subsets",
+        "sourceId": "development-selected-subsets",
+        "layout": "full",
+        "density": "spacious",
+        "defaultSort": {
+          "field": "game_name",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "field": "game_name",
+            "label": "遊戲",
+            "type": "text"
+          },
+          {
+            "field": "agent_names",
+            "label": "Development 冠軍",
+            "type": "text"
+          },
+          {
+            "field": "agent_count",
+            "label": "Agent 數",
+            "format": "number"
+          },
+          {
+            "field": "development_best_main_hits",
+            "label": "Development 最佳命中",
+            "format": "number"
+          },
+          {
+            "field": "holdout_best_main_hits",
+            "label": "Holdout 最佳命中",
+            "format": "number"
+          },
+          {
+            "field": "holdout_delta_vs_random",
+            "label": "Holdout 相對隨機",
+            "format": "number",
+            "movement": true
+          },
+          {
+            "field": "holdout_ci_low",
+            "label": "95% 下界",
+            "format": "number"
+          },
+          {
+            "field": "holdout_ci_high",
+            "label": "95% 上界",
+            "format": "number"
+          },
+          {
+            "field": "holdout_any_three_plus",
+            "label": "至少三主號率",
+            "format": "percent"
+          }
+        ]
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-17T23:59:59+08:00",
+    "status": "ready",
+    "datasets": {
+      "count_holdout": [
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "split": "holdout",
+          "agent_count": 2,
+          "agent_count_label": "2 個 Agent",
+          "combinations": 10,
+          "draws": 628,
+          "best_main_hits": 1.6630573248407645,
+          "total_main_hits": 3.781210191082802,
+          "any_three_plus": 0.09904458598726115,
+          "special_hit_tickets": 0.595859872611465,
+          "winning_tickets": 0.17149681528662422,
+          "any_prize": 0.15700636942675159,
+          "union_main_hits": 2.8855095541401274,
+          "union_size": 23.147611464968154,
+          "random_best_main_hits": 1.6379299363057322,
+          "delta_best_vs_random": 0.025127388535031846,
+          "delta_best_vs_random_ci_low": -0.004576831210191083,
+          "delta_best_vs_random_ci_high": 0.056461186305732464,
+          "delta_best_vs_two": 0.0,
+          "delta_best_vs_two_ci_low": 0.0,
+          "delta_best_vs_two_ci_high": 0.0,
+          "delta_direction": "高於隨機",
+          "ci_crosses_zero": true
+        },
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "split": "holdout",
+          "agent_count": 2,
+          "agent_count_label": "2 個 Agent",
+          "combinations": 10,
+          "draws": 561,
+          "best_main_hits": 1.9105169340463457,
+          "total_main_hits": 4.7062388591800355,
+          "any_three_plus": 0.1748663101604278,
+          "special_hit_tickets": 0.6176470588235294,
+          "winning_tickets": 0.5816399286987523,
+          "any_prize": 0.46292335115864525,
+          "union_main_hits": 3.3538324420677363,
+          "union_size": 21.412655971479502,
+          "random_best_main_hits": 1.9274420677361854,
+          "delta_best_vs_random": -0.016925133689839573,
+          "delta_best_vs_random_ci_low": -0.045485294117647054,
+          "delta_best_vs_random_ci_high": 0.011470588235294116,
+          "delta_best_vs_two": 0.0,
+          "delta_best_vs_two_ci_low": 0.0,
+          "delta_best_vs_two_ci_high": 0.0,
+          "delta_direction": "低於隨機",
+          "ci_crosses_zero": true
+        },
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "split": "holdout",
+          "agent_count": 3,
+          "agent_count_label": "3 個 Agent",
+          "combinations": 10,
+          "draws": 628,
+          "best_main_hits": 1.6581210191082802,
+          "total_main_hits": 3.7417197452229303,
+          "any_three_plus": 0.0980891719745223,
+          "special_hit_tickets": 0.6113057324840764,
+          "winning_tickets": 0.1697452229299363,
+          "any_prize": 0.15700636942675159,
+          "union_main_hits": 2.8942675159235667,
+          "union_size": 23.45764331210191,
+          "random_best_main_hits": 1.6379299363057322,
+          "delta_best_vs_random": 0.020191082802547788,
+          "delta_best_vs_random_ci_low": -0.012247412420382152,
+          "delta_best_vs_random_ci_high": 0.05571755573248402,
+          "delta_best_vs_two": -0.0049363057324840615,
+          "delta_best_vs_two_ci_low": -0.02054140127388532,
+          "delta_best_vs_two_ci_high": 0.011309713375796183,
+          "delta_direction": "高於隨機",
+          "ci_crosses_zero": true
+        },
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "split": "holdout",
+          "agent_count": 3,
+          "agent_count_label": "3 個 Agent",
+          "combinations": 10,
+          "draws": 561,
+          "best_main_hits": 1.9140819964349376,
+          "total_main_hits": 4.68270944741533,
+          "any_three_plus": 0.17557932263814616,
+          "special_hit_tickets": 0.6085561497326203,
+          "winning_tickets": 0.5795008912655972,
+          "any_prize": 0.46345811051693403,
+          "union_main_hits": 3.396969696969697,
+          "union_size": 21.70516934046346,
+          "random_best_main_hits": 1.9274420677361854,
+          "delta_best_vs_random": -0.013360071301247773,
+          "delta_best_vs_random_ci_low": -0.046811274509803935,
+          "delta_best_vs_random_ci_high": 0.019828208556149706,
+          "delta_best_vs_two": 0.0035650623885918028,
+          "delta_best_vs_two_ci_low": -0.011412655971479502,
+          "delta_best_vs_two_ci_high": 0.018538324420677363,
+          "delta_direction": "低於隨機",
+          "ci_crosses_zero": true
+        },
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "split": "holdout",
+          "agent_count": 4,
+          "agent_count_label": "4 個 Agent",
+          "combinations": 5,
+          "draws": 628,
+          "best_main_hits": 1.6528662420382165,
+          "total_main_hits": 3.727707006369427,
+          "any_three_plus": 0.09649681528662421,
+          "special_hit_tickets": 0.6101910828025477,
+          "winning_tickets": 0.171656050955414,
+          "any_prize": 0.15955414012738853,
+          "union_main_hits": 2.9563694267515923,
+          "union_size": 23.84012738853503,
+          "random_best_main_hits": 1.6379299363057322,
+          "delta_best_vs_random": 0.014936305732484095,
+          "delta_best_vs_random_ci_low": -0.02572969745222928,
+          "delta_best_vs_random_ci_high": 0.053581608280254746,
+          "delta_best_vs_two": -0.010191082802547755,
+          "delta_best_vs_two_ci_low": -0.03535031847133756,
+          "delta_best_vs_two_ci_high": 0.014335191082802548,
+          "delta_direction": "高於隨機",
+          "ci_crosses_zero": true
+        },
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "split": "holdout",
+          "agent_count": 4,
+          "agent_count_label": "4 個 Agent",
+          "combinations": 5,
+          "draws": 561,
+          "best_main_hits": 1.9176470588235293,
+          "total_main_hits": 4.654545454545454,
+          "any_three_plus": 0.1696969696969697,
+          "special_hit_tickets": 0.6057040998217469,
+          "winning_tickets": 0.5611408199643494,
+          "any_prize": 0.4459893048128343,
+          "union_main_hits": 3.439572192513369,
+          "union_size": 22.09661319073084,
+          "random_best_main_hits": 1.9274420677361854,
+          "delta_best_vs_random": -0.009795008912655957,
+          "delta_best_vs_random_ci_low": -0.048104723707664894,
+          "delta_best_vs_random_ci_high": 0.026912878787878708,
+          "delta_best_vs_two": 0.0071301247771836185,
+          "delta_best_vs_two_ci_low": -0.01765151515151514,
+          "delta_best_vs_two_ci_high": 0.03030303030303031,
+          "delta_direction": "低於隨機",
+          "ci_crosses_zero": true
+        },
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "split": "holdout",
+          "agent_count": 5,
+          "agent_count_label": "5 個 Agent",
+          "combinations": 1,
+          "draws": 628,
+          "best_main_hits": 1.6528662420382165,
+          "total_main_hits": 3.6863057324840764,
+          "any_three_plus": 0.09713375796178345,
+          "special_hit_tickets": 0.6257961783439491,
+          "winning_tickets": 0.16560509554140126,
+          "any_prize": 0.15445859872611464,
+          "union_main_hits": 3.0063694267515926,
+          "union_size": 24.230891719745223,
+          "random_best_main_hits": 1.6379299363057322,
+          "delta_best_vs_random": 0.014936305732484082,
+          "delta_best_vs_random_ci_low": -0.03883180732484073,
+          "delta_best_vs_random_ci_high": 0.0703216560509554,
+          "delta_best_vs_two": -0.010191082802547763,
+          "delta_best_vs_two_ci_low": -0.049685509554140125,
+          "delta_best_vs_two_ci_high": 0.02818869426751593,
+          "delta_direction": "高於隨機",
+          "ci_crosses_zero": true
+        },
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "split": "holdout",
+          "agent_count": 5,
+          "agent_count_label": "5 個 Agent",
+          "combinations": 1,
+          "draws": 561,
+          "best_main_hits": 1.9197860962566844,
+          "total_main_hits": 4.647058823529412,
+          "any_three_plus": 0.1711229946524064,
+          "special_hit_tickets": 0.6131907308377896,
+          "winning_tickets": 0.5846702317290553,
+          "any_prize": 0.45276292335115864,
+          "union_main_hits": 3.4955436720142603,
+          "union_size": 22.51693404634581,
+          "random_best_main_hits": 1.9274420677361854,
+          "delta_best_vs_random": -0.007655971479500888,
+          "delta_best_vs_random_ci_low": -0.06282308377896612,
+          "delta_best_vs_random_ci_high": 0.04858444741532976,
+          "delta_best_vs_two": 0.009269162210338687,
+          "delta_best_vs_two_ci_low": -0.037794117647058825,
+          "delta_best_vs_two_ci_high": 0.05579322638146167,
+          "delta_direction": "低於隨機",
+          "ci_crosses_zero": true
+        }
+      ],
+      "selected_subsets": [
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "subset_id": "antipop_taoist+balance_engineer+cold_keeper+random_monk",
+          "agent_names": "反眾道人、均衡工程師、冷灶守望者、亂數修士",
+          "agent_count": 4,
+          "development_best_main_hits": 1.944954128440367,
+          "development_delta_vs_random": 0.01838302752293578,
+          "holdout_best_main_hits": 1.914438502673797,
+          "holdout_delta_vs_random": -0.013003565062388589,
+          "holdout_ci_low": -0.06836408199643494,
+          "holdout_ci_high": 0.04261786987522278,
+          "holdout_any_three_plus": 0.18181818181818182,
+          "holdout_draws": 561
+        },
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "subset_id": "balance_engineer+hot_hunter+random_monk",
+          "agent_names": "均衡工程師、熱手獵人、亂數修士",
+          "agent_count": 3,
+          "development_best_main_hits": 1.661433447098976,
+          "development_delta_vs_random": 0.025365187713310578,
+          "holdout_best_main_hits": 1.6512738853503184,
+          "holdout_delta_vs_random": 0.013343949044585994,
+          "holdout_ci_low": -0.038614649681528654,
+          "holdout_ci_high": 0.06411783439490436,
+          "holdout_any_three_plus": 0.09076433121019108,
+          "holdout_draws": 628
+        }
+      ]
+    }
+  }
+}

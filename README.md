@@ -83,6 +83,18 @@ python research_backtest.py   # 只重跑正式研究
 五注時的政策。只有封存測試集相對純隨機的區間、一致性與固定獎級護欄全部
 通過，才允許替換條件式 `random_5` 基準。
 
+### Agent 數量消融
+
+```
+python agent_ablation_verify.py
+```
+
+這個入口會以逐期封存的提案與評論，窮舉 2 至 5 人共 26 個子議會，固定每期
+五注，並和每期 200 組均勻隨機五注做配對比較。每個子議會有獨立歷史評等；
+60 期暖機後，以前 70% development、最近 30% holdout 檢查「更多 Agent
+是否真的提高五注中最佳一注的主號命中」。結果只寫入 `research/results/`，
+正式 `records/` 雜湊前後必須一致。
+
 ## 五個選號人格（每遊戲每週 5 席）
 
 | 人格 | 席位 | 手法 |
@@ -128,6 +140,9 @@ engine/
 data/raw/<game>/      官方 API 原始月回應（估值永遠可離線重放）
 records/              picks / settlements / weights / commentary 帳本＋reports/
 research/             全歷史走步回測、兩階段搜尋與封存外驗
+agent_ablation.py     2 至 5 人共 26 個子議會的正式消融研究
+agent_ablation_verify.py
+                      分階段測試、正式消融與完整後測入口
 output/jupyter-notebook/
                       可重跑的策略研究伴隨筆記本
 tests/                研究與正式流程完整測試

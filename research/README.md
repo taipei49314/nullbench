@@ -43,3 +43,25 @@ bootstrap 的正式研究，最後重跑全套測試與 `git diff --check`。任
 - `strategy_summary.csv`：粗搜、細調與最終政策的分段指標。
 - `policy_weekly.csv`：最終政策逐週平均結果。
 - `DECISION.md`：簡潔決策稿。
+
+## Agent 數量消融
+
+`agent-count-ablation-v1` 專門回答「Agent 越多是否越準」。它重用逐期帳本中
+開獎前已封存的 15 組提案與 60 次交叉評論，窮舉 2、3、4、5 人共 26 個
+子議會；每個子議會維持自己的歷史評等，每期固定只選五注。
+
+```powershell
+python -X utf8 agent_ablation_verify.py
+```
+
+正式設定會先暖機 60 期，再依時間切成前 70% development 與最近 30%
+holdout。每期另跑 200 組固定種子的均勻隨機五注，主要指標是「五注中最佳
+一注的主號命中數」，區間採 13 期區塊 bootstrap 2,000 次。驗收入口會依序
+跑核心測試、報告契約、完整回歸、正式研究、完整後測與 `git diff --check`。
+
+研究輸出：
+
+- `agent_ablation.json`：方法、資料品質、全部人數與子議會結果。
+- `agent_ablation_summary.csv`：2 至 5 人的 development/holdout 摘要。
+- `agent_ablation_subsets.csv`：26 個子議會的分段結果。
+- `agent_ablation_artifact.json`：已驗證的 Data Analytics 報告資料。
