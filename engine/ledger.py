@@ -23,13 +23,47 @@ class Ledger:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
+    def _last_line(self) -> str | None:
+        if not self.path.exists():
+            return None
+        last = None
+        with open(self.path, encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    last = line.strip()
+        return last
+
     def append(self, event_type: str, payload: dict) -> dict:
-        event = {"ts": now_iso(), "type": event_type, **payload}
+        import hashlib
+        import os
+        prev = self._last_line()
+        prev_hash = hashlib.sha256(prev.encode("utf-8")).hexdigest() if prev else None
+        event = {"ts": now_iso(), "type": event_type, "schema_version": "1",
+                 "prev_line_hash": prev_hash, **payload}
         line = json.dumps(event, ensure_ascii=False)
         with open(self.path, "a", encoding="utf-8") as f:
             f.write(line + "\n")
             f.flush()
+            os.fsync(f.fileno())
         return event
+
+    def verify_chain(self) -> bool:
+        """驗雜湊鏈：每行的 prev_line_hash 必須等於前一行全文的 SHA-256。"""
+        import hashlib
+        prev = None
+        for e_raw in self._raw_lines():
+            e = json.loads(e_raw)
+            expect = hashlib.sha256(prev.encode("utf-8")).hexdigest() if prev else None
+            if e.get("prev_line_hash") != expect:
+                return False
+            prev = e_raw
+        return True
+
+    def _raw_lines(self) -> list[str]:
+        if not self.path.exists():
+            return []
+        with open(self.path, encoding="utf-8") as f:
+            return [ln.strip() for ln in f if ln.strip()]
 
     def read_all(self) -> list[dict]:
         if not self.path.exists():

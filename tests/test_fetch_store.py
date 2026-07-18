@@ -51,16 +51,17 @@ def test_all_super_specials_in_range():
 
 
 def test_week_id_and_dates():
-    assert week_id_of(date(2026, 7, 18)) == "2026-07-13"  # 週六 → 該週週一
-    assert week_id_of(date(2026, 7, 13)) == "2026-07-13"  # 週一是自己
-    assert week_id_of(date(2026, 7, 19)) == "2026-07-13"  # 週日仍屬本週
-    assert week_dates("2026-07-13", SUPER) == ["2026-07-13", "2026-07-16"]
-    assert week_dates("2026-07-13", LOTTO649) == ["2026-07-14", "2026-07-17"]
+    assert week_id_of(date(2026, 7, 18)) == "2026-W29"  # 週六
+    assert week_id_of(date(2026, 7, 13)) == "2026-W29"  # 週一
+    assert week_id_of(date(2026, 7, 19)) == "2026-W29"  # 週日仍屬本週
+    assert week_id_of(date(2026, 7, 20)) == "2026-W30"  # 下週一
+    assert week_dates("2026-W29", SUPER) == ["2026-07-13", "2026-07-16"]
+    assert week_dates("2026-W29", LOTTO649) == ["2026-07-14", "2026-07-17"]
 
 
 def test_draws_in_week_with_real_fixture():
     draws = _parse_super()
-    wk = draws_in_week(draws, "2026-06-01")
+    wk = draws_in_week(draws, "2026-W23")  # 2026-06-01 該週
     assert all("2026-06-01" <= d.date <= "2026-06-07" for d in wk)
     assert len(wk) == 2  # 威力彩每週兩期
 

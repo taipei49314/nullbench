@@ -85,24 +85,40 @@ def _draw_with_prizes(base: Draw, api_key: str, winner_count: int, per_prize: in
 def test_prize_value_fixed_tier_uses_actual_when_winners():
     tier = SUPER_TIERS[3]  # 肆獎 fixed 20000
     d = _draw_with_prizes(SUPER_DRAW, tier.api_key, 37, 20000)
-    assert prize_value(tier, d) == (20000, False)
+    assert prize_value(tier, d) == (20000, "fixed", 20000)
 
 
 def test_prize_value_fixed_tier_falls_back_when_no_winners():
     tier = SUPER_TIERS[2]  # 參獎 fixed 150000
     d = _draw_with_prizes(SUPER_DRAW, tier.api_key, 0, 0)
-    assert prize_value(tier, d) == (150000, False)
+    assert prize_value(tier, d) == (150_000, "fixed", 150_000)
 
 
-def test_prize_value_floating_no_winner_is_estimated():
-    tier = SUPER_TIERS[0]  # 頭獎浮動
-    d = _draw_with_prizes(SUPER_DRAW, tier.api_key, 0, 0, pool=14_942_147, last_pool=115_589_619)
-    value, estimated = prize_value(tier, d)
-    assert value == 14_942_147 + 115_589_619
-    assert estimated is True
-
-
-def test_prize_value_floating_with_winner_is_exact():
+def test_prize_value_floating_with_winner_is_counterfactual():
+    # 有人中獎的浮動獎級：我們加入會多一個分獎人 → pool // (wc+1)
     tier = LOTTO649_TIERS[0]
     d = _draw_with_prizes(L649_DRAW, tier.api_key, 1, 643_445_802)
-    assert prize_value(tier, d) == (643_445_802, False)
+    value, basis, upper = prize_value(tier, d)
+    assert basis == "counterfactual"
+    assert value == (643_445_802 * 1) // 2
+
+
+def test_prize_value_floating_no_winner_uses_floor():
+    tier = SUPER_TIERS[0]  # 頭獎浮動
+    d = _draw_with_prizes(SUPER_DRAW, tier.api_key, 0, 0, pool=14_942_147, last_pool=115_589_619)
+    value, basis, upper = prize_value(tier, d, floor_table={tier.api_key: 100_000_000})
+    assert (value, basis) == (100_000_000, "estimated")
+    assert upper == 14_942_147 + 115_589_619
+    # 沒有下界表時退回獎池估值
+    v2, b2, _ = prize_value(tier, d)
+    assert (v2, b2) == (14_942_147 + 115_589_619, "estimated")
+
+
+def test_floor_table_from_history():
+    from engine.games import floor_table_from_history
+    tier = SUPER_TIERS[0]
+    d1 = _draw_with_prizes(SUPER_DRAW, tier.api_key, 1, 200_000_000)
+    d2 = _draw_with_prizes(SUPER_DRAW, tier.api_key, 2, 120_000_000)
+    d3 = _draw_with_prizes(SUPER_DRAW, tier.api_key, 0, 0)  # 無人中不入表
+    floors = floor_table_from_history([d1, d2, d3])
+    assert floors[tier.api_key] == 120_000_000

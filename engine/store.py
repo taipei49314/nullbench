@@ -13,18 +13,24 @@ from .games import DRAW_WEEKDAYS, Draw
 
 
 def week_id_of(d: date) -> str:
-    monday = d - timedelta(days=d.weekday())
-    return monday.isoformat()
+    """ISO 週識別，如 2026-W30。"""
+    iso = d.isocalendar()
+    return f"{iso[0]}-W{iso[1]:02d}"
+
+
+def monday_of(week_id: str) -> date:
+    year, week = week_id.split("-W")
+    return date.fromisocalendar(int(year), int(week), 1)
 
 
 def week_dates(week_id: str, game: str) -> list[str]:
     """該週該遊戲的預定開獎日期清單。"""
-    monday = date.fromisoformat(week_id)
+    monday = monday_of(week_id)
     return [(monday + timedelta(days=wd)).isoformat() for wd in DRAW_WEEKDAYS[game]]
 
 
 def draws_in_week(draws: list[Draw], week_id: str) -> list[Draw]:
-    monday = date.fromisoformat(week_id)
+    monday = monday_of(week_id)
     sunday = monday + timedelta(days=6)
     lo, hi = monday.isoformat(), sunday.isoformat()
     return [d for d in draws if lo <= d.date <= hi]
