@@ -8,6 +8,26 @@
 append-only 帳本（雜湊鏈）→ null model 併跑 → 繁中報告（結論先行）。
 純 Python stdlib，資料來自台彩官方 API（威力彩 2008-01 起、大樂透 2007-01 起全歷史）。
 
+## 桌機戰情室
+
+酷炫前端會直接讀取 `simulation/results/` 的真實逐期辯論、裁決與檢討資料，不使用假資料。
+畫面專為 1180px 以上桌機瀏覽器設計：
+
+```powershell
+python lotto.py loop
+cd frontend
+npm install
+npm run dev
+```
+
+開啟 `http://127.0.0.1:5173/`。前端品質檢查可用：
+
+```powershell
+npm run lint
+npm run test
+npm run build
+```
+
 ## 每週流程（全部手動觸發，零排程零推播）
 
 ```

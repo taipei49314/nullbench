@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 data/raw/
 simulation/results/
+frontend/node_modules/
+frontend/dist/
