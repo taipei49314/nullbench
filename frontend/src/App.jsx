@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { loadDashboard, revealDecision, syncLatest } from "./api";
+import { hasRevealedDecision } from "./domain";
 import AgentInspector from "./components/AgentInspector";
 import AppHeader from "./components/AppHeader";
 import CommandCenter from "./components/CommandCenter";
@@ -88,6 +89,10 @@ export default function App() {
 
   const gameData = dashboard.manifest.games[activeGame];
   const recentEvents = dashboard.recent[activeGame];
+  const decisionRevealed = hasRevealedDecision(
+    revealedGames[activeGame],
+    gameData.next_decision,
+  );
   let activeContent;
   if (activeView === "history") {
     activeContent = <HistoryView gameData={gameData} events={recentEvents} />;
@@ -106,7 +111,7 @@ export default function App() {
     activeContent = (
       <CommandCenter
         activeGame={activeGame}
-        decisionRevealed={Boolean(revealedGames[activeGame])}
+        decisionRevealed={decisionRevealed}
         gameData={gameData}
         key={`${activeGame}:${gameData.next_decision.target.period}`}
         recentEvents={recentEvents}
@@ -129,7 +134,7 @@ export default function App() {
       {selectedAgent ? (
         <AgentInspector
           agentId={selectedAgent}
-          decisionRevealed={Boolean(revealedGames[activeGame])}
+          decisionRevealed={decisionRevealed}
           gameData={gameData}
           onChangeAgent={setSelectedAgent}
           onClose={() => setSelectedAgent(null)}

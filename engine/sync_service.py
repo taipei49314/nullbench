@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from . import agent_loop
+from . import agent_loop, qwen_judge
 from .env import Env
 from .fetch import ingest
 from .games import GAME_NAMES, LOTTO649, SUPER
@@ -18,6 +18,14 @@ from .ledger import TAIPEI
 
 GAMES = (SUPER, LOTTO649)
 Progress = Callable[[str, str, dict | None], None]
+
+
+def _run_with_qwen(store, output_dir: Path) -> dict:
+    return agent_loop.run_all(
+        store,
+        output_dir,
+        final_judge=qwen_judge.adjudicate,
+    )
 
 
 def _read_manifest(output_dir: Path) -> dict | None:
@@ -48,7 +56,7 @@ def sync_latest(
     *,
     progress: Progress | None = None,
     fetcher=ingest,
-    runner=agent_loop.run_all,
+    runner=_run_with_qwen,
 ) -> dict:
     """檢查官方新資料，必要時重建 agent 閉環產物。"""
     base = Path(base)

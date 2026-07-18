@@ -60,6 +60,15 @@ function publicManifest() {
     decision.adjudication = {
       ...decision.adjudication,
       ranking: [],
+      candidate_scores: [],
+      judge: {
+        source: "pending",
+        requested_model:
+          decision.adjudication.judge?.requested_model ?? "qwen3:8b",
+        model: null,
+        summary: "等待 60 次交叉評議完成後再呼叫終局裁判。",
+        reasons: [],
+      },
     };
   }
   return manifest;

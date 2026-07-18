@@ -5,6 +5,7 @@
 2. 全專案測試。
 3. 完整歷史回放兩次，驗證位元級重現與 JSONL 雜湊鏈。
 4. 再跑全專案測試，並確認正式 records 樹完全未變。
+5. 以 qwen3:8b 產生兩遊戲的下一期終局裁決並驗證來源。
 """
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from pathlib import Path
 from engine.agent_loop import run_all, verify_replay
 from engine.env import Env
 from engine.games import LOTTO649, SUPER
+from engine.qwen_judge import adjudicate as qwen_adjudicate
 
 
 ROOT = Path(__file__).resolve().parent
@@ -71,14 +73,30 @@ def main() -> None:
     if records_before != records_after:
         raise RuntimeError("正式 records/ 在 agent 閉環驗證期間遭到修改")
 
+    print("\n== 階段 6：qwen3:8b 下一期終局裁決 ==")
+    final = run_all(
+        env.store,
+        RESULTS,
+        final_judge=qwen_adjudicate,
+    )
+    for game in (SUPER, LOTTO649):
+        judge = final["games"][game]["next_decision"]["adjudication"]["judge"]
+        if judge["source"] != "ollama" or judge["model"] != "qwen3:8b":
+            raise RuntimeError(
+                f"{game} 未由 qwen3:8b 完成終局裁決：{judge}"
+            )
+        if len(judge["selected_proposal_ids"]) != 5 or len(judge["reasons"]) != 5:
+            raise RuntimeError(f"{game} qwen3:8b 裁決不是五組完整理由")
+
     print("\n== 全部通過 ==")
     for game in (SUPER, LOTTO649):
-        result = second["games"][game]
+        result = final["games"][game]
         print(
             f"{result['game_name']}：{result['draws_replayed']} 期｜"
-            f"ledger SHA-256 {result['ledger_sha256']}"
+            f"ledger SHA-256 {result['ledger_sha256']}｜"
+            f"終局裁判 {result['next_decision']['adjudication']['judge']['model']}"
         )
-    print(f"manifest_hash：{second['manifest_hash']}")
+    print(f"manifest_hash：{final['manifest_hash']}")
     print(f"records tree hash（前後一致）：{records_after}")
 
 

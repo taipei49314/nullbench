@@ -94,6 +94,14 @@ export function getRankingMap(decision) {
   );
 }
 
+export function hasRevealedDecision(revealed, decision) {
+  return (
+    Boolean(revealed) &&
+    decision.selected_tickets.length === 5 &&
+    decision.adjudication.ranking.length === 5
+  );
+}
+
 export function getAgentSeries(agentId, proposals, rating) {
   const seed = proposals
     .flatMap((proposal) => proposal.numbers)

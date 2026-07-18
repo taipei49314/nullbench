@@ -18,7 +18,7 @@ import random
 from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 from . import config
 from .analysts import NAMES, PERSONAS
@@ -36,12 +36,13 @@ from .games import (
 from .seeds import seed_int
 from .stats import gaps, main_freq
 
-LOOP_EXPERIMENT_ID = "agent-loop-v1"
+LOOP_EXPERIMENT_ID = "agent-loop-v2-qwen-final"
 AGENT_IDS = tuple(sorted(PERSONAS))
 PROPOSALS_PER_AGENT = 3
 SELECTED_TICKETS = 5
 LEARNING_RATE = 0.18
 RATING_RANGE = (0.50, 1.50)
+HOT_WINDOWS = (12, 30, 60)
 
 
 def canonical_hash(payload: dict) -> str:
@@ -138,6 +139,12 @@ def _structural_features(game: str, numbers: list[int]) -> dict:
     pairs = sum(1 for left, right in zip(numbers, numbers[1:]) if right - left == 1)
     tails = len({number % 10 for number in numbers})
     number_range = numbers[-1] - numbers[0]
+    bucket_width = math.ceil(POOL[game] / 4)
+    bucket_kinds = len({min(3, (number - 1) // bucket_width) for number in numbers})
+    tail_counts = Counter(number % 10 for number in numbers)
+    max_same_tail = max(tail_counts.values())
+    gaps_between = [right - left for left, right in zip(numbers, numbers[1:])]
+    gap_kinds = len(set(gaps_between))
     return {
         "sum": sum(numbers),
         "sum_in_band": lo <= sum(numbers) <= hi,
@@ -151,11 +158,48 @@ def _structural_features(game: str, numbers: list[int]) -> dict:
         "tails_ok": tails >= config.BALANCE["MIN_TAIL_KINDS"],
         "range": number_range,
         "range_ok": number_range >= config.BALANCE["MIN_RANGE"],
+        "bucket_kinds": bucket_kinds,
+        "bucket_coverage_ok": bucket_kinds >= 3,
+        "max_same_tail": max_same_tail,
+        "tail_concentration_ok": max_same_tail <= 2,
+        "gap_kinds": gap_kinds,
+    }
+
+
+def _antipop_features(numbers: list[int]) -> dict:
+    differences = [right - left for left, right in zip(numbers, numbers[1:])]
+    tail_counts = Counter(number % 10 for number in numbers)
+    return {
+        "above_31": sum(number > 31 for number in numbers),
+        "month_band": sum(number <= 12 for number in numbers),
+        "birthday_band": sum(number <= 31 for number in numbers),
+        "round_numbers": sum(number % 5 == 0 for number in numbers),
+        "repeated_tail_pairs": sum(
+            count * (count - 1) // 2 for count in tail_counts.values()
+        ),
+        "arithmetic_sequence": len(set(differences)) == 1,
+        "fully_consecutive": all(difference == 1 for difference in differences),
+    }
+
+
+def _analysis_context(game: str, history: list[Draw]) -> dict:
+    frequency = {
+        window: main_freq(history, window)
+        for window in HOT_WINDOWS
+    }
+    return {
+        "frequency": frequency,
+        "gaps": gaps(history, game),
+        "expected_gap": POOL[game] / 6,
     }
 
 
 def _argument(
-    agent: str, game: str, history: list[Draw], ticket: dict
+    agent: str,
+    game: str,
+    history: list[Draw],
+    ticket: dict,
+    context: dict,
 ) -> tuple[str, dict]:
     numbers = ticket["numbers"]
     if agent == "random_monk":
@@ -164,25 +208,42 @@ def _argument(
             {"history_used": 0, "sampling": "uniform"},
         )
     if agent == "hot_hunter":
-        window = config.HOT_HUNTER["W"]
-        freq = main_freq(history, window)
+        windows = []
+        for window in HOT_WINDOWS:
+            freq = context["frequency"][window]
+            windows.append(
+                {
+                    "window": min(window, len(history)),
+                    "selected_counts": [
+                        {"number": number, "count": freq[number]}
+                        for number in numbers
+                    ],
+                }
+            )
         return (
-            "檢視近期出現頻率是否能提供可重複的排序訊號。",
+            "同時檢視短、中、長三個近期窗，避免單一時間窗把偶然波動誤認為訊號。",
             {
-                "window": min(window, len(history)),
-                "selected_recent_counts": [
-                    {"number": number, "count": freq[number]} for number in numbers
-                ],
+                "windows": windows,
+                "decay": config.HOT_HUNTER["LAMBDA"],
             },
         )
     if agent == "cold_keeper":
-        gap_map = gaps(history, game)
+        gap_map = context["gaps"]
+        expected_gap = context["expected_gap"]
         return (
-            "檢視遺漏深度，但明確把它當待檢驗假設而非到期必出的因果。",
+            "把目前遺漏與遊戲池的基準等待期並列，避免只追逐極端冷號。",
             {
                 "selected_gaps": [
-                    {"number": number, "gap": gap_map[number]} for number in numbers
-                ]
+                    {
+                        "number": number,
+                        "gap": gap_map[number],
+                        "relative_to_expected": round(
+                            gap_map[number] / expected_gap, 4
+                        ),
+                    }
+                    for number in numbers
+                ],
+                "expected_gap": round(expected_gap, 4),
             },
         )
     if agent == "balance_engineer":
@@ -191,18 +252,16 @@ def _argument(
             _structural_features(game, numbers),
         )
     if agent == "antipop_taoist":
-        above_31 = sum(number > 31 for number in numbers)
         return (
-            "偏離常見生日選號帶；此依據只關乎可能分彩，不改變開出機率。",
-            {
-                "above_31": above_31,
-                "all_in_birthday_band": all(number <= 31 for number in numbers),
-            },
+            "檢查生日帶、整數偏好、尾數重複與規則序列；只評估可能分彩，不宣稱提高開出率。",
+            _antipop_features(numbers),
         )
     raise ValueError(agent)
 
 
-def _build_proposals(game: str, target: dict, history: list[Draw]) -> list[dict]:
+def _build_proposals(
+    game: str, target: dict, history: list[Draw], context: dict
+) -> list[dict]:
     proposals: list[dict] = []
     seen: set[frozenset[int]] = set()
     for agent in AGENT_IDS:
@@ -217,7 +276,7 @@ def _build_proposals(game: str, target: dict, history: list[Draw]) -> list[dict]
                     break
                 retry += 1
             seen.add(key)
-            thesis, evidence = _argument(agent, game, history, output)
+            thesis, evidence = _argument(agent, game, history, output, context)
             proposals.append(
                 {
                     "proposal_id": f"{agent}:{variant}",
@@ -244,23 +303,77 @@ def _percentile(value: float, population: Iterable[float]) -> float:
 
 
 def _critique_score(
-    critic: str, game: str, history: list[Draw], proposal: dict
-) -> tuple[float, str]:
+    critic: str,
+    game: str,
+    history: list[Draw],
+    proposal: dict,
+    context: dict,
+) -> tuple[float, float, str, dict]:
     numbers = proposal["numbers"]
     if critic == "random_monk":
-        return 0.5, "歷史不能證明單一合法組合較可能；維持中立基準。"
+        return (
+            0.5,
+            1.0,
+            "歷史不能證明單一合法組合較可能；以固定 0.5 維持校準基準。",
+            {"calibration": "uniform-null", "history_used": 0},
+        )
 
     if critic == "hot_hunter":
-        freq = main_freq(history, config.HOT_HUNTER["W"])
-        population = [freq[number] for number in range(1, POOL[game] + 1)]
-        score = sum(_percentile(freq[number], population) for number in numbers) / 6
-        return score, f"近期頻率百分位平均 {score:.3f}。"
+        window_scores = []
+        for window in HOT_WINDOWS:
+            freq = context["frequency"][window]
+            population = [freq[number] for number in range(1, POOL[game] + 1)]
+            window_scores.append(
+                sum(_percentile(freq[number], population) for number in numbers) / 6
+            )
+        score = (
+            0.50 * window_scores[0]
+            + 0.30 * window_scores[1]
+            + 0.20 * window_scores[2]
+        )
+        dispersion = math.sqrt(
+            sum((item - sum(window_scores) / 3) ** 2 for item in window_scores) / 3
+        )
+        confidence = min(1.0, len(history) / HOT_WINDOWS[-1]) * max(
+            0.55, 1.0 - dispersion
+        )
+        evidence = {
+            "windows": [
+                {"window": window, "score": round(value, 6)}
+                for window, value in zip(HOT_WINDOWS, window_scores)
+            ],
+            "window_dispersion": round(dispersion, 6),
+        }
+        return (
+            score,
+            confidence,
+            f"12/30/60 期頻率分數為 "
+            f"{window_scores[0]:.3f}/{window_scores[1]:.3f}/{window_scores[2]:.3f}。",
+            evidence,
+        )
 
     if critic == "cold_keeper":
-        gap_map = gaps(history, game)
+        gap_map = context["gaps"]
         population = list(gap_map.values())
-        score = sum(_percentile(gap_map[number], population) for number in numbers) / 6
-        return score, f"遺漏深度百分位平均 {score:.3f}。"
+        percentile_score = (
+            sum(_percentile(gap_map[number], population) for number in numbers) / 6
+        )
+        expected_gap = context["expected_gap"]
+        pressure_score = sum(
+            min(2.0, gap_map[number] / expected_gap) / 2 for number in numbers
+        ) / 6
+        score = 0.70 * percentile_score + 0.30 * pressure_score
+        confidence = min(1.0, len(history) / 40)
+        return (
+            score,
+            confidence,
+            f"遺漏百分位 {percentile_score:.3f}；相對基準等待期 {pressure_score:.3f}。",
+            {
+                "gap_percentile": round(percentile_score, 6),
+                "relative_gap_pressure": round(pressure_score, 6),
+                "expected_gap": round(expected_gap, 6),
+            },
+        )
 
     if critic == "balance_engineer":
         features = _structural_features(game, numbers)
@@ -270,40 +383,61 @@ def _critique_score(
             features["consecutive_ok"],
             features["tails_ok"],
             features["range_ok"],
+            features["bucket_coverage_ok"],
+            features["tail_concentration_ok"],
         )
         score = sum(checks) / len(checks)
-        return score, f"五項結構條件通過 {sum(checks)}/{len(checks)}。"
+        return (
+            score,
+            0.9,
+            f"七項結構與分散條件通過 {sum(checks)}/{len(checks)}。",
+            features,
+        )
 
     if critic == "antipop_taoist":
-        above_31 = sum(number > 31 for number in numbers)
-        arithmetic = len(
-            {right - left for left, right in zip(numbers, numbers[1:])}
-        ) == 1
-        score = min(1.0, 0.20 + 0.12 * above_31 + (0.08 if not arithmetic else 0))
-        return score, f"31 以上號碼 {above_31} 個；等差序列={arithmetic}。"
+        features = _antipop_features(numbers)
+        score = 0.22
+        score += 0.10 * features["above_31"]
+        score -= 0.035 * features["month_band"]
+        score -= 0.025 * features["round_numbers"]
+        score -= 0.035 * features["repeated_tail_pairs"]
+        score += 0.08 if not features["arithmetic_sequence"] else -0.15
+        score = min(1.0, max(0.0, score))
+        return (
+            score,
+            0.75,
+            f"31 以上 {features['above_31']} 個、生日帶 "
+            f"{features['birthday_band']} 個、重複尾數對 "
+            f"{features['repeated_tail_pairs']} 組。",
+            features,
+        )
 
     raise ValueError(critic)
 
 
 def _build_critiques(
-    game: str, history: list[Draw], proposals: list[dict]
+    game: str, history: list[Draw], proposals: list[dict], context: dict
 ) -> list[dict]:
     critiques = []
     for critic in AGENT_IDS:
         for proposal in proposals:
             if proposal["agent"] == critic:
                 continue
-            score, reason = _critique_score(critic, game, history, proposal)
+            score, confidence, reason, evidence = _critique_score(
+                critic, game, history, proposal, context
+            )
             critiques.append(
                 {
                     "critic": critic,
                     "critic_name": NAMES[critic],
                     "target": proposal["proposal_id"],
                     "score": round(score, 6),
+                    "confidence": round(confidence, 6),
                     "stance": (
                         "support" if score > 0.60 else "oppose" if score < 0.40 else "neutral"
                     ),
                     "reason": reason,
+                    "evidence": evidence,
                 }
             )
     return critiques
@@ -311,7 +445,7 @@ def _build_critiques(
 
 def _adjudicate(
     proposals: list[dict], critiques: list[dict], state: dict
-) -> tuple[list[dict], list[dict]]:
+) -> tuple[list[dict], list[dict], list[dict]]:
     ratings = {
         agent: float(state["agents"][agent]["rating"]) for agent in AGENT_IDS
     }
@@ -320,15 +454,42 @@ def _adjudicate(
         relevant = [
             critique for critique in critiques if critique["target"] == proposal["proposal_id"]
         ]
-        weight = sum(ratings[item["critic"]] for item in relevant)
-        debate_score = (
-            sum(item["score"] * ratings[item["critic"]] for item in relevant) / weight
+        weights = [
+            ratings[item["critic"]] * float(item.get("confidence", 1.0))
+            for item in relevant
+        ]
+        weight = sum(weights)
+        consensus = (
+            sum(
+                item["score"] * item_weight
+                for item, item_weight in zip(relevant, weights)
+            )
+            / weight
         )
-        debate_score += 0.05 * (ratings[proposal["agent"]] - 1.0)
+        disagreement = math.sqrt(
+            sum(
+                item_weight * (item["score"] - consensus) ** 2
+                for item, item_weight in zip(relevant, weights)
+            )
+            / weight
+        )
+        proposer_adjustment = 0.05 * (ratings[proposal["agent"]] - 1.0)
+        debate_score = consensus - 0.08 * disagreement + proposer_adjustment
         scored.append(
             {
                 "proposal": proposal,
                 "debate_score": round(debate_score, 8),
+                "consensus_score": round(consensus, 8),
+                "disagreement": round(disagreement, 8),
+                "proposer_adjustment": round(proposer_adjustment, 8),
+                "critic_scores": [
+                    {
+                        "critic": item["critic"],
+                        "score": item["score"],
+                        "confidence": item.get("confidence", 1.0),
+                    }
+                    for item in relevant
+                ],
             }
         )
 
@@ -347,8 +508,8 @@ def _adjudicate(
                 )
             else:
                 overlap = 0.0
-            diversity_penalty = 0.12 * overlap
-            voice_penalty = 0.04 * selected_agents[proposal["agent"]]
+            diversity_penalty = 0.14 * overlap
+            voice_penalty = 0.05 * selected_agents[proposal["agent"]]
             final_score = item["debate_score"] - diversity_penalty - voice_penalty
             choices.append(
                 (
@@ -386,7 +547,25 @@ def _adjudicate(
         }
         for rank, item in enumerate(selected, 1)
     ]
-    return tickets, ranking
+    candidate_scores = [
+        {
+            "proposal_id": item["proposal"]["proposal_id"],
+            "agent": item["proposal"]["agent"],
+            "debate_score": item["debate_score"],
+            "consensus_score": item["consensus_score"],
+            "disagreement": item["disagreement"],
+            "proposer_adjustment": item["proposer_adjustment"],
+            "critic_scores": item["critic_scores"],
+        }
+        for item in sorted(
+            scored,
+            key=lambda item: (
+                -item["debate_score"],
+                item["proposal"]["proposal_id"],
+            ),
+        )
+    ]
+    return tickets, ranking, candidate_scores
 
 
 def conduct_debate(
@@ -396,11 +575,12 @@ def conduct_debate(
     if game not in (SUPER, LOTTO649):
         raise ValueError(game)
     _validate_history(game, target, history)
-    proposals = _build_proposals(game, target, history)
-    critiques = _build_critiques(game, history, proposals)
-    selected, ranking = _adjudicate(proposals, critiques, state)
+    context = _analysis_context(game, history)
+    proposals = _build_proposals(game, target, history, context)
+    critiques = _build_critiques(game, history, proposals, context)
+    selected, ranking, candidate_scores = _adjudicate(proposals, critiques, state)
     decision = {
-        "schema_version": "1",
+        "schema_version": "2",
         "experiment_id": LOOP_EXPERIMENT_ID,
         "phase": "decision",
         "game": game,
@@ -417,14 +597,141 @@ def conduct_debate(
         "critiques": critiques,
         "adjudication": {
             "selected_count": SELECTED_TICKETS,
-            "method": "可信度加權交叉評議＋主號重疊與同 agent 集中懲罰",
+            "method": "信心度與可信度加權共識－評議分歧＋主號重疊與同 Agent 集中懲罰",
             "ranking": ranking,
+            "candidate_scores": candidate_scores,
+            "judge": {
+                "source": "deterministic_replay",
+                "requested_model": None,
+                "model": None,
+                "summary": "歷史回放採可重現規則裁判；不呼叫語言模型。",
+                "reasons": [],
+            },
         },
         "selected_tickets": selected,
         "honesty_note": (
             "這是依歷史假設排序的純模擬候選；合法組合的理論開出機率相同。"
         ),
     }
+    decision["decision_hash"] = canonical_hash(decision)
+    return decision
+
+
+def _selected_from_proposal_ids(
+    decision: dict,
+    proposal_ids: list[str],
+    reasons: list[dict],
+) -> tuple[list[dict], list[dict]]:
+    proposals = {
+        proposal["proposal_id"]: proposal for proposal in decision["proposals"]
+    }
+    candidate_scores = {
+        item["proposal_id"]: item
+        for item in decision["adjudication"]["candidate_scores"]
+    }
+    reason_map = {item["proposal_id"]: item["reason"] for item in reasons}
+    if len(proposal_ids) != SELECTED_TICKETS or len(set(proposal_ids)) != SELECTED_TICKETS:
+        raise ValueError("終局裁判必須選出五個不重複提案")
+    if any(proposal_id not in proposals for proposal_id in proposal_ids):
+        raise ValueError("終局裁判選到不存在的提案")
+
+    tickets = []
+    ranking = []
+    seen_numbers: set[tuple[int, ...]] = set()
+    selected_proposals = []
+    for rank, proposal_id in enumerate(proposal_ids, 1):
+        proposal = proposals[proposal_id]
+        number_key = tuple(proposal["numbers"])
+        if number_key in seen_numbers:
+            raise ValueError("終局裁判選到主號重複的提案")
+        seen_numbers.add(number_key)
+        validate_pick(decision["game"], proposal["numbers"], proposal["special"])
+
+        overlap = (
+            max(
+                len(set(proposal["numbers"]) & set(other["numbers"])) / 6
+                for other in selected_proposals
+            )
+            if selected_proposals
+            else 0.0
+        )
+        same_agent_count = sum(
+            other["agent"] == proposal["agent"] for other in selected_proposals
+        )
+        diversity_penalty = 0.14 * overlap
+        voice_penalty = 0.05 * same_agent_count
+        score = candidate_scores[proposal_id]
+        final_score = score["debate_score"] - diversity_penalty - voice_penalty
+        tickets.append(
+            {
+                "slot": rank,
+                "source_agent": proposal["agent"],
+                "source_proposal": proposal_id,
+                "numbers": proposal["numbers"],
+                "special": proposal["special"],
+            }
+        )
+        ranking.append(
+            {
+                "rank": rank,
+                "proposal_id": proposal_id,
+                "debate_score": score["debate_score"],
+                "diversity_penalty": round(diversity_penalty, 8),
+                "same_agent_penalty": round(voice_penalty, 8),
+                "final_score": round(final_score, 8),
+                "judge_reason": reason_map.get(proposal_id, ""),
+            }
+        )
+        selected_proposals.append(proposal)
+    return tickets, ranking
+
+
+def apply_final_judge(
+    decision: dict,
+    judge: Callable[[dict], dict],
+    *,
+    requested_model: str = "qwen3:8b",
+) -> dict:
+    """只對下一期決策套用終局模型；失敗時保留可重現規則裁決並明確標示。"""
+    baseline_tickets = decision["selected_tickets"]
+    baseline_ranking = decision["adjudication"]["ranking"]
+    try:
+        judge_result = judge(decision)
+        if judge_result.get("source") != "ollama":
+            raise ValueError("終局裁判未證明輸出來自 Ollama")
+        if judge_result.get("model") != requested_model:
+            raise ValueError(
+                f"終局模型不符：{judge_result.get('model') or 'unknown'}"
+            )
+        tickets, ranking = _selected_from_proposal_ids(
+            decision,
+            judge_result["selected_proposal_ids"],
+            judge_result["reasons"],
+        )
+        decision["selected_tickets"] = tickets
+        decision["adjudication"]["ranking"] = ranking
+        decision["adjudication"]["method"] = (
+            "Qwen3:8b 綜合 15 組提案、60 次信心度加權交叉評議與組合分散度終局裁決"
+        )
+        decision["adjudication"]["judge"] = judge_result
+    except Exception as exc:
+        decision["selected_tickets"] = baseline_tickets
+        decision["adjudication"]["ranking"] = baseline_ranking
+        decision["adjudication"]["method"] = (
+            "Qwen3:8b 終局裁判失敗；使用可重現規則裁決降級結果"
+        )
+        decision["adjudication"]["judge"] = {
+            "source": "deterministic_fallback",
+            "requested_model": requested_model,
+            "model": None,
+            "selected_proposal_ids": [
+                ticket["source_proposal"] for ticket in baseline_tickets
+            ],
+            "summary": "本次模型輸出不可驗證，已保留規則裁決結果。",
+            "reasons": [],
+            "fallback_reason": str(exc)[:300],
+        }
+    decision.pop("decision_hash", None)
     decision["decision_hash"] = canonical_hash(decision)
     return decision
 
@@ -634,6 +941,7 @@ def replay_game(
     output_path: Path | None = None,
     *,
     collect_events: bool = False,
+    final_judge: Callable[[dict], dict] | None = None,
 ) -> dict:
     """逐期回放完整閉環；若給 output_path，以決定性 JSONL 原子替換輸出。"""
     ordered = sorted(draws, key=lambda draw: (draw.date, draw.period))
@@ -688,11 +996,13 @@ def replay_game(
         if temp_path is not None and temp_path.exists():
             temp_path.unlink()
 
-    future_decision = (
-        conduct_debate(game, next_target(game, ordered[-1]), history, state)
-        if ordered
-        else None
-    )
+    future_decision = None
+    if ordered:
+        future_decision = conduct_debate(
+            game, next_target(game, ordered[-1]), history, state
+        )
+        if final_judge is not None:
+            future_decision = apply_final_judge(future_decision, final_judge)
     summary = {
         "experiment_id": LOOP_EXPERIMENT_ID,
         "game": game,
@@ -762,14 +1072,24 @@ def verify_replay(path: Path, expected_draws: int | None = None) -> dict:
     }
 
 
-def run_all(store, output_dir: Path) -> dict:
+def run_all(
+    store,
+    output_dir: Path,
+    *,
+    final_judge: Callable[[dict], dict] | None = None,
+) -> dict:
     """兩遊戲完整回放並寫出總表；輸出與正式 records 完全隔離。"""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     games = {}
     for game in (SUPER, LOTTO649):
         path = output_dir / f"{game}.jsonl"
-        summary = replay_game(game, store.draws(game), path)
+        summary = replay_game(
+            game,
+            store.draws(game),
+            path,
+            final_judge=final_judge,
+        )
         verified = verify_replay(path, len(store.draws(game)))
         games[game] = {
             **{key: value for key, value in summary.items() if key != "next_decision"},

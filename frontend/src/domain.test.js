@@ -5,6 +5,7 @@ import {
   formatNumbers,
   getAgentSeries,
   getDebateSequence,
+  hasRevealedDecision,
   getOrderedAgents,
   getProposalMap,
   getRankingMap,
@@ -106,5 +107,22 @@ describe("domain indexing helpers", () => {
     expect(first).toEqual(second);
     expect(first).toHaveLength(30);
     expect(first.every((value) => value >= 8 && value <= 96)).toBe(true);
+  });
+
+  it("does not keep a stale revealed state after public data is reloaded", () => {
+    const publicDecision = {
+      selected_tickets: [],
+      adjudication: { ranking: [] },
+    };
+    const fullDecision = {
+      selected_tickets: Array.from({ length: 5 }, (_, slot) => ({ slot })),
+      adjudication: {
+        ranking: Array.from({ length: 5 }, (_, rank) => ({ rank })),
+      },
+    };
+
+    expect(hasRevealedDecision(true, publicDecision)).toBe(false);
+    expect(hasRevealedDecision(true, fullDecision)).toBe(true);
+    expect(hasRevealedDecision(false, fullDecision)).toBe(false);
   });
 });

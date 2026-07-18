@@ -208,7 +208,10 @@ export default function AgentInspector({
             <section className="adjudication-equation">
               <div>
                 <strong>裁決算式</strong>
-                <span>基礎分 × 評議權重 − 重疊懲罰 − 同 Agent 集中</span>
+                <span>
+                  信心度加權共識 − 評議分歧 − 重疊懲罰；最後由{" "}
+                  {decision.adjudication.judge.model ?? "規則裁判"} 決定
+                </span>
               </div>
               <code>
                 {leadingRanking?.final_score.toFixed(8) ?? "未入選"}

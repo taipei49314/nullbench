@@ -2475,6 +2475,73 @@ body {
   }
 }
 
+.final-judge-strip {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  min-height: 64px;
+  margin-bottom: 10px;
+  padding: 9px 14px;
+  grid-template-columns: 38px 118px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgb(214 255 21 / 34%);
+  background:
+    linear-gradient(90deg, rgb(214 255 21 / 8%), transparent 70%),
+    rgb(5 9 11 / 82%);
+  animation: readoutIn 280ms ease both;
+}
+
+.final-judge-strip > i {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: var(--lime);
+  box-shadow: 0 0 18px rgb(214 255 21 / 12%);
+}
+
+.final-judge-strip > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.final-judge-strip small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.final-judge-strip strong {
+  margin-top: 4px;
+  color: var(--lime);
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.final-judge-strip p {
+  margin: 0;
+  color: #c8d0ce;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.final-judge-strip.is-fallback {
+  border-color: rgb(255 85 72 / 42%);
+  background:
+    linear-gradient(90deg, rgb(255 85 72 / 8%), transparent 70%),
+    rgb(5 9 11 / 82%);
+}
+
+.final-judge-strip.is-fallback > i,
+.final-judge-strip.is-fallback strong {
+  color: var(--coral);
+}
+
 .ticket-readout {
   position: relative;
   z-index: 2;
@@ -2482,9 +2549,9 @@ body {
   grid-template-columns: 78px 112px minmax(110px, 1fr) auto auto;
   align-items: center;
   gap: 12px;
-  min-height: 44px;
+  min-height: 68px;
   margin-top: 11px;
-  padding: 0 13px;
+  padding: 9px 13px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line-soft);
   background: linear-gradient(90deg, rgb(214 255 21 / 5%), transparent 75%);
@@ -2523,6 +2590,15 @@ body {
 .ticket-readout > code {
   color: var(--muted);
   font-size: 9px;
+}
+
+.ticket-readout > em {
+  grid-column: 1 / -1;
+  color: #c8d0ce;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.45;
 }
 
 .debate-title b {

@@ -33,6 +33,8 @@ export default function DebateStage({
   }
 
   if (phase === "ready") {
+    const requestedModel =
+      decision.adjudication.judge?.requested_model ?? "qwen3:8b";
     const agentCounts = Object.entries(
       decision.proposals.reduce((counts, proposal) => {
         counts[proposal.agent] = (counts[proposal.agent] ?? 0) + 1;
@@ -59,19 +61,27 @@ export default function DebateStage({
             </span>
           ))}
         </div>
-        <p>按下「開始辯論」，完成 60 次交叉評議後才會進入裁決。</p>
+        <p>
+          按下「開始辯論」，完成 60 次交叉評議後才會交給{" "}
+          <strong>{requestedModel}</strong> 終局裁決。
+        </p>
       </section>
     );
   }
 
   if (phase === "adjudicating") {
+    const requestedModel =
+      decision.adjudication.judge?.requested_model ?? "qwen3:8b";
     return (
       <section className="candidate-stage is-adjudicating">
         <span className="adjudicating-orbit">
           <BrainCircuit size={43} />
         </span>
         <strong>60 次辯論完成</strong>
-        <p>裁決器正在計算評議權重、號碼重疊與單一 Agent 集中懲罰。</p>
+        <p>
+          正在把 15 組提案、評議信心度與分散度交給{" "}
+          <strong>{requestedModel}</strong>；輸出仍會再做合法性與重複檢查。
+        </p>
         <div className="adjudicating-scan">
           <i />
         </div>

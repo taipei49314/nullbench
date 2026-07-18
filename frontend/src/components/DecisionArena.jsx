@@ -1,5 +1,7 @@
 import {
+  BrainCircuit,
   ChevronDown,
+  CircleAlert,
   Pause,
   Play,
   Radio,
@@ -30,6 +32,8 @@ export default function DecisionArena({
 }) {
   const decision = gameData.next_decision;
   const revealed = phase === "revealed";
+  const judge = decision.adjudication.judge;
+  const qwenAccepted = judge?.source === "ollama";
   const focusedTicket = revealed
     ? decision.selected_tickets[activeSlot - 1]
     : null;
@@ -58,9 +62,11 @@ export default function DecisionArena({
       : phase === "error"
         ? "裁決讀取失敗"
       : phase === "adjudicating"
-        ? "裁決器計算中"
+        ? "Qwen3:8b 終局裁決中"
         : phase === "revealed"
-          ? "裁決完成"
+          ? qwenAccepted
+            ? "Qwen3:8b 裁決完成"
+            : "規則降級裁決完成"
           : isPlaying
             ? "議會正在辯論"
             : "辯論已暫停";
@@ -142,6 +148,26 @@ export default function DecisionArena({
 
       {revealed ? (
         <>
+          <section
+            className={`final-judge-strip ${
+              qwenAccepted ? "is-qwen" : "is-fallback"
+            }`}
+          >
+            <i>
+              {qwenAccepted ? (
+                <BrainCircuit size={24} />
+              ) : (
+                <CircleAlert size={24} />
+              )}
+            </i>
+            <span>
+              <small>終局裁判</small>
+              <strong>
+                {qwenAccepted ? judge.model : "可重現規則降級"}
+              </strong>
+            </span>
+            <p>{judge.summary}</p>
+          </section>
           <div className="ticket-stack" aria-label="裁決出的五注號碼">
             {decision.selected_tickets.map((ticket) => {
               const active = ticket.slot === activeSlot;
@@ -196,6 +222,10 @@ export default function DecisionArena({
             <small>{focusedTicket.source_proposal}</small>
             <b>裁決分數 {focusedRanking?.final_score.toFixed(8) ?? "—"}</b>
             <code>{decision.decision_hash.slice(0, 16)}</code>
+            <em>
+              {focusedRanking?.judge_reason ||
+                "模型輸出未通過驗證，本注沿用規則裁決。"}
+            </em>
           </div>
         </>
       ) : (
@@ -204,9 +234,9 @@ export default function DecisionArena({
             debateStep={debateStep}
             decision={decision}
             error={error}
-          phase={phase}
-          totalCritiques={totalCritiques}
-        />
+            phase={phase}
+            totalCritiques={totalCritiques}
+          />
       )}
     </section>
   );

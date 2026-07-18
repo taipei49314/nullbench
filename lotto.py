@@ -19,7 +19,16 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stdout.reconfigure(encoding="utf-8")  # Windows cp950 教訓（ai-company）
     sys.stderr.reconfigure(encoding="utf-8")
 
-from engine import agent_loop, config, debate, picker, report, settle, strategy
+from engine import (
+    agent_loop,
+    config,
+    debate,
+    picker,
+    qwen_judge,
+    report,
+    settle,
+    strategy,
+)
 from engine.sync_service import sync_latest
 from engine.analysts import NAMES
 from engine.env import Env
@@ -144,6 +153,13 @@ def cmd_status(env: Env) -> None:
 def _print_loop_decision(decision: dict) -> None:
     target = decision["target"]
     print(f"  下一期：{target['date']}｜模擬期別 {target['period']}")
+    judge = decision["adjudication"]["judge"]
+    judge_label = (
+        judge["model"]
+        if judge["source"] == "ollama"
+        else "規則降級（Qwen 未採用）"
+    )
+    print(f"  終局裁判：{judge_label}")
     for ticket in decision["selected_tickets"]:
         nums = " ".join(f"{number:02d}" for number in ticket["numbers"])
         special = (
@@ -165,7 +181,11 @@ def cmd_loop(env: Env, output: str | None) -> None:
         else env.base / output
     )
     print("執行逐期 agent 閉環：歷史觀察 → 提案 → 交叉辯論 → 裁決 → 揭曉 → 檢討")
-    manifest = agent_loop.run_all(env.store, output_dir)
+    manifest = agent_loop.run_all(
+        env.store,
+        output_dir,
+        final_judge=qwen_judge.adjudicate,
+    )
     for game in picker.GAMES:
         result = manifest["games"][game]
         print(
