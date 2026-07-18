@@ -1,0 +1,1050 @@
+{
+  "schema_version": "1",
+  "research_id": "walkforward-v1",
+  "generated_at": "2026-07-18T15:59:21+08:00",
+  "git_commit": "9287d7d7e5c993ab030f21a15577f22b75cc969f",
+  "replicates": 8,
+  "bootstrap_samples": 1000,
+  "methodology": {
+    "grain": "每遊戲、每 ISO 週、每政策、每 replica；同一週的 5 注套用該週所有實際開獎",
+    "split": "前 50% 週為 training、接續 25% 為 validation、最後 25% 為 sealed holdout",
+    "primary_metric": "排除頭獎與貳獎後，相對 random_5 的每週配對 ROI 差",
+    "guardrails": [
+      "所有特徵只使用當週週一以前資料",
+      "浮動獎級下界只使用當時已知歷史",
+      "holdout 不參與調參或政策選擇",
+      "95% 區間、replica 一致性與週一致性必須同時通過"
+    ]
+  },
+  "data_quality": [
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "draws": 1929,
+      "weeks": 965,
+      "date_min": "2008-01-24",
+      "date_max": "2026-07-16",
+      "period_min": 97000001,
+      "period_max": 115000057,
+      "duplicate_periods": 0,
+      "duplicate_dates": 0,
+      "invalid_numbers": 0,
+      "invalid_special": 0,
+      "missing_prize_fields": {
+        "super638JackpotAssign": 0,
+        "super638SecondAssign": 0,
+        "super638ThirdAssign": 0,
+        "super638FourthAssign": 0,
+        "super638FifthAssign": 0,
+        "super638SixthAssign": 0,
+        "super638SeventhAssign": 0,
+        "super638EighthAssign": 0,
+        "super638NinthAssign": 0,
+        "super638NormalAssign": 0
+      },
+      "off_regular_schedule_draws": 0,
+      "weeks_with_extra_draws": 0,
+      "draws_per_week": {
+        "1": 1,
+        "2": 964
+      },
+      "quality_status": "pass"
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "draws": 2153,
+      "weeks": 1020,
+      "date_min": "2007-01-02",
+      "date_max": "2026-07-17",
+      "period_min": 96000001,
+      "period_max": 115000071,
+      "duplicate_periods": 0,
+      "duplicate_dates": 0,
+      "invalid_numbers": 0,
+      "invalid_special": 0,
+      "missing_prize_fields": {
+        "jackpotAssign": 0,
+        "secondAssign": 0,
+        "thirdAssign": 0,
+        "fourthAssign": 0,
+        "fifthAssign": 0,
+        "sixthAssign": 0,
+        "seventhAssign": 0,
+        "normalAssign": 0
+      },
+      "off_regular_schedule_draws": 113,
+      "weeks_with_extra_draws": 35,
+      "draws_per_week": {
+        "2": 985,
+        "3": 6,
+        "4": 8,
+        "5": 5,
+        "6": 4,
+        "7": 12
+      },
+      "quality_status": "pass"
+    }
+  ],
+  "coarse_candidates": [
+    {
+      "candidate_id": "uniform",
+      "family": "uniform",
+      "params": {}
+    },
+    {
+      "candidate_id": "hot_w20_d094",
+      "family": "hot",
+      "params": {
+        "decay": 0.94,
+        "window": 20
+      }
+    },
+    {
+      "candidate_id": "hot_w20_d097",
+      "family": "hot",
+      "params": {
+        "decay": 0.97,
+        "window": 20
+      }
+    },
+    {
+      "candidate_id": "hot_w20_d099",
+      "family": "hot",
+      "params": {
+        "decay": 0.99,
+        "window": 20
+      }
+    },
+    {
+      "candidate_id": "hot_w50_d094",
+      "family": "hot",
+      "params": {
+        "decay": 0.94,
+        "window": 50
+      }
+    },
+    {
+      "candidate_id": "hot_w50_d097",
+      "family": "hot",
+      "params": {
+        "decay": 0.97,
+        "window": 50
+      }
+    },
+    {
+      "candidate_id": "hot_w50_d099",
+      "family": "hot",
+      "params": {
+        "decay": 0.99,
+        "window": 50
+      }
+    },
+    {
+      "candidate_id": "hot_w100_d094",
+      "family": "hot",
+      "params": {
+        "decay": 0.94,
+        "window": 100
+      }
+    },
+    {
+      "candidate_id": "hot_w100_d097",
+      "family": "hot",
+      "params": {
+        "decay": 0.97,
+        "window": 100
+      }
+    },
+    {
+      "candidate_id": "hot_w100_d099",
+      "family": "hot",
+      "params": {
+        "decay": 0.99,
+        "window": 100
+      }
+    },
+    {
+      "candidate_id": "cold_g075_c2",
+      "family": "cold",
+      "params": {
+        "cap_mult": 2,
+        "gamma": 0.75
+      }
+    },
+    {
+      "candidate_id": "cold_g075_c4",
+      "family": "cold",
+      "params": {
+        "cap_mult": 4,
+        "gamma": 0.75
+      }
+    },
+    {
+      "candidate_id": "cold_g075_c8",
+      "family": "cold",
+      "params": {
+        "cap_mult": 8,
+        "gamma": 0.75
+      }
+    },
+    {
+      "candidate_id": "cold_g150_c2",
+      "family": "cold",
+      "params": {
+        "cap_mult": 2,
+        "gamma": 1.5
+      }
+    },
+    {
+      "candidate_id": "cold_g150_c4",
+      "family": "cold",
+      "params": {
+        "cap_mult": 4,
+        "gamma": 1.5
+      }
+    },
+    {
+      "candidate_id": "cold_g150_c8",
+      "family": "cold",
+      "params": {
+        "cap_mult": 8,
+        "gamma": 1.5
+      }
+    },
+    {
+      "candidate_id": "cold_g225_c2",
+      "family": "cold",
+      "params": {
+        "cap_mult": 2,
+        "gamma": 2.25
+      }
+    },
+    {
+      "candidate_id": "cold_g225_c4",
+      "family": "cold",
+      "params": {
+        "cap_mult": 4,
+        "gamma": 2.25
+      }
+    },
+    {
+      "candidate_id": "cold_g225_c8",
+      "family": "cold",
+      "params": {
+        "cap_mult": 8,
+        "gamma": 2.25
+      }
+    },
+    {
+      "candidate_id": "balance_loose",
+      "family": "balance",
+      "params": {
+        "max_pairs": 2,
+        "min_range": 10,
+        "min_tails": 3,
+        "odd_hi": 5,
+        "odd_lo": 1,
+        "sum_pad": 15
+      }
+    },
+    {
+      "candidate_id": "balance_standard",
+      "family": "balance",
+      "params": {
+        "max_pairs": 1,
+        "min_range": 15,
+        "min_tails": 4,
+        "odd_hi": 4,
+        "odd_lo": 2,
+        "sum_pad": 0
+      }
+    },
+    {
+      "candidate_id": "balance_tight",
+      "family": "balance",
+      "params": {
+        "max_pairs": 0,
+        "min_range": 20,
+        "min_tails": 5,
+        "odd_hi": 4,
+        "odd_lo": 2,
+        "sum_pad": -5
+      }
+    },
+    {
+      "candidate_id": "antipop_m035_d055",
+      "family": "antipop",
+      "params": {
+        "beta_day": 0.55,
+        "beta_month": 0.35
+      }
+    },
+    {
+      "candidate_id": "antipop_m035_d075",
+      "family": "antipop",
+      "params": {
+        "beta_day": 0.75,
+        "beta_month": 0.35
+      }
+    },
+    {
+      "candidate_id": "antipop_m035_d090",
+      "family": "antipop",
+      "params": {
+        "beta_day": 0.9,
+        "beta_month": 0.35
+      }
+    },
+    {
+      "candidate_id": "antipop_m060_d055",
+      "family": "antipop",
+      "params": {
+        "beta_day": 0.55,
+        "beta_month": 0.6
+      }
+    },
+    {
+      "candidate_id": "antipop_m060_d075",
+      "family": "antipop",
+      "params": {
+        "beta_day": 0.75,
+        "beta_month": 0.6
+      }
+    },
+    {
+      "candidate_id": "antipop_m060_d090",
+      "family": "antipop",
+      "params": {
+        "beta_day": 0.9,
+        "beta_month": 0.6
+      }
+    },
+    {
+      "candidate_id": "antipop_m085_d055",
+      "family": "antipop",
+      "params": {
+        "beta_day": 0.55,
+        "beta_month": 0.85
+      }
+    },
+    {
+      "candidate_id": "antipop_m085_d075",
+      "family": "antipop",
+      "params": {
+        "beta_day": 0.75,
+        "beta_month": 0.85
+      }
+    },
+    {
+      "candidate_id": "antipop_m085_d090",
+      "family": "antipop",
+      "params": {
+        "beta_day": 0.9,
+        "beta_month": 0.85
+      }
+    }
+  ],
+  "coarse_train_winners": {
+    "super": {
+      "hot": {
+        "candidate_id": "hot_w20_d097",
+        "family": "hot",
+        "params": {
+          "decay": 0.97,
+          "window": 20
+        }
+      },
+      "cold": {
+        "candidate_id": "cold_g075_c8",
+        "family": "cold",
+        "params": {
+          "cap_mult": 8,
+          "gamma": 0.75
+        }
+      },
+      "balance": {
+        "candidate_id": "balance_loose",
+        "family": "balance",
+        "params": {
+          "max_pairs": 2,
+          "min_range": 10,
+          "min_tails": 3,
+          "odd_hi": 5,
+          "odd_lo": 1,
+          "sum_pad": 15
+        }
+      },
+      "antipop": {
+        "candidate_id": "antipop_m085_d055",
+        "family": "antipop",
+        "params": {
+          "beta_day": 0.55,
+          "beta_month": 0.85
+        }
+      }
+    },
+    "lotto649": {
+      "hot": {
+        "candidate_id": "hot_w20_d097",
+        "family": "hot",
+        "params": {
+          "decay": 0.97,
+          "window": 20
+        }
+      },
+      "cold": {
+        "candidate_id": "cold_g225_c8",
+        "family": "cold",
+        "params": {
+          "cap_mult": 8,
+          "gamma": 2.25
+        }
+      },
+      "balance": {
+        "candidate_id": "balance_tight",
+        "family": "balance",
+        "params": {
+          "max_pairs": 0,
+          "min_range": 20,
+          "min_tails": 5,
+          "odd_hi": 4,
+          "odd_lo": 2,
+          "sum_pad": -5
+        }
+      },
+      "antipop": {
+        "candidate_id": "antipop_m060_d090",
+        "family": "antipop",
+        "params": {
+          "beta_day": 0.9,
+          "beta_month": 0.6
+        }
+      }
+    }
+  },
+  "refined_train_winners": {
+    "super": {
+      "hot": {
+        "candidate_id": "hot_ref_w20_d097",
+        "family": "hot",
+        "params": {
+          "decay": 0.97,
+          "window": 20
+        }
+      },
+      "cold": {
+        "candidate_id": "cold_ref_g075_c8",
+        "family": "cold",
+        "params": {
+          "cap_mult": 8,
+          "gamma": 0.75
+        }
+      },
+      "balance": {
+        "candidate_id": "balance_ref_p+10",
+        "family": "balance",
+        "params": {
+          "max_pairs": 2,
+          "min_range": 10,
+          "min_tails": 3,
+          "odd_hi": 5,
+          "odd_lo": 1,
+          "sum_pad": 10
+        }
+      },
+      "antipop": {
+        "candidate_id": "antipop_ref_m085_d055",
+        "family": "antipop",
+        "params": {
+          "beta_day": 0.55,
+          "beta_month": 0.85
+        }
+      }
+    },
+    "lotto649": {
+      "hot": {
+        "candidate_id": "hot_ref_w30_d096",
+        "family": "hot",
+        "params": {
+          "decay": 0.96,
+          "window": 30
+        }
+      },
+      "cold": {
+        "candidate_id": "cold_ref_g225_c9",
+        "family": "cold",
+        "params": {
+          "cap_mult": 9,
+          "gamma": 2.25
+        }
+      },
+      "balance": {
+        "candidate_id": "balance_ref_p-5",
+        "family": "balance",
+        "params": {
+          "max_pairs": 0,
+          "min_range": 20,
+          "min_tails": 5,
+          "odd_hi": 4,
+          "odd_lo": 2,
+          "sum_pad": -5
+        }
+      },
+      "antipop": {
+        "candidate_id": "antipop_ref_m060_d090",
+        "family": "antipop",
+        "params": {
+          "beta_day": 0.9,
+          "beta_month": 0.6
+        }
+      }
+    }
+  },
+  "final_policies": {
+    "super": [
+      {
+        "policy_id": "random_5",
+        "slots": [
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          }
+        ]
+      },
+      {
+        "policy_id": "current_ensemble",
+        "slots": [
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "antipop_m060_d075",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.75,
+              "beta_month": 0.6
+            }
+          },
+          {
+            "candidate_id": "balance_standard",
+            "family": "balance",
+            "params": {
+              "max_pairs": 1,
+              "min_range": 15,
+              "min_tails": 4,
+              "odd_hi": 4,
+              "odd_lo": 2,
+              "sum_pad": 0
+            }
+          },
+          {
+            "candidate_id": "cold_g150_c4",
+            "family": "cold",
+            "params": {
+              "cap_mult": 4,
+              "gamma": 1.5
+            }
+          },
+          {
+            "candidate_id": "hot_w50_d097",
+            "family": "hot",
+            "params": {
+              "decay": 0.97,
+              "window": 50
+            }
+          }
+        ]
+      },
+      {
+        "policy_id": "trained_family_ensemble",
+        "slots": [
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "antipop_ref_m085_d055",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.55,
+              "beta_month": 0.85
+            }
+          },
+          {
+            "candidate_id": "balance_ref_p+10",
+            "family": "balance",
+            "params": {
+              "max_pairs": 2,
+              "min_range": 10,
+              "min_tails": 3,
+              "odd_hi": 5,
+              "odd_lo": 1,
+              "sum_pad": 10
+            }
+          },
+          {
+            "candidate_id": "cold_ref_g075_c8",
+            "family": "cold",
+            "params": {
+              "cap_mult": 8,
+              "gamma": 0.75
+            }
+          },
+          {
+            "candidate_id": "hot_ref_w20_d097",
+            "family": "hot",
+            "params": {
+              "decay": 0.97,
+              "window": 20
+            }
+          }
+        ]
+      },
+      {
+        "policy_id": "trained_best_5",
+        "slots": [
+          {
+            "candidate_id": "cold_ref_g075_c8",
+            "family": "cold",
+            "params": {
+              "cap_mult": 8,
+              "gamma": 0.75
+            }
+          },
+          {
+            "candidate_id": "cold_ref_g075_c8",
+            "family": "cold",
+            "params": {
+              "cap_mult": 8,
+              "gamma": 0.75
+            }
+          },
+          {
+            "candidate_id": "cold_ref_g075_c8",
+            "family": "cold",
+            "params": {
+              "cap_mult": 8,
+              "gamma": 0.75
+            }
+          },
+          {
+            "candidate_id": "cold_ref_g075_c8",
+            "family": "cold",
+            "params": {
+              "cap_mult": 8,
+              "gamma": 0.75
+            }
+          },
+          {
+            "candidate_id": "cold_ref_g075_c8",
+            "family": "cold",
+            "params": {
+              "cap_mult": 8,
+              "gamma": 0.75
+            }
+          }
+        ]
+      },
+      {
+        "policy_id": "trained_blend",
+        "slots": [
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "cold_ref_g075_c8",
+            "family": "cold",
+            "params": {
+              "cap_mult": 8,
+              "gamma": 0.75
+            }
+          },
+          {
+            "candidate_id": "hot_ref_w20_d097",
+            "family": "hot",
+            "params": {
+              "decay": 0.97,
+              "window": 20
+            }
+          },
+          {
+            "candidate_id": "hot_ref_w30_d098",
+            "family": "hot",
+            "params": {
+              "decay": 0.98,
+              "window": 30
+            }
+          }
+        ]
+      }
+    ],
+    "lotto649": [
+      {
+        "policy_id": "random_5",
+        "slots": [
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          }
+        ]
+      },
+      {
+        "policy_id": "current_ensemble",
+        "slots": [
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "antipop_m060_d075",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.75,
+              "beta_month": 0.6
+            }
+          },
+          {
+            "candidate_id": "balance_standard",
+            "family": "balance",
+            "params": {
+              "max_pairs": 1,
+              "min_range": 15,
+              "min_tails": 4,
+              "odd_hi": 4,
+              "odd_lo": 2,
+              "sum_pad": 0
+            }
+          },
+          {
+            "candidate_id": "cold_g150_c4",
+            "family": "cold",
+            "params": {
+              "cap_mult": 4,
+              "gamma": 1.5
+            }
+          },
+          {
+            "candidate_id": "hot_w50_d097",
+            "family": "hot",
+            "params": {
+              "decay": 0.97,
+              "window": 50
+            }
+          }
+        ]
+      },
+      {
+        "policy_id": "trained_family_ensemble",
+        "slots": [
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "antipop_ref_m060_d090",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.9,
+              "beta_month": 0.6
+            }
+          },
+          {
+            "candidate_id": "balance_ref_p-5",
+            "family": "balance",
+            "params": {
+              "max_pairs": 0,
+              "min_range": 20,
+              "min_tails": 5,
+              "odd_hi": 4,
+              "odd_lo": 2,
+              "sum_pad": -5
+            }
+          },
+          {
+            "candidate_id": "cold_ref_g225_c9",
+            "family": "cold",
+            "params": {
+              "cap_mult": 9,
+              "gamma": 2.25
+            }
+          },
+          {
+            "candidate_id": "hot_ref_w30_d096",
+            "family": "hot",
+            "params": {
+              "decay": 0.96,
+              "window": 30
+            }
+          }
+        ]
+      },
+      {
+        "policy_id": "trained_best_5",
+        "slots": [
+          {
+            "candidate_id": "antipop_ref_m060_d090",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.9,
+              "beta_month": 0.6
+            }
+          },
+          {
+            "candidate_id": "antipop_ref_m060_d090",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.9,
+              "beta_month": 0.6
+            }
+          },
+          {
+            "candidate_id": "antipop_ref_m060_d090",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.9,
+              "beta_month": 0.6
+            }
+          },
+          {
+            "candidate_id": "antipop_ref_m060_d090",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.9,
+              "beta_month": 0.6
+            }
+          },
+          {
+            "candidate_id": "antipop_ref_m060_d090",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.9,
+              "beta_month": 0.6
+            }
+          }
+        ]
+      },
+      {
+        "policy_id": "trained_blend",
+        "slots": [
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "uniform",
+            "family": "uniform",
+            "params": {}
+          },
+          {
+            "candidate_id": "antipop_ref_m060_d090",
+            "family": "antipop",
+            "params": {
+              "beta_day": 0.9,
+              "beta_month": 0.6
+            }
+          },
+          {
+            "candidate_id": "cold_ref_g225_c9",
+            "family": "cold",
+            "params": {
+              "cap_mult": 9,
+              "gamma": 2.25
+            }
+          },
+          {
+            "candidate_id": "cold_ref_g225_c8",
+            "family": "cold",
+            "params": {
+              "cap_mult": 8,
+              "gamma": 2.25
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "selected": {
+    "super": {
+      "policy_id": "current_ensemble",
+      "validation": {
+        "policy_id": "current_ensemble",
+        "game": "super",
+        "game_name": "威力彩",
+        "split": "validation",
+        "weeks": 241,
+        "draws": 482,
+        "replicates": 8,
+        "cost_per_replicate": 241000,
+        "raw_roi_mean": -0.791234439834025,
+        "raw_roi_median": -0.8016597510373444,
+        "robust_roi_mean": -0.791234439834025,
+        "fixed_roi_mean": -0.791234439834025,
+        "delta_robust_roi_mean": 0.020435684647302905,
+        "delta_robust_roi_median": 0.011203319502074689,
+        "delta_ci_low": -0.005609439834024897,
+        "delta_ci_high": 0.057165456431535276,
+        "delta_fixed_roi_mean": 0.020435684647302905,
+        "delta_fixed_ci_low": -0.007270487551867219,
+        "delta_fixed_ci_high": 0.05384076763485477,
+        "positive_replicate_rate": 0.625,
+        "active_week_rate": 0.946058091286307,
+        "active_week_win_rate": 0.5570175438596491,
+        "median_max_drawdown": -193200.0,
+        "hits_per_replicate": 288.375,
+        "top2_hits_all_replicates": 0
+      },
+      "holdout": {
+        "policy_id": "current_ensemble",
+        "game": "super",
+        "game_name": "威力彩",
+        "split": "holdout",
+        "weeks": 242,
+        "draws": 484,
+        "replicates": 8,
+        "cost_per_replicate": 242000,
+        "raw_roi_mean": -0.7793904958677687,
+        "raw_roi_median": -0.7857438016528926,
+        "robust_roi_mean": -0.7793904958677687,
+        "fixed_roi_mean": -0.7793904958677687,
+        "delta_robust_roi_mean": 0.0065599173553719005,
+        "delta_robust_roi_median": 0.016735537190082646,
+        "delta_ci_low": -0.029545454545454545,
+        "delta_ci_high": 0.0431301652892562,
+        "delta_fixed_roi_mean": 0.0065599173553719005,
+        "delta_fixed_ci_low": -0.028165030991735535,
+        "delta_fixed_ci_high": 0.04537448347107435,
+        "positive_replicate_rate": 0.625,
+        "active_week_rate": 0.9628099173553719,
+        "active_week_win_rate": 0.5536480686695279,
+        "median_max_drawdown": -190150.0,
+        "hits_per_replicate": 290.0,
+        "top2_hits_all_replicates": 0
+      },
+      "edge_proven": false,
+      "conditional_decision": "random_5"
+    },
+    "lotto649": {
+      "policy_id": "current_ensemble",
+      "validation": {
+        "policy_id": "current_ensemble",
+        "game": "lotto649",
+        "game_name": "大樂透",
+        "split": "validation",
+        "weeks": 255,
+        "draws": 542,
+        "replicates": 8,
+        "cost_per_replicate": 135500,
+        "raw_roi_mean": -0.6622389298892989,
+        "raw_roi_median": -0.6980738007380074,
+        "robust_roi_mean": -0.6622389298892989,
+        "fixed_roi_mean": -0.6788127306273063,
+        "delta_robust_roi_mean": 0.026427121771217713,
+        "delta_robust_roi_median": 0.0022177121771217714,
+        "delta_ci_low": -0.01840794817927171,
+        "delta_ci_high": 0.07831626050420168,
+        "delta_fixed_roi_mean": 0.02259040590405904,
+        "delta_fixed_ci_low": -0.011823329831932775,
+        "delta_fixed_ci_high": 0.06296681022408963,
+        "positive_replicate_rate": 0.5,
+        "active_week_rate": 0.8235294117647058,
+        "active_week_win_rate": 0.4857142857142857,
+        "median_max_drawdown": -95311.0,
+        "hits_per_replicate": 89.5,
+        "top2_hits_all_replicates": 0
+      },
+      "holdout": {
+        "policy_id": "current_ensemble",
+        "game": "lotto649",
+        "game_name": "大樂透",
+        "split": "holdout",
+        "weeks": 255,
+        "draws": 573,
+        "replicates": 8,
+        "cost_per_replicate": 143250,
+        "raw_roi_mean": -0.6872216404886562,
+        "raw_roi_median": -0.7065479930191971,
+        "robust_roi_mean": -0.6872216404886562,
+        "fixed_roi_mean": -0.712500872600349,
+        "delta_robust_roi_mean": -0.029664921465968587,
+        "delta_robust_roi_median": -0.01879930191972077,
+        "delta_ci_low": -0.09795468253968254,
+        "delta_ci_high": 0.03805742296918767,
+        "delta_fixed_roi_mean": -0.006849912739965095,
+        "delta_fixed_ci_low": -0.04459707282913166,
+        "delta_fixed_ci_high": 0.013691087768440708,
+        "positive_replicate_rate": 0.5,
+        "active_week_rate": 0.8431372549019608,
+        "active_week_win_rate": 0.4604651162790698,
+        "median_max_drawdown": -101213.0,
+        "hits_per_replicate": 89.375,
+        "top2_hits_all_replicates": 0
+      },
+      "edge_proven": false,
+      "conditional_decision": "random_5"
+    }
+  },
+  "decision": {
+    "economic": "no_play",
+    "reason": "彩票成本為正且所有開獎組合等機率；未證明外驗優勢前，不參與支配任何購票政策",
+    "conditional_simulation": {
+      "super": "random_5",
+      "lotto649": "random_5"
+    }
+  }
+}

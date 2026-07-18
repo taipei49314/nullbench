@@ -1,0 +1,545 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "台彩策略歷史外驗決策",
+    "description": "全歷史走步回測、兩階段調參與封存測試集決策。",
+    "generatedAt": "2026-07-18T15:59:21+08:00",
+    "sources": [
+      {
+        "id": "strategy-study",
+        "label": "Holdout 政策比較",
+        "path": "research/results/strategy_summary.csv",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "sql": "SELECT game, game_name, policy_id,\n  CASE policy_id\n    WHEN 'random_5' THEN '五注純隨機'\n    WHEN 'current_ensemble' THEN '現行五人格'\n    WHEN 'trained_family_ensemble' THEN '訓練家族組合'\n    WHEN 'trained_best_5' THEN '訓練冠軍五注'\n    WHEN 'trained_blend' THEN '訓練混合' END AS policy_label,\n  CASE policy_id\n    WHEN 'random_5' THEN 0 WHEN 'current_ensemble' THEN 1\n    WHEN 'trained_family_ensemble' THEN 2\n    WHEN 'trained_best_5' THEN 3 ELSE 4 END AS policy_order,\n  weeks, draws, replicates, raw_roi_mean AS raw_roi,\n  robust_roi_mean AS robust_roi,\n  delta_robust_roi_mean AS delta_robust_roi,\n  delta_ci_low, delta_ci_high,\n  delta_fixed_roi_mean AS delta_fixed_roi,\n  active_week_win_rate, positive_replicate_rate\nFROM read_csv_auto('research/results/strategy_summary.csv')\nWHERE stage = 'final_policy' AND split = 'holdout'\nORDER BY policy_order, game",
+          "description": "讀取走步回測輸出，整理五個最終政策在 sealed holdout 的配對比較。",
+          "tables_used": [
+            "research/results/strategy_summary.csv"
+          ],
+          "filters": [
+            "stage = final_policy",
+            "split = holdout"
+          ],
+          "metric_definitions": [
+            "原始 ROI = 全獎級虛擬獎金 / 模擬成本 - 1",
+            "穩健 ROI = 排除頭獎與貳獎後獎金 / 模擬成本 - 1",
+            "相對隨機穩健 ROI 差 = 政策穩健獎金與同週 random_5 穩健獎金之差 / 成本",
+            "95% 區間 = 13 週區塊 bootstrap 1,000 次"
+          ]
+        }
+      },
+      {
+        "id": "decision-study",
+        "label": "封存測試決策",
+        "path": "research/results/strategy_summary.csv",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "sql": "SELECT game, game_name, policy_id AS selected_policy,\n  CASE policy_id WHEN 'random_5' THEN '五注純隨機' WHEN 'current_ensemble' THEN '現行五人格' WHEN 'trained_family_ensemble' THEN '訓練家族組合' WHEN 'trained_best_5' THEN '訓練冠軍五注' WHEN 'trained_blend' THEN '訓練混合' END AS selected_policy_label,\n  weeks AS holdout_weeks, draws AS holdout_draws,\n  raw_roi_mean AS raw_roi,\n  delta_robust_roi_mean AS delta_robust_roi,\n  delta_ci_low, delta_ci_high,\n  delta_fixed_roi_mean AS delta_fixed_roi,\n  active_week_win_rate, positive_replicate_rate,\n  CASE WHEN delta_ci_low > 0 AND delta_fixed_roi_mean >= 0 AND positive_replicate_rate >= 0.75 AND active_week_win_rate > 0.5 THEN '已證明' ELSE '未證明' END AS edge_proven,\n  CASE WHEN delta_ci_low > 0 AND delta_fixed_roi_mean >= 0 AND positive_replicate_rate >= 0.75 AND active_week_win_rate > 0.5 THEN policy_id ELSE 'random_5' END AS conditional_decision,\n  CASE WHEN delta_ci_low > 0 AND delta_fixed_roi_mean >= 0 AND positive_replicate_rate >= 0.75 AND active_week_win_rate > 0.5 THEN CASE policy_id WHEN 'random_5' THEN '五注純隨機' WHEN 'current_ensemble' THEN '現行五人格' WHEN 'trained_family_ensemble' THEN '訓練家族組合' WHEN 'trained_best_5' THEN '訓練冠軍五注' WHEN 'trained_blend' THEN '訓練混合' END ELSE '五注純隨機' END AS conditional_decision_label\nFROM read_csv_auto('research/results/strategy_summary.csv')\nWHERE stage = 'final_policy' AND split = 'holdout'\n  AND ((game = 'super' AND policy_id = 'current_ensemble') OR (game = 'lotto649' AND policy_id = 'current_ensemble'))\nORDER BY game_name",
+          "description": "讀取 validation 選定政策的一次性 holdout 外驗結果。",
+          "tables_used": [
+            "research/results/strategy_summary.csv"
+          ],
+          "filters": [
+            "stage = final_policy",
+            "split = holdout",
+            "各遊戲 policy_id = 本次 validation 選擇"
+          ],
+          "metric_definitions": [
+            "原始 ROI = 全獎級虛擬獎金 / 模擬成本 - 1",
+            "穩健 ROI = 排除頭獎與貳獎後獎金 / 模擬成本 - 1",
+            "相對隨機穩健 ROI 差 = 政策穩健獎金與同週 random_5 穩健獎金之差 / 成本",
+            "95% 區間 = 13 週區塊 bootstrap 1,000 次"
+          ]
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "report-title",
+        "type": "markdown",
+        "body": "# 台彩策略歷史外驗決策",
+        "layout": "full"
+      },
+      {
+        "id": "executive-summary",
+        "type": "markdown",
+        "body": "## Executive Summary\n\n- **最佳經濟決策是不參與。** 所有合法號碼組合等機率，任何購票政策都有正成本；回測沒有改變這個前提。\n- **兩款遊戲都未證明策略優於純隨機。** **威力彩**：驗證集選到現行五人格，holdout 相對隨機為 +0.66%，95% 區間 [-2.95%, +4.31%]，因此外驗優勢未證明。 **大樂透**：驗證集選到現行五人格，holdout 相對隨機為 -2.97%，95% 區間 [-9.80%, +3.81%]，因此外驗優勢未證明。\n- **條件式模擬維持五注純隨機。** 訓練冠軍與現行五人格可以作研究對照，但不得升格為可用優勢。",
+        "layout": "full",
+        "sourceId": "strategy-study"
+      },
+      {
+        "id": "holdout-finding",
+        "type": "markdown",
+        "body": "## 封存測試沒有留下可重複優勢\n\n下圖比較所有最終政策在 holdout 的相對隨機穩健 ROI。0 代表和五注純隨機相同；正值只有在區間、一致性與固定獎級護欄同時通過時才可採用。結果顯示驗證集第一名沒有在未見資料形成可信且穩定的正差。",
+        "layout": "full",
+        "sourceId": "strategy-study"
+      },
+      {
+        "id": "holdout-policy-chart-block",
+        "type": "chart",
+        "chartId": "holdout-policy-chart",
+        "layout": "full"
+      },
+      {
+        "id": "economics-finding",
+        "type": "markdown",
+        "body": "## 負期望值仍然主導經濟結果\n\n決策表中的 holdout 原始 ROI 全為負；個別策略即使短暫領先隨機，也沒有形成可信且持續的正差。這表示歷史排名主要是抽樣噪音，不應用加碼或追隨權重來回應。",
+        "layout": "full",
+        "sourceId": "strategy-study"
+      },
+      {
+        "id": "decision-detail",
+        "type": "markdown",
+        "body": "## 決策門檻與最終狀態\n\n決策表保留驗證集選擇、封存測試區間、固定獎級敏感度與一致性。任一門檻失敗，條件式政策就回到純隨機。",
+        "layout": "full",
+        "sourceId": "strategy-study"
+      },
+      {
+        "id": "decision-table-block",
+        "type": "table",
+        "tableId": "decision-table",
+        "layout": "full"
+      },
+      {
+        "id": "recommended-actions",
+        "type": "markdown",
+        "body": "## 建議下一步\n\n1. 保留 v1 與 W30 凍結票，不用歷史回測結果改寫正式帳本。\n2. 經濟決策維持不參與；條件式研究維持 `random_5`。\n3. 將這次 holdout 永久封存。若要研究新特徵，建立新的研究版本與新的未見資料，不得再拿同一 holdout 調參。\n4. 每週正式流程只做預註冊、結算與資料品質監控。",
+        "layout": "full"
+      },
+      {
+        "id": "further-questions",
+        "type": "markdown",
+        "body": "## Further Questions\n\n- 若未來取得可靠的玩家選號分布，反熱門策略可否只改善中獎後的分彩，而非命中率？\n- 新研究版本要累積多少真正未見週，才足以重新檢驗目前的無優勢結論？",
+        "layout": "full"
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "body": "## Caveats and Assumptions\n\n- 這是純模擬，不含真實下注、稅、交易摩擦或個人效用。\n- 浮動獎級採當時可得歷史的保守估值；主要選擇指標排除頭獎與貳獎，並另看固定獎級敏感度。\n- 大樂透春節加開期按實際開獎數與成本納入。\n- 參數搜尋會製造訓練集冠軍，因此只有 validation 與一次性holdout 能支撐決策。",
+        "layout": "full"
+      }
+    ],
+    "charts": [
+      {
+        "id": "holdout-policy-chart",
+        "title": "Holdout 相對隨機穩健 ROI",
+        "subtitle": "五種政策、兩款遊戲；0 代表與五注純隨機相同",
+        "intent": "comparison",
+        "type": "bar",
+        "dataset": "policy_holdout",
+        "sourceId": "strategy-study",
+        "source": {
+          "id": "strategy-study",
+          "label": "Holdout 政策比較",
+          "path": "research/results/strategy_summary.csv",
+          "query": {
+            "engine": "duckdb",
+            "language": "sql",
+            "sql": "SELECT game, game_name, policy_id,\n  CASE policy_id\n    WHEN 'random_5' THEN '五注純隨機'\n    WHEN 'current_ensemble' THEN '現行五人格'\n    WHEN 'trained_family_ensemble' THEN '訓練家族組合'\n    WHEN 'trained_best_5' THEN '訓練冠軍五注'\n    WHEN 'trained_blend' THEN '訓練混合' END AS policy_label,\n  CASE policy_id\n    WHEN 'random_5' THEN 0 WHEN 'current_ensemble' THEN 1\n    WHEN 'trained_family_ensemble' THEN 2\n    WHEN 'trained_best_5' THEN 3 ELSE 4 END AS policy_order,\n  weeks, draws, replicates, raw_roi_mean AS raw_roi,\n  robust_roi_mean AS robust_roi,\n  delta_robust_roi_mean AS delta_robust_roi,\n  delta_ci_low, delta_ci_high,\n  delta_fixed_roi_mean AS delta_fixed_roi,\n  active_week_win_rate, positive_replicate_rate\nFROM read_csv_auto('research/results/strategy_summary.csv')\nWHERE stage = 'final_policy' AND split = 'holdout'\nORDER BY policy_order, game",
+            "description": "讀取走步回測輸出，整理五個最終政策在 sealed holdout 的配對比較。",
+            "tables_used": [
+              "research/results/strategy_summary.csv"
+            ],
+            "filters": [
+              "stage = final_policy",
+              "split = holdout"
+            ],
+            "metric_definitions": [
+              "原始 ROI = 全獎級虛擬獎金 / 模擬成本 - 1",
+              "穩健 ROI = 排除頭獎與貳獎後獎金 / 模擬成本 - 1",
+              "相對隨機穩健 ROI 差 = 政策穩健獎金與同週 random_5 穩健獎金之差 / 成本",
+              "95% 區間 = 13 週區塊 bootstrap 1,000 次"
+            ]
+          }
+        },
+        "encodings": {
+          "x": {
+            "field": "policy_label",
+            "type": "nominal",
+            "label": "政策"
+          },
+          "y": {
+            "field": "delta_robust_roi",
+            "type": "quantitative",
+            "format": "percent",
+            "label": "相對隨機穩健 ROI 差"
+          },
+          "color": {
+            "field": "game_name",
+            "type": "nominal",
+            "label": "遊戲"
+          },
+          "tooltip": [
+            {
+              "field": "raw_roi",
+              "format": "percent"
+            },
+            {
+              "field": "delta_ci_low",
+              "format": "percent"
+            },
+            {
+              "field": "delta_ci_high",
+              "format": "percent"
+            },
+            {
+              "field": "delta_fixed_roi",
+              "format": "percent"
+            },
+            {
+              "field": "weeks",
+              "format": "number"
+            }
+          ]
+        },
+        "valueFormat": "percent",
+        "layout": "full",
+        "palette": {
+          "kind": "categorical"
+        },
+        "settings": {
+          "orientation": "vertical",
+          "groupMode": "grouped",
+          "showValues": true,
+          "sort": "custom"
+        },
+        "legend": {
+          "position": "bottom",
+          "title": "遊戲"
+        },
+        "referenceLines": [
+          {
+            "axis": "y",
+            "value": 0,
+            "label": "純隨機基準",
+            "lineStyle": "dashed",
+            "color": "neutral"
+          }
+        ],
+        "surface": {
+          "viewMode": "both",
+          "showControls": true
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "decision-table",
+        "title": "封存測試決策表",
+        "subtitle": "每款遊戲的 validation 選擇與 holdout 外驗",
+        "dataset": "decision_rows",
+        "sourceId": "decision-study",
+        "source": {
+          "id": "decision-study",
+          "label": "封存測試決策",
+          "path": "research/results/strategy_summary.csv",
+          "query": {
+            "engine": "duckdb",
+            "language": "sql",
+            "sql": "SELECT game, game_name, policy_id AS selected_policy,\n  CASE policy_id WHEN 'random_5' THEN '五注純隨機' WHEN 'current_ensemble' THEN '現行五人格' WHEN 'trained_family_ensemble' THEN '訓練家族組合' WHEN 'trained_best_5' THEN '訓練冠軍五注' WHEN 'trained_blend' THEN '訓練混合' END AS selected_policy_label,\n  weeks AS holdout_weeks, draws AS holdout_draws,\n  raw_roi_mean AS raw_roi,\n  delta_robust_roi_mean AS delta_robust_roi,\n  delta_ci_low, delta_ci_high,\n  delta_fixed_roi_mean AS delta_fixed_roi,\n  active_week_win_rate, positive_replicate_rate,\n  CASE WHEN delta_ci_low > 0 AND delta_fixed_roi_mean >= 0 AND positive_replicate_rate >= 0.75 AND active_week_win_rate > 0.5 THEN '已證明' ELSE '未證明' END AS edge_proven,\n  CASE WHEN delta_ci_low > 0 AND delta_fixed_roi_mean >= 0 AND positive_replicate_rate >= 0.75 AND active_week_win_rate > 0.5 THEN policy_id ELSE 'random_5' END AS conditional_decision,\n  CASE WHEN delta_ci_low > 0 AND delta_fixed_roi_mean >= 0 AND positive_replicate_rate >= 0.75 AND active_week_win_rate > 0.5 THEN CASE policy_id WHEN 'random_5' THEN '五注純隨機' WHEN 'current_ensemble' THEN '現行五人格' WHEN 'trained_family_ensemble' THEN '訓練家族組合' WHEN 'trained_best_5' THEN '訓練冠軍五注' WHEN 'trained_blend' THEN '訓練混合' END ELSE '五注純隨機' END AS conditional_decision_label\nFROM read_csv_auto('research/results/strategy_summary.csv')\nWHERE stage = 'final_policy' AND split = 'holdout'\n  AND ((game = 'super' AND policy_id = 'current_ensemble') OR (game = 'lotto649' AND policy_id = 'current_ensemble'))\nORDER BY game_name",
+            "description": "讀取 validation 選定政策的一次性 holdout 外驗結果。",
+            "tables_used": [
+              "research/results/strategy_summary.csv"
+            ],
+            "filters": [
+              "stage = final_policy",
+              "split = holdout",
+              "各遊戲 policy_id = 本次 validation 選擇"
+            ],
+            "metric_definitions": [
+              "原始 ROI = 全獎級虛擬獎金 / 模擬成本 - 1",
+              "穩健 ROI = 排除頭獎與貳獎後獎金 / 模擬成本 - 1",
+              "相對隨機穩健 ROI 差 = 政策穩健獎金與同週 random_5 穩健獎金之差 / 成本",
+              "95% 區間 = 13 週區塊 bootstrap 1,000 次"
+            ]
+          }
+        },
+        "layout": "full",
+        "density": "spacious",
+        "defaultSort": {
+          "field": "game_name",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "field": "game_name",
+            "label": "遊戲",
+            "type": "text"
+          },
+          {
+            "field": "selected_policy_label",
+            "label": "驗證集選定政策",
+            "type": "text"
+          },
+          {
+            "field": "raw_roi",
+            "label": "Holdout 原始 ROI",
+            "format": "percent"
+          },
+          {
+            "field": "delta_robust_roi",
+            "label": "相對隨機穩健差",
+            "format": "percent",
+            "movement": true
+          },
+          {
+            "field": "delta_ci_low",
+            "label": "95% 下界",
+            "format": "percent"
+          },
+          {
+            "field": "delta_ci_high",
+            "label": "95% 上界",
+            "format": "percent"
+          },
+          {
+            "field": "delta_fixed_roi",
+            "label": "固定獎級差",
+            "format": "percent"
+          },
+          {
+            "field": "edge_proven",
+            "label": "外驗優勢",
+            "type": "text"
+          },
+          {
+            "field": "conditional_decision_label",
+            "label": "條件式決策",
+            "type": "text"
+          }
+        ]
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-18T15:59:21+08:00",
+    "status": "ready",
+    "datasets": {
+      "policy_holdout": [
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "policy_id": "random_5",
+          "policy_label": "五注純隨機",
+          "policy_order": 0,
+          "weeks": 255,
+          "draws": 573,
+          "replicates": 8,
+          "raw_roi": -0.6575567190226876,
+          "robust_roi": -0.6575567190226876,
+          "delta_robust_roi": 0.0,
+          "delta_ci_low": 0.0,
+          "delta_ci_high": 0.0,
+          "delta_fixed_roi": 0.0,
+          "active_week_win_rate": 0.5,
+          "positive_replicate_rate": 0.0
+        },
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "policy_id": "random_5",
+          "policy_label": "五注純隨機",
+          "policy_order": 0,
+          "weeks": 242,
+          "draws": 484,
+          "replicates": 8,
+          "raw_roi": -0.7859504132231405,
+          "robust_roi": -0.7859504132231405,
+          "delta_robust_roi": 0.0,
+          "delta_ci_low": 0.0,
+          "delta_ci_high": 0.0,
+          "delta_fixed_roi": 0.0,
+          "active_week_win_rate": 0.5,
+          "positive_replicate_rate": 0.0
+        },
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "policy_id": "current_ensemble",
+          "policy_label": "現行五人格",
+          "policy_order": 1,
+          "weeks": 255,
+          "draws": 573,
+          "replicates": 8,
+          "raw_roi": -0.6872216404886562,
+          "robust_roi": -0.6872216404886562,
+          "delta_robust_roi": -0.029664921465968587,
+          "delta_ci_low": -0.09795468253968254,
+          "delta_ci_high": 0.03805742296918767,
+          "delta_fixed_roi": -0.006849912739965095,
+          "active_week_win_rate": 0.4604651162790698,
+          "positive_replicate_rate": 0.5
+        },
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "policy_id": "current_ensemble",
+          "policy_label": "現行五人格",
+          "policy_order": 1,
+          "weeks": 242,
+          "draws": 484,
+          "replicates": 8,
+          "raw_roi": -0.7793904958677687,
+          "robust_roi": -0.7793904958677687,
+          "delta_robust_roi": 0.0065599173553719005,
+          "delta_ci_low": -0.029545454545454545,
+          "delta_ci_high": 0.0431301652892562,
+          "delta_fixed_roi": 0.0065599173553719005,
+          "active_week_win_rate": 0.5536480686695279,
+          "positive_replicate_rate": 0.625
+        },
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "policy_id": "trained_family_ensemble",
+          "policy_label": "訓練家族組合",
+          "policy_order": 2,
+          "weeks": 255,
+          "draws": 573,
+          "replicates": 8,
+          "raw_roi": -0.7047958115183246,
+          "robust_roi": -0.7047958115183246,
+          "delta_robust_roi": -0.047239092495637,
+          "delta_ci_low": -0.11969794584500466,
+          "delta_ci_high": -0.004190903361344543,
+          "delta_fixed_roi": 0.000855148342059337,
+          "active_week_win_rate": 0.46788990825688076,
+          "positive_replicate_rate": 0.125
+        },
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "policy_id": "trained_family_ensemble",
+          "policy_label": "訓練家族組合",
+          "policy_order": 2,
+          "weeks": 242,
+          "draws": 484,
+          "replicates": 8,
+          "raw_roi": -0.7931301652892562,
+          "robust_roi": -0.7931301652892562,
+          "delta_robust_roi": -0.0071797520661157025,
+          "delta_ci_low": -0.039016012396694215,
+          "delta_ci_high": 0.019111570247933883,
+          "delta_fixed_roi": -0.0071797520661157025,
+          "active_week_win_rate": 0.5347826086956522,
+          "positive_replicate_rate": 0.375
+        },
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "policy_id": "trained_best_5",
+          "policy_label": "訓練冠軍五注",
+          "policy_order": 3,
+          "weeks": 255,
+          "draws": 573,
+          "replicates": 8,
+          "raw_roi": -0.6037303664921466,
+          "robust_roi": -0.6037303664921466,
+          "delta_robust_roi": 0.053826352530541015,
+          "delta_ci_low": -0.058253755835667595,
+          "delta_ci_high": 0.2050880182072829,
+          "delta_fixed_roi": -0.009369109947643978,
+          "active_week_win_rate": 0.4583333333333333,
+          "positive_replicate_rate": 0.5
+        },
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "policy_id": "trained_best_5",
+          "policy_label": "訓練冠軍五注",
+          "policy_order": 3,
+          "weeks": 242,
+          "draws": 484,
+          "replicates": 8,
+          "raw_roi": -0.8027892561983472,
+          "robust_roi": -0.8027892561983472,
+          "delta_robust_roi": -0.016838842975206613,
+          "delta_ci_low": -0.07227918388429751,
+          "delta_ci_high": 0.022834452479338838,
+          "delta_fixed_roi": -0.016838842975206613,
+          "active_week_win_rate": 0.5338983050847458,
+          "positive_replicate_rate": 0.5
+        },
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "policy_id": "trained_blend",
+          "policy_label": "訓練混合",
+          "policy_order": 4,
+          "weeks": 255,
+          "draws": 573,
+          "replicates": 8,
+          "raw_roi": -0.6742111692844677,
+          "robust_roi": -0.6742111692844677,
+          "delta_robust_roi": -0.016654450261780106,
+          "delta_ci_low": -0.10124453781512605,
+          "delta_ci_high": 0.01391253501400559,
+          "delta_fixed_roi": 0.006919720767888306,
+          "active_week_win_rate": 0.4292682926829268,
+          "positive_replicate_rate": 0.5
+        },
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "policy_id": "trained_blend",
+          "policy_label": "訓練混合",
+          "policy_order": 4,
+          "weeks": 242,
+          "draws": 484,
+          "replicates": 8,
+          "raw_roi": -0.7884814049586777,
+          "robust_roi": -0.7884814049586777,
+          "delta_robust_roi": -0.0025309917355371904,
+          "delta_ci_low": -0.03533961776859504,
+          "delta_ci_high": 0.02164514462809917,
+          "delta_fixed_roi": -0.0025309917355371904,
+          "active_week_win_rate": 0.5411255411255411,
+          "positive_replicate_rate": 0.75
+        }
+      ],
+      "decision_rows": [
+        {
+          "game": "super",
+          "game_name": "威力彩",
+          "selected_policy": "current_ensemble",
+          "selected_policy_label": "現行五人格",
+          "holdout_weeks": 242,
+          "holdout_draws": 484,
+          "raw_roi": -0.7793904958677687,
+          "delta_robust_roi": 0.0065599173553719005,
+          "delta_ci_low": -0.029545454545454545,
+          "delta_ci_high": 0.0431301652892562,
+          "delta_fixed_roi": 0.0065599173553719005,
+          "active_week_win_rate": 0.5536480686695279,
+          "positive_replicate_rate": 0.625,
+          "edge_proven": "未證明",
+          "conditional_decision": "random_5",
+          "conditional_decision_label": "五注純隨機"
+        },
+        {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "selected_policy": "current_ensemble",
+          "selected_policy_label": "現行五人格",
+          "holdout_weeks": 255,
+          "holdout_draws": 573,
+          "raw_roi": -0.6872216404886562,
+          "delta_robust_roi": -0.029664921465968587,
+          "delta_ci_low": -0.09795468253968254,
+          "delta_ci_high": 0.03805742296918767,
+          "delta_fixed_roi": -0.006849912739965095,
+          "active_week_win_rate": 0.4604651162790698,
+          "positive_replicate_rate": 0.5,
+          "edge_proven": "未證明",
+          "conditional_decision": "random_5",
+          "conditional_decision_label": "五注純隨機"
+        }
+      ]
+    }
+  }
+}

@@ -17,6 +17,20 @@ python lotto.py report   # 重新產報告；python lotto.py status 看總覽
 python lotto.py ingest   # 手動更新歷史資料（check 會自動做）
 ```
 
+## 全歷史策略研究（與正式 v1 隔離）
+
+```
+python research_backtest.py
+```
+
+研究管線會逐週回放全部官方歷史，只允許使用當週以前的資料。前 50% 週用於
+粗搜尋與局部細調，接續 25% 用於選擇五注政策，最後 25% 是一次性封存測試集。
+結果寫到 `research/results/`，不會讀寫 `records/`，也不會改動已凍結的 v1 票。
+
+「最佳決策」分成兩層：經濟層以不參與為基準；條件式研究層則比較固定模擬
+五注時的政策。只有封存測試集相對純隨機的區間、一致性與固定獎級護欄全部
+通過，才允許替換條件式 `random_5` 基準。
+
 ## 五個選號人格（每遊戲每週 5 席）
 
 | 人格 | 席位 | 手法 |
@@ -58,7 +72,10 @@ engine/
   seeds.py / config.py / stats.py / env.py / ollama_seat.py
 data/raw/<game>/      官方 API 原始月回應（估值永遠可離線重放）
 records/              picks / settlements / weights / commentary 帳本＋reports/
-tests/                68 tests
+research/             全歷史走步回測、兩階段搜尋與封存外驗
+output/jupyter-notebook/
+                      可重跑的策略研究伴隨筆記本
+tests/                73 tests
 ```
 
 ## 驗證紀律
