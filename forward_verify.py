@@ -11,6 +11,10 @@ import sys
 
 from engine.env import Env
 from engine.decision_observatory import OPS_EXPERIMENT_ID
+from engine.forward_feedback import (
+    FEEDBACK_EXPERIMENT_ID,
+    verify_feedback_context,
+)
 from engine.forward_lab import reconcile_forward_registry
 from engine.games import LOTTO649, SUPER
 
@@ -21,6 +25,7 @@ STAGE_TESTS = (
         "forward_core",
         (
             "tests/test_forward_lab.py",
+            "tests/test_forward_feedback.py",
             "tests/test_qwen_judge.py",
             "tests/test_decision_observatory.py",
         ),
@@ -30,6 +35,7 @@ STAGE_TESTS = (
         (
             "tests/test_sync_service.py",
             "tests/test_forward_lab.py",
+            "tests/test_forward_feedback.py",
         ),
     ),
 )
@@ -100,6 +106,24 @@ def verify_forward_result(result: dict) -> None:
     games = summary.get("games", {})
     if set(games) != {SUPER, LOTTO649}:
         failures.append("summary_games")
+    feedback_memory = summary.get("feedback_memory", {})
+    if set(feedback_memory) != {SUPER, LOTTO649}:
+        failures.append("feedback_memory_games")
+    else:
+        for game, context in feedback_memory.items():
+            try:
+                verify_feedback_context(
+                    context,
+                    game=game,
+                    target=context.get("before_target", {}),
+                )
+            except (KeyError, TypeError, ValueError):
+                failures.append(f"feedback_memory_{game}")
+            if (
+                context.get("experiment_id")
+                != FEEDBACK_EXPERIMENT_ID
+            ):
+                failures.append(f"feedback_experiment_{game}")
     operations = summary.get("operations", {})
     if operations.get("experiment_id") != OPS_EXPERIMENT_ID:
         failures.append("operations_experiment")

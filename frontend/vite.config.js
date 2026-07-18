@@ -71,6 +71,8 @@ function publicManifest(automationStatus) {
   manifest.automation = automationStatus;
   for (const game of Object.values(manifest.games)) {
     const decision = game.next_decision;
+    const feedbackProvenance =
+      decision.adjudication.judge?.feedback_provenance ?? null;
     decision.critique_count = decision.critiques.length;
     decision.selected_count = decision.selected_tickets.length;
     decision.selected_tickets = [];
@@ -85,6 +87,7 @@ function publicManifest(automationStatus) {
         model: null,
         summary: "等待 60 次交叉評議完成後再呼叫終局裁判。",
         reasons: [],
+        feedback_provenance: feedbackProvenance,
       },
     };
   }

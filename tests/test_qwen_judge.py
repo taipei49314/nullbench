@@ -6,14 +6,25 @@ import pytest
 
 from engine.agent_loop import (
     apply_final_judge,
+    canonical_hash,
     conduct_debate,
     initial_state,
     replay_game,
     target_from_draw,
 )
+from engine.forward_feedback import (
+    build_feedback_context,
+    build_postmortem,
+)
 from engine.games import SUPER
+from engine.ledger import Ledger
 from engine.ollama_seat import StructuredResponse
-from engine.qwen_judge import QwenJudgeError, adjudicate, validate_selection
+from engine.qwen_judge import (
+    QwenJudgeError,
+    adjudicate,
+    build_prompt,
+    validate_selection,
+)
 from engine.store import DrawStore
 
 
@@ -30,6 +41,66 @@ def _valid_payload(proposal_ids):
             for proposal_id in selected
         ],
     }
+
+
+def _append_settled_feedback(ledger, decision):
+    registration = {
+        "game": decision["game"],
+        "target": {"date": "2000-01-01", "period": 1},
+        "registration_hash": "registration-sha",
+    }
+    arms = {
+        "qwen_five": {
+            "best_main_hits": 1,
+            "total_main_hits": 3,
+            "union_size": 20,
+            "union_main_hits": 2,
+            "missed_actual_numbers": [8, 18],
+            "repeated_but_missed": [
+                {"number": 8, "selected_count": 6}
+            ],
+        },
+        "rule_five": {
+            "best_main_hits": 2,
+            "total_main_hits": 5,
+            "union_size": 24,
+            "union_main_hits": 4,
+            "missed_actual_numbers": [8],
+            "repeated_but_missed": [],
+        },
+        "random_five": {
+            "best_main_hits": 2,
+            "total_main_hits": 4,
+            "union_size": 23,
+            "union_main_hits": 3,
+            "missed_actual_numbers": [18],
+            "repeated_but_missed": [],
+        },
+    }
+    postmortem = build_postmortem(
+        registration,
+        arms,
+        {
+            "eligible": True,
+            "qwen_minus_rule_best_main_hits": -1,
+        },
+    )
+    content = {
+        "schema_version": "1",
+        "experiment_id": "final-judge-forward-v1",
+        "phase": "settlement",
+        "registration_hash": registration["registration_hash"],
+        "game": decision["game"],
+        "target": registration["target"],
+        "postmortem": postmortem,
+    }
+    ledger.append(
+        "forward_settlement",
+        {
+            "content": content,
+            "content_hash": canonical_hash(content),
+        },
+    )
 
 
 @pytest.fixture(scope="module")
@@ -132,6 +203,87 @@ def test_qwen_failure_keeps_structured_runtime_telemetry(decision):
     assert captured.value.telemetry["error_type"] == "TimeoutError"
 
 
+def test_qwen_consumes_verified_settled_feedback_and_returns_provenance(
+    decision,
+    tmp_path,
+):
+    ledger = Ledger(tmp_path / "forward.jsonl")
+    _append_settled_feedback(ledger, decision)
+    feedback = build_feedback_context(
+        ledger,
+        decision["game"],
+        before_target=decision["target"],
+    )
+    proposal_ids = [
+        proposal["proposal_id"] for proposal in decision["proposals"]
+    ]
+    prompts = []
+
+    def generator(prompt, schema, **kwargs):
+        prompts.append(prompt)
+        return StructuredResponse(
+            payload=_valid_payload(proposal_ids),
+            model="qwen3:8b",
+            response_hash="response-sha",
+            total_duration=10_000_000,
+            eval_count=12,
+            eval_duration=8_000_000,
+        )
+
+    result = adjudicate(
+        decision,
+        feedback=feedback,
+        generator=generator,
+    )
+
+    assert feedback["feedback_hash"] in prompts[0]
+    assert "never_chase_previous_missed_numbers" in prompts[0]
+    assert "絕不可追逐上一期漏掉的號碼" in prompts[0]
+    assert "missed_actual_numbers" not in prompts[0]
+    assert result["feedback_provenance"] == {
+        "experiment_id": "settled-forward-feedback-v1",
+        "status": "verified",
+        "feedback_hash": feedback["feedback_hash"],
+        "settlement_count": 1,
+        "as_of_target": {"date": "2000-01-01", "period": 1},
+        "source_postmortem_hashes": [
+            feedback["rows"][0]["postmortem_hash"]
+        ],
+    }
+    assert result["feedback_context"] == feedback
+
+
+def test_qwen_rejects_tampered_feedback_before_generator(
+    decision,
+    tmp_path,
+):
+    feedback = build_feedback_context(
+        Ledger(tmp_path / "forward.jsonl"),
+        decision["game"],
+        before_target=decision["target"],
+    )
+    feedback["before_target"]["period"] += 1
+    feedback["feedback_hash"] = canonical_hash(
+        {
+            key: value
+            for key, value in feedback.items()
+            if key != "feedback_hash"
+        }
+    )
+    calls = []
+
+    with pytest.raises(QwenJudgeError, match="目標不符"):
+        adjudicate(
+            decision,
+            feedback=feedback,
+            generator=lambda *args, **kwargs: calls.append(args),
+        )
+
+    assert calls == []
+    with pytest.raises(ValueError, match="目標不符"):
+        build_prompt(decision, feedback)
+
+
 def test_final_judge_replaces_baseline_only_with_valid_qwen_selection(decision):
     decision = deepcopy(decision)
     proposal_ids = [proposal["proposal_id"] for proposal in decision["proposals"]]
@@ -176,6 +328,31 @@ def test_invalid_model_output_falls_back_without_impersonating_qwen(decision):
     assert [
         ticket["source_proposal"] for ticket in judged["selected_tickets"]
     ] == baseline_ids
+
+
+def test_qwen_fallback_preserves_feedback_provenance(decision):
+    decision = deepcopy(decision)
+    provenance = {
+        "experiment_id": "settled-forward-feedback-v1",
+        "status": "verified",
+        "feedback_hash": "feedback-sha",
+        "settlement_count": 3,
+        "as_of_target": {"date": "2026-01-01", "period": 3},
+        "source_postmortem_hashes": ["a", "b", "c"],
+    }
+
+    def broken(_):
+        raise QwenJudgeError(
+            "offline",
+            feedback_provenance=provenance,
+        )
+
+    judged = apply_final_judge(decision, broken)
+
+    assert (
+        judged["adjudication"]["judge"]["feedback_provenance"]
+        == provenance
+    )
 
 
 def test_replay_calls_qwen_only_once_for_future_decision():

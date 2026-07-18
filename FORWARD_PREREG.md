@@ -35,10 +35,14 @@
 `python lotto.py sync` 的順序固定為：
 
 1. 抓取官方當月資料。
-2. 有新開獎才重建完整逐期 agent loop。
-3. 結算帳本中已登記且現在已有揭曉的目標期。
-4. 從新 manifest 凍結兩款遊戲的下一期三臂。
-5. 重建唯讀摘要 `simulation/forward/status.json`。
+2. 結算帳本中已登記且現在已有揭曉的目標期。
+3. 產生固定 postmortem，建立嚴格早於下一目標的 13 期回饋。
+4. 有新開獎才重建完整逐期 agent loop，並讓 Qwen 讀取已驗證回饋。
+5. 從新 manifest 凍結兩款遊戲的下一期三臂。
+6. 重建唯讀摘要 `simulation/forward/status.json`。
+
+下一期回饋只含組合層彙總，不含原始開獎號碼或漏號清單；詳細 schema、
+來源證明與失敗語意見 [FORWARD_FEEDBACK.md](FORWARD_FEEDBACK.md)。
 
 JSONL 是唯一事實源；`status.json` 只是可重建快照。正式 `records/`、
 既有歷史回放 JSONL 與過去決策不得因本實驗改寫。

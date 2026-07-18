@@ -13,6 +13,9 @@ from engine.agent_loop import (
     conduct_debate,
     initial_state,
 )
+from engine.forward_feedback import (
+    build_feedback_context_from_settlements,
+)
 from engine.forward_lab import (
     ARM_QWEN,
     ARM_RANDOM,
@@ -21,8 +24,10 @@ from engine.forward_lab import (
     FORWARD_EXPERIMENT_ID,
     _block_bootstrap_ci,
     build_summary,
+    feedback_for_target,
     preregister_decision,
     reconcile_forward_registry,
+    settle_forward_registry,
     settle_ready,
     verify_registry,
 )
@@ -37,6 +42,11 @@ DATA = BASE / "data"
 
 
 def _qwen_payload(decision):
+    feedback_context = build_feedback_context_from_settlements(
+        [],
+        decision["game"],
+        before_target=decision["target"],
+    )
     selected = [
         proposal["proposal_id"] for proposal in decision["proposals"][-5:]
     ]
@@ -52,6 +62,15 @@ def _qwen_payload(decision):
         ],
         "prompt_hash": "prompt-sha",
         "response_hash": "response-sha",
+        "feedback_provenance": {
+            "experiment_id": "settled-forward-feedback-v1",
+            "status": "verified_empty",
+            "feedback_hash": feedback_context["feedback_hash"],
+            "settlement_count": 0,
+            "as_of_target": None,
+            "source_postmortem_hashes": [],
+        },
+        "feedback_context": feedback_context,
         "telemetry": {
             "schema_version": "1",
             "outcome": "success",
@@ -122,6 +141,14 @@ def test_preregister_freezes_three_valid_arms_without_reveal(tmp_path, game):
     assert all(len(content["arms"][arm]["tickets"]) == 5 for arm in ARMS)
     assert all(content["arms"][arm]["eligible"] for arm in ARMS)
     assert content["arms"][ARM_QWEN]["metadata"]["model"] == "qwen3:8b"
+    assert content["arms"][ARM_QWEN]["metadata"][
+        "feedback_provenance"
+    ]["status"] == "verified_empty"
+    assert content["arms"][ARM_QWEN]["metadata"][
+        "feedback_context"
+    ]["feedback_hash"] == content["arms"][ARM_QWEN][
+        "metadata"
+    ]["feedback_provenance"]["feedback_hash"]
     assert (
         content["arms"][ARM_QWEN]["metadata"]["telemetry"]["outcome"]
         == "success"
@@ -195,6 +222,32 @@ def test_late_registration_and_qwen_fallback_are_ineligible(tmp_path):
     )
 
 
+def test_qwen_without_verified_settled_feedback_is_ineligible(tmp_path):
+    decision = _decision(SUPER)
+    decision["adjudication"]["judge"].pop(
+        "feedback_provenance",
+        None,
+    )
+    decision["adjudication"]["judge"].pop(
+        "feedback_context",
+        None,
+    )
+
+    content = preregister_decision(
+        Ledger(tmp_path / "missing-feedback.jsonl"),
+        decision,
+        registered_at="2099-01-01T12:00:00+08:00",
+    )["event"]["content"]
+
+    assert content["arms"][ARM_RULE]["eligible"] is True
+    assert content["arms"][ARM_RANDOM]["eligible"] is True
+    assert content["arms"][ARM_QWEN]["eligible"] is False
+    assert (
+        content["arms"][ARM_QWEN]["ineligible_reason"]
+        == "qwen_not_verified"
+    )
+
+
 def test_settlement_requires_existing_preregistration_and_is_idempotent(
     tmp_path,
 ):
@@ -216,6 +269,10 @@ def test_settlement_requires_existing_preregistration_and_is_idempotent(
         == preregistration["registration_hash"]
     )
     assert settlement["actual"]["numbers"] == [1, 2, 3, 4, 5, 6]
+    assert settlement["postmortem"]["registration_hash"] == (
+        preregistration["registration_hash"]
+    )
+    assert settlement["postmortem"]["postmortem_hash"]
     assert set(settlement["arm_results"]) == set(ARMS)
     assert settlement["qwen_vs_rule"]["verdict"] in {
         "qwen_win",
@@ -244,6 +301,47 @@ def test_registry_detects_last_line_content_tampering(tmp_path):
         verify_registry(ledger)
 
 
+def test_registry_rejects_rehashed_but_inconsistent_postmortem(
+    tmp_path,
+):
+    path = tmp_path / "forward.jsonl"
+    ledger = Ledger(path)
+    preregister_decision(
+        ledger,
+        _decision(SUPER),
+        registered_at="2099-01-01T12:00:00+08:00",
+    )
+    settle_ready(ledger, FakeStore({SUPER: [_draw(SUPER)]}))
+    lines = [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+    ]
+    settlement = lines[-1]
+    postmortem = settlement["content"]["postmortem"]
+    postmortem["diagnostic_flags"] = ["forged_causal_story"]
+    postmortem["postmortem_hash"] = canonical_hash(
+        {
+            key: value
+            for key, value in postmortem.items()
+            if key != "postmortem_hash"
+        }
+    )
+    settlement["content_hash"] = canonical_hash(
+        settlement["content"]
+    )
+    path.write_text(
+        "\n".join(
+            json.dumps(line, ensure_ascii=False)
+            for line in lines
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="flags 不完整"):
+        verify_registry(ledger)
+
+
 def test_registry_rejects_semantically_inconsistent_qwen_telemetry(tmp_path):
     path = tmp_path / "forward.jsonl"
     ledger = Ledger(path)
@@ -263,6 +361,40 @@ def test_registry_rejects_semantically_inconsistent_qwen_telemetry(tmp_path):
     )
 
     with pytest.raises(ValueError, match="來源與遙測結果矛盾"):
+        verify_registry(ledger)
+
+
+def test_registry_rejects_forged_feedback_context_even_with_new_hash(
+    tmp_path,
+):
+    path = tmp_path / "forward.jsonl"
+    ledger = Ledger(path)
+    preregister_decision(
+        ledger,
+        _decision(SUPER),
+        registered_at="2099-01-01T12:00:00+08:00",
+    )
+    event = json.loads(path.read_text(encoding="utf-8"))
+    metadata = event["content"]["arms"][ARM_QWEN]["metadata"]
+    context = metadata["feedback_context"]
+    context["honesty_note"] = "forged but rehashed"
+    context["feedback_hash"] = canonical_hash(
+        {
+            key: value
+            for key, value in context.items()
+            if key != "feedback_hash"
+        }
+    )
+    metadata["feedback_provenance"]["feedback_hash"] = context[
+        "feedback_hash"
+    ]
+    event["content_hash"] = canonical_hash(event["content"])
+    path.write_text(
+        json.dumps(event, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="誠實聲明不符"):
         verify_registry(ledger)
 
 
@@ -428,9 +560,125 @@ def test_new_reveal_settles_old_targets_then_freezes_new_targets_once(
         "settlements": 2,
         "pending": 2,
     }
+    assert (
+        advanced["summary"]["feedback_memory"][SUPER][
+            "settlement_count"
+        ]
+        == 1
+    )
+    assert (
+        advanced["summary"]["feedback_memory"][LOTTO649][
+            "settlement_count"
+        ]
+        == 1
+    )
     assert repeated["settlements_created"] == 0
     assert all(
         registration["status"] == "existing"
         for registration in repeated["registrations"].values()
     )
     assert repeated["summary"]["verification"]["events"] == 6
+
+
+def test_predecision_settlement_builds_feedback_before_new_registration(
+    tmp_path,
+):
+    manifest = {
+        "games": {
+            SUPER: {"next_decision": _decision(SUPER)},
+            LOTTO649: {"next_decision": _decision(LOTTO649)},
+        }
+    }
+    reconcile_forward_registry(
+        tmp_path,
+        FakeStore(),
+        manifest,
+        registered_at="2099-01-01T12:00:00+08:00",
+    )
+
+    settled = settle_forward_registry(
+        tmp_path,
+        FakeStore({SUPER: [_draw(SUPER)]}),
+    )
+    feedback = feedback_for_target(
+        tmp_path,
+        SUPER,
+        {"date": "2099-01-08", "period": 188000002},
+    )
+
+    assert settled["settlements_created"] == 1
+    assert settled["summary"]["verification"]["settlements"] == 1
+    assert feedback["settlement_count"] == 1
+    assert feedback["as_of_target"] == {
+        "date": "2099-01-05",
+        "period": 188000001,
+    }
+
+
+def test_next_qwen_registration_must_archive_exact_settled_context(
+    tmp_path,
+):
+    initial_manifest = {
+        "games": {
+            SUPER: {"next_decision": _decision(SUPER)},
+            LOTTO649: {"next_decision": _decision(LOTTO649)},
+        }
+    }
+    reconcile_forward_registry(
+        tmp_path,
+        FakeStore(),
+        initial_manifest,
+        registered_at="2099-01-01T12:00:00+08:00",
+    )
+    settle_forward_registry(
+        tmp_path,
+        FakeStore({SUPER: [_draw(SUPER)]}),
+    )
+    decision = _decision(
+        SUPER,
+        date="2099-01-08",
+        period=188000002,
+    )
+    context = feedback_for_target(
+        tmp_path,
+        SUPER,
+        decision["target"],
+    )
+    judge = decision["adjudication"]["judge"]
+    judge["feedback_context"] = context
+    judge["feedback_provenance"] = {
+        "experiment_id": context["experiment_id"],
+        "status": "verified",
+        "feedback_hash": context["feedback_hash"],
+        "settlement_count": context["settlement_count"],
+        "as_of_target": context["as_of_target"],
+        "source_postmortem_hashes": context[
+            "source_postmortem_hashes"
+        ],
+    }
+    decision.pop("decision_hash")
+    decision["decision_hash"] = canonical_hash(decision)
+
+    registered = preregister_decision(
+        Ledger(
+            tmp_path
+            / "simulation"
+            / "forward"
+            / "ledger.jsonl"
+        ),
+        decision,
+        registered_at="2099-01-07T12:00:00+08:00",
+    )
+    qwen = registered["event"]["content"]["arms"][ARM_QWEN]
+
+    assert context["settlement_count"] == 1
+    assert qwen["eligible"] is True
+    assert qwen["metadata"]["feedback_context"] == context
+    assert verify_registry(
+        Ledger(
+            tmp_path
+            / "simulation"
+            / "forward"
+            / "ledger.jsonl"
+        )
+    )["registrations"] == 3

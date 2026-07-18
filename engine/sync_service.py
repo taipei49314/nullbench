@@ -13,18 +13,34 @@ from typing import Callable
 from . import agent_loop, forward_lab, qwen_judge
 from .env import Env
 from .fetch import ingest
+from .forward_feedback import FEEDBACK_EXPERIMENT_ID
 from .games import GAME_NAMES, LOTTO649, SUPER
 from .ledger import TAIPEI
 
 GAMES = (SUPER, LOTTO649)
 Progress = Callable[[str, str, dict | None], None]
+FeedbackProvider = Callable[[str, dict], dict]
 
 
-def _run_with_qwen(store, output_dir: Path) -> dict:
+def _run_with_qwen(
+    store,
+    output_dir: Path,
+    feedback_provider: FeedbackProvider,
+) -> dict:
+    def final_judge(decision: dict) -> dict:
+        feedback = feedback_provider(
+            decision["game"],
+            decision["target"],
+        )
+        return qwen_judge.adjudicate(
+            decision,
+            feedback=feedback,
+        )
+
     return agent_loop.run_all(
         store,
         output_dir,
-        final_judge=qwen_judge.adjudicate,
+        final_judge=final_judge,
     )
 
 
@@ -57,6 +73,8 @@ def sync_latest(
     progress: Progress | None = None,
     fetcher=ingest,
     runner=_run_with_qwen,
+    pre_settler=forward_lab.settle_forward_registry,
+    feedback_loader=forward_lab.feedback_for_target,
     forward_syncer=forward_lab.reconcile_forward_registry,
 ) -> dict:
     """檢查官方新資料、必要時重建閉環，並結算/凍結前向 A/B。"""
@@ -90,6 +108,7 @@ def sync_latest(
     changes = compare_draw_counts(previous_counts, current_counts)
     new_total = sum(changes.values())
     needs_rebuild = previous_manifest is None or new_total > 0
+    pre_settlements_created = 0
 
     if needs_rebuild:
         emit(
@@ -97,12 +116,27 @@ def sync_latest(
             f"偵測到 {new_total} 期新開獎，正在執行揭曉後檢討",
             {"new_draws": changes},
         )
+        settled = pre_settler(base, fresh_env.store)
+        pre_settlements_created = int(
+            settled["settlements_created"]
+        )
+
+        def feedback_provider(game: str, target: dict) -> dict:
+            return feedback_loader(base, game, target)
+
         emit(
             "optimizing",
             "正在重建完整回放、更新 Agent 評分與下一期候選",
-            None,
+            {
+                "settlements_created": pre_settlements_created,
+                "feedback_experiment": FEEDBACK_EXPERIMENT_ID,
+            },
         )
-        manifest = runner(fresh_env.store, output_dir)
+        manifest = runner(
+            fresh_env.store,
+            output_dir,
+            feedback_provider,
+        )
     else:
         manifest = previous_manifest
 
@@ -135,10 +169,18 @@ def sync_latest(
         "fetched_months": fetched_months,
         "games": games,
         "manifest_hash": manifest["manifest_hash"],
+        "feedback_provenance": {
+            game: manifest["games"][game]["next_decision"][
+                "adjudication"
+            ]["judge"].get("feedback_provenance")
+            for game in GAMES
+        },
         "forward_experiment": {
-            "settlements_created": forward_experiment[
-                "settlements_created"
-            ],
+            "settlements_created": (
+                pre_settlements_created
+                + forward_experiment["settlements_created"]
+            ),
+            "settlements_before_decision": pre_settlements_created,
             "registrations": forward_experiment["registrations"],
             "evidence_status": forward_experiment["summary"][
                 "evidence_status"
@@ -147,6 +189,9 @@ def sync_latest(
                 "recommendation"
             ],
             "verification": forward_experiment["summary"]["verification"],
+            "feedback_memory": forward_experiment["summary"].get(
+                "feedback_memory", {}
+            ),
             "deployment_gate": forward_experiment["summary"].get(
                 "operations", {}
             ).get("deployment_gate"),

@@ -26,6 +26,14 @@ from .decision_observatory import (
     OPS_EXPERIMENT_ID,
     build_observatory,
 )
+from .forward_feedback import (
+    FEEDBACK_EXPERIMENT_ID,
+    build_feedback_context,
+    build_feedback_context_from_settlements,
+    build_postmortem,
+    verify_feedback_context,
+    verify_postmortem,
+)
 from .games import (
     GAME_NAMES,
     LOTTO649,
@@ -226,10 +234,42 @@ def preregister_decision(
     ]
     random_tickets = _random_tickets(game, target)
     judge = decision["adjudication"]["judge"]
+    feedback_provenance = judge.get("feedback_provenance")
+    feedback_context = judge.get("feedback_context")
+    expected_feedback_context = build_feedback_context(
+        ledger,
+        game,
+        before_target=target,
+    )
+    feedback_context_verified = (
+        isinstance(feedback_context, dict)
+        and feedback_context == expected_feedback_context
+    )
+    expected_feedback_provenance = {
+        "experiment_id": FEEDBACK_EXPERIMENT_ID,
+        "status": (
+            "verified"
+            if expected_feedback_context["settlement_count"] > 0
+            else "verified_empty"
+        ),
+        "feedback_hash": expected_feedback_context["feedback_hash"],
+        "settlement_count": expected_feedback_context[
+            "settlement_count"
+        ],
+        "as_of_target": expected_feedback_context["as_of_target"],
+        "source_postmortem_hashes": expected_feedback_context[
+            "source_postmortem_hashes"
+        ],
+    }
+    feedback_verified = (
+        feedback_context_verified
+        and feedback_provenance == expected_feedback_provenance
+    )
     qwen_valid = (
         judge.get("source") == "ollama"
         and judge.get("model") == "qwen3:8b"
         and len(judge.get("selected_proposal_ids", [])) == SELECTED_TICKETS
+        and feedback_verified
     )
     telemetry = judge.get("telemetry")
     ops_instrumented = (
@@ -267,6 +307,12 @@ def preregister_decision(
                 "telemetry": deepcopy(telemetry),
                 "selection_diagnostics": deepcopy(
                     judge.get("selection_diagnostics")
+                ),
+                "feedback_provenance": deepcopy(
+                    judge.get("feedback_provenance")
+                ),
+                "feedback_context": deepcopy(
+                    judge.get("feedback_context")
                 ),
                 "fallback_reason": judge.get("fallback_reason"),
             },
@@ -451,6 +497,14 @@ def settle_ready(ledger: Ledger, store) -> list[dict]:
             },
             "arm_results": arm_results,
             "qwen_vs_rule": comparison,
+            "postmortem": build_postmortem(
+                {
+                    **preregistered,
+                    "registration_hash": registration_hash,
+                },
+                arm_results,
+                comparison,
+            ),
             "interpretation": (
                 "本期只量化已凍結三臂與實際開獎的落差；"
                 "不把事後命中或漏號解釋為隨機開獎的因果。"
@@ -517,6 +571,7 @@ def verify_registry(ledger: Ledger) -> dict:
         raise ValueError("前向實驗 JSONL 雜湊鏈中斷")
     registrations = {}
     settlements = set()
+    settlement_contents_seen: list[dict] = []
     previous_target: dict[str, tuple[str, int]] = {}
     for event in ledger.read_all():
         content = _event_content(event)
@@ -541,11 +596,16 @@ def verify_registry(ledger: Ledger) -> dict:
                 ):
                     raise ValueError("前向實驗 selection_hash 不符")
             ops_id = content.get("ops_experiment_id")
+            qwen = content["arms"][ARM_QWEN]
+            metadata = qwen.get("metadata") or {}
+            if (
+                metadata.get("feedback_provenance") is not None
+                and ops_id is None
+            ):
+                raise ValueError("Qwen 回饋登記缺少運作遙測版本")
             if ops_id is not None:
                 if ops_id != OPS_EXPERIMENT_ID:
                     raise ValueError("終局裁判遙測實驗版本不符")
-                qwen = content["arms"][ARM_QWEN]
-                metadata = qwen.get("metadata") or {}
                 telemetry = metadata.get("telemetry")
                 if (
                     not isinstance(telemetry, dict)
@@ -573,6 +633,124 @@ def verify_registry(ledger: Ledger) -> dict:
                         != SELECTED_TICKETS
                     ):
                         raise ValueError("Qwen 選擇診斷契約不完整")
+                feedback_provenance = metadata.get(
+                    "feedback_provenance"
+                )
+                feedback_context = metadata.get("feedback_context")
+                if feedback_provenance is not None:
+                    if (
+                        not isinstance(feedback_provenance, dict)
+                        or feedback_provenance.get("experiment_id")
+                        != FEEDBACK_EXPERIMENT_ID
+                        or feedback_provenance.get("status")
+                        not in {
+                            "verified",
+                            "verified_empty",
+                            "not_supplied",
+                        }
+                    ):
+                        raise ValueError("Qwen 回饋來源證明不完整")
+                    feedback_status = feedback_provenance["status"]
+                    feedback_count = feedback_provenance.get(
+                        "settlement_count"
+                    )
+                    feedback_hash = feedback_provenance.get(
+                        "feedback_hash"
+                    )
+                    source_hashes = feedback_provenance.get(
+                        "source_postmortem_hashes"
+                    )
+                    if (
+                        not isinstance(feedback_count, int)
+                        or feedback_count < 0
+                        or not isinstance(source_hashes, list)
+                        or len(source_hashes) != feedback_count
+                        or (
+                            feedback_status == "verified"
+                            and (
+                                feedback_count < 1
+                                or not isinstance(feedback_hash, str)
+                                or len(feedback_hash) != 64
+                            )
+                        )
+                        or (
+                            feedback_status == "verified_empty"
+                            and (
+                                feedback_count != 0
+                                or not isinstance(feedback_hash, str)
+                                or len(feedback_hash) != 64
+                            )
+                        )
+                        or (
+                            feedback_status == "not_supplied"
+                            and (
+                                feedback_count != 0
+                                or feedback_hash is not None
+                            )
+                        )
+                    ):
+                        raise ValueError("Qwen 回饋來源證明內容不符")
+                    as_of = feedback_provenance.get("as_of_target")
+                    if (
+                        as_of is not None
+                        and (
+                            as_of["date"],
+                            int(as_of["period"]),
+                        )
+                        >= (
+                            content["target"]["date"],
+                            int(content["target"]["period"]),
+                        )
+                    ):
+                        raise ValueError("Qwen 回饋來源含目標期或未來資料")
+                    if not isinstance(feedback_context, dict):
+                        raise ValueError("Qwen 回饋完整 context 缺失")
+                    verify_feedback_context(
+                        feedback_context,
+                        game=content["game"],
+                        target=content["target"],
+                    )
+                    expected_feedback_context = (
+                        build_feedback_context_from_settlements(
+                            settlement_contents_seen,
+                            content["game"],
+                            before_target=content["target"],
+                        )
+                    )
+                    expected_provenance = {
+                        "experiment_id": FEEDBACK_EXPERIMENT_ID,
+                        "status": (
+                            "verified"
+                            if expected_feedback_context[
+                                "settlement_count"
+                            ]
+                            > 0
+                            else "verified_empty"
+                        ),
+                        "feedback_hash": expected_feedback_context[
+                            "feedback_hash"
+                        ],
+                        "settlement_count": expected_feedback_context[
+                            "settlement_count"
+                        ],
+                        "as_of_target": expected_feedback_context[
+                            "as_of_target"
+                        ],
+                        "source_postmortem_hashes": (
+                            expected_feedback_context[
+                                "source_postmortem_hashes"
+                            ]
+                        ),
+                    }
+                    if (
+                        feedback_context != expected_feedback_context
+                        or feedback_provenance != expected_provenance
+                    ) and qwen.get("eligible"):
+                        raise ValueError(
+                            "Qwen 回饋與當時已結算帳本不符"
+                        )
+                elif feedback_context is not None:
+                    raise ValueError("Qwen 回饋 context 缺少來源證明")
             registrations[event["content_hash"]] = content
         elif event["type"] == "forward_settlement":
             registration_hash = content["registration_hash"]
@@ -586,7 +764,26 @@ def verify_registry(ledger: Ledger) -> dict:
                 or content["target"] != registered["target"]
             ):
                 raise ValueError("前向結算與登記目標不符")
+            postmortem = content.get("postmortem")
+            if isinstance(postmortem, dict):
+                verify_postmortem(postmortem)
+                expected_postmortem = build_postmortem(
+                    {
+                        **registered,
+                        "registration_hash": registration_hash,
+                    },
+                    content["arm_results"],
+                    content["qwen_vs_rule"],
+                )
+                if (
+                    postmortem["registration_hash"] != registration_hash
+                    or postmortem["game"] != content["game"]
+                    or postmortem["target"] != content["target"]
+                    or postmortem != expected_postmortem
+                ):
+                    raise ValueError("前向錯誤診斷與結算來源不符")
             settlements.add(registration_hash)
+            settlement_contents_seen.append(content)
         else:
             raise ValueError(f"未知前向帳本事件：{event['type']}")
     return {
@@ -717,6 +914,19 @@ def build_summary(ledger: Ledger) -> dict:
         settlements,
         performance_status=evidence_status,
     )
+    feedback_memory = {}
+    for game in (SUPER, LOTTO649):
+        pending = games[game]["pending"]
+        before_target = (
+            pending[-1]["target"]
+            if pending
+            else {"date": "9999-12-31", "period": 9_999_999_999}
+        )
+        feedback_memory[game] = build_feedback_context(
+            ledger,
+            game,
+            before_target=before_target,
+        )
     return {
         "schema_version": "1",
         "experiment_id": FORWARD_EXPERIMENT_ID,
@@ -737,6 +947,7 @@ def build_summary(ledger: Ledger) -> dict:
         "evidence_status": evidence_status,
         "recommendation": recommendation,
         "operations": operations,
+        "feedback_memory": feedback_memory,
         "games": games,
         "honesty_note": (
             "只統計開獎前已存在且未逾截止時間的 Qwen/規則配對；"
@@ -755,6 +966,46 @@ def _write_snapshot(path: Path, summary: dict) -> None:
     os.replace(temp, path)
 
 
+def forward_ledger(base: Path) -> Ledger:
+    return Ledger(
+        Path(base) / "simulation" / "forward" / "ledger.jsonl"
+    )
+
+
+def feedback_for_target(
+    base: Path,
+    game: str,
+    target: dict,
+) -> dict:
+    ledger = forward_ledger(base)
+    verify_registry(ledger)
+    return build_feedback_context(
+        ledger,
+        game,
+        before_target=target,
+    )
+
+
+def settle_forward_registry(
+    base: Path,
+    store,
+) -> dict:
+    """只結算已揭曉舊登記，供下一輪裁決前先建立回饋記憶。"""
+    base = Path(base)
+    forward_dir = base / "simulation" / "forward"
+    ledger = forward_ledger(base)
+    verify_registry(ledger)
+    settled = settle_ready(ledger, store)
+    summary = build_summary(ledger)
+    _write_snapshot(forward_dir / "status.json", summary)
+    return {
+        "settlements_created": len(settled),
+        "summary": summary,
+        "ledger_path": str(ledger.path),
+        "status_path": str(forward_dir / "status.json"),
+    }
+
+
 def reconcile_forward_registry(
     base: Path,
     store,
@@ -765,9 +1016,8 @@ def reconcile_forward_registry(
     """先結算已有揭曉，再凍結 manifest 的兩款下一期決策。"""
     base = Path(base)
     forward_dir = base / "simulation" / "forward"
-    ledger = Ledger(forward_dir / "ledger.jsonl")
-    verify_registry(ledger)
-    settled = settle_ready(ledger, store)
+    settled_result = settle_forward_registry(base, store)
+    ledger = forward_ledger(base)
     registrations = {}
     for game in (SUPER, LOTTO649):
         decision = manifest["games"][game]["next_decision"]
@@ -779,7 +1029,7 @@ def reconcile_forward_registry(
     summary = build_summary(ledger)
     _write_snapshot(forward_dir / "status.json", summary)
     return {
-        "settlements_created": len(settled),
+        "settlements_created": settled_result["settlements_created"],
         "registrations": {
             game: {
                 "status": result["status"],

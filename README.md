@@ -104,6 +104,11 @@ python agent_loop_verify.py
 才允許進入保留規則控制組的 shadow promotion。規格見
 [OPS_TELEMETRY.md](OPS_TELEMETRY.md)。
 
+偵測到新開獎時，系統會先結算舊的前向登記並產生固定、無原始號碼的錯誤診斷，
+再把最近最多 13 期的已結算組合層回饋交給下一期 Qwen 裁決。回饋來源 hash、時間界線
+與彙總都會重新驗證；單期漏號、熱冷號及目標期資料不會進入模型。完整契約見
+[FORWARD_FEEDBACK.md](FORWARD_FEEDBACK.md)。
+
 完整驗收：
 
 ```
@@ -179,6 +184,8 @@ engine/
   qwen_judge.py       qwen3:8b 終局裁判、結構化輸出與嚴格驗證
   decision_observatory.py
                       Qwen 延遲、降級、Token、分散與開獎後品質閘門
+  forward_feedback.py
+                      已結算錯誤診斷、13 期回饋記憶與防追號驗證
   automation.py       無分頁背景 watcher、單例鎖、重試與執行歷史
   ledger.py           append-only JSONL（SHA-256 雜湊鏈）
   seeds.py / config.py / stats.py / env.py / ollama_seat.py
@@ -190,6 +197,7 @@ agent_ablation_verify.py
                       分階段測試、正式消融與完整後測入口
 forward_verify.py     前向三臂帳本、sync、前端與完整回歸驗收
 FORWARD_PREREG.md     Qwen／規則前向比較的凍結門檻
+FORWARD_FEEDBACK.md   開獎後先檢討、再裁決下一期的回饋契約
 OPS_TELEMETRY.md      Qwen 運作遙測與聯合部署閘門
 automation_verify.py  背景 Loop、故障恢復、前端與完整回歸驗收
 AUTOMATION.md         桌機 watcher、監督重啟與持久狀態契約

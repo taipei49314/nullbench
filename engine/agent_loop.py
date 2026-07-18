@@ -717,8 +717,18 @@ def apply_final_judge(
         decision["adjudication"]["judge"] = judge_result
     except Exception as exc:
         telemetry = getattr(exc, "telemetry", None)
+        feedback_provenance = getattr(
+            exc, "feedback_provenance", None
+        )
+        feedback_context = getattr(exc, "feedback_context", None)
         if telemetry is None and isinstance(judge_result, dict):
             telemetry = judge_result.get("telemetry")
+        if feedback_provenance is None and isinstance(judge_result, dict):
+            feedback_provenance = judge_result.get(
+                "feedback_provenance"
+            )
+        if feedback_context is None and isinstance(judge_result, dict):
+            feedback_context = judge_result.get("feedback_context")
         if telemetry is None:
             telemetry = {
                 "schema_version": "1",
@@ -750,6 +760,8 @@ def apply_final_judge(
             "reasons": [],
             "fallback_reason": str(exc)[:300],
             "telemetry": telemetry,
+            "feedback_provenance": feedback_provenance,
+            "feedback_context": feedback_context,
         }
     decision.pop("decision_hash", None)
     decision["decision_hash"] = canonical_hash(decision)

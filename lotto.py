@@ -169,6 +169,15 @@ def cmd_status(env: Env) -> None:
             f"{deployment.get('status', '尚未建立')}｜"
             f"建議 {deployment.get('recommendation', 'keep_rule_as_control')}"
         )
+        feedback_memory = status.get("feedback_memory", {})
+        for game in picker.GAMES:
+            memory = feedback_memory.get(game, {})
+            print(
+                f"  {GAME_NAMES[game]}錯誤回饋記憶："
+                f"{memory.get('settlement_count', 0)}/"
+                f"{memory.get('maximum_window', 13)} 期｜"
+                f"截至 {memory.get('as_of_target') or '尚無已結算前向樣本'}"
+            )
     automation_status = automation.read_status(env.base)
     print(
         "\n背景自動 Loop："
@@ -189,6 +198,15 @@ def _print_loop_decision(decision: dict) -> None:
         else "規則降級（Qwen 未採用）"
     )
     print(f"  終局裁判：{judge_label}")
+    feedback = judge.get("feedback_provenance")
+    if feedback is not None:
+        feedback_hash = feedback.get("feedback_hash")
+        print(
+            "  已結算回饋："
+            f"{feedback.get('status', 'unknown')}｜"
+            f"{feedback.get('settlement_count', 0)} 期｜"
+            f"hash {feedback_hash[:16] + '…' if feedback_hash else '無'}"
+        )
     for ticket in decision["selected_tickets"]:
         nums = " ".join(f"{number:02d}" for number in ticket["numbers"])
         special = (
@@ -210,10 +228,30 @@ def cmd_loop(env: Env, output: str | None) -> None:
         else env.base / output
     )
     print("執行逐期 agent 閉環：歷史觀察 → 提案 → 交叉辯論 → 裁決 → 揭曉 → 檢討")
+    pre_settlements = 0
+    final_judge = qwen_judge.adjudicate
+    if output is None:
+        settled = forward_lab.settle_forward_registry(
+            env.base,
+            env.store,
+        )
+        pre_settlements = settled["settlements_created"]
+
+        def final_judge(decision: dict) -> dict:
+            feedback = forward_lab.feedback_for_target(
+                env.base,
+                decision["game"],
+                decision["target"],
+            )
+            return qwen_judge.adjudicate(
+                decision,
+                feedback=feedback,
+            )
+
     manifest = agent_loop.run_all(
         env.store,
         output_dir,
-        final_judge=qwen_judge.adjudicate,
+        final_judge=final_judge,
     )
     for game in picker.GAMES:
         result = manifest["games"][game]
@@ -231,7 +269,7 @@ def cmd_loop(env: Env, output: str | None) -> None:
         )
         print(
             "\n前向 A/B："
-            f"新結算 {forward['settlements_created']} 期｜"
+            f"新結算 {pre_settlements + forward['settlements_created']} 期｜"
             f"證據狀態 {forward['summary']['evidence_status']}"
         )
     print(f"\n模擬產物：{output_dir}")
@@ -268,6 +306,13 @@ def cmd_forward(env: Env) -> None:
             f"  {GAME_NAMES[game]}：有效配對 "
             f"{game_summary['eligible_qwen_rule_pairs']}｜"
             f"待開獎 {target or '無'}"
+        )
+        memory = summary.get("feedback_memory", {}).get(game, {})
+        print(
+            "    已結算回饋記憶："
+            f"{memory.get('settlement_count', 0)}/"
+            f"{memory.get('maximum_window', 13)} 期｜"
+            f"截至 {memory.get('as_of_target') or '尚無'}"
         )
     operations = summary.get("operations", {})
     deployment = operations.get("deployment_gate", {})

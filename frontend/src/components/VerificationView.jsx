@@ -1,5 +1,6 @@
 import {
   Binary,
+  BrainCircuit,
   Check,
   FileLock2,
   Fingerprint,
@@ -8,6 +9,7 @@ import {
   RadioTower,
   ShieldCheck,
 } from "lucide-react";
+import { useState } from "react";
 
 const CHECKS = [
   ["零未來資料洩漏", "決策切片只含目標期以前資料"],
@@ -18,6 +20,7 @@ const CHECKS = [
 ];
 
 export default function VerificationView({ gameData, manifest }) {
+  const [feedbackHashCopied, setFeedbackHashCopied] = useState(false);
   const forward = manifest.forward_experiment;
   const forwardGame = forward?.games?.[gameData.game];
   const pending = forwardGame?.pending?.at(-1);
@@ -25,6 +28,23 @@ export default function VerificationView({ gameData, manifest }) {
   const operationsGame = operations?.games?.[gameData.game];
   const operationsMethod = operations?.methodology;
   const deploymentGate = operations?.deployment_gate;
+  const feedbackMemory = forward?.feedback_memory?.[gameData.game];
+  const feedbackProvenance =
+    gameData.next_decision.adjudication?.judge?.feedback_provenance;
+  const latestFeedbackFlags =
+    feedbackMemory?.aggregate?.latest_diagnostic_flags ?? [];
+  const feedbackHash =
+    feedbackProvenance?.feedback_hash ??
+    feedbackMemory?.feedback_hash ??
+    null;
+  const shortFeedbackHash = feedbackHash
+    ? `${feedbackHash.slice(0, 16)}…${feedbackHash.slice(-8)}`
+    : "not-yet-generated";
+  const copyFeedbackHash = async () => {
+    if (!feedbackHash) return;
+    await navigator.clipboard.writeText(feedbackHash);
+    setFeedbackHashCopied(true);
+  };
   const automation = manifest.automation;
   const automationOnline =
     automation?.supervisor_online &&
@@ -261,6 +281,89 @@ export default function VerificationView({ gameData, manifest }) {
             筆；缺少的耗時與 Token 永不事後回填。
           </p>
         </div>
+      </section>
+
+      <section className="feedback-memory-panel">
+        <header>
+          <div>
+            <BrainCircuit size={22} />
+            <span>
+              <strong>SETTLED ERROR MEMORY</strong>
+              <small>先結算 · 後檢討 · 再裁決 · 禁止追逐漏號</small>
+            </span>
+          </div>
+          <b
+            className={
+              feedbackProvenance?.status === "verified"
+                ? "is-consumed"
+                : feedbackProvenance?.status === "verified_empty"
+                  ? "is-empty"
+                  : "is-waiting"
+            }
+          >
+            {feedbackProvenance?.status === "verified"
+              ? "CONSUMED BY QWEN"
+              : feedbackProvenance?.status === "verified_empty"
+                ? "VERIFIED · FIRST CYCLE"
+                : "WAITING FOR NEXT DECISION"}
+          </b>
+        </header>
+        <div className="feedback-memory-metrics">
+          <div>
+            <small>已結算記憶</small>
+            <strong>
+              {feedbackMemory?.settlement_count ?? 0}
+              <i> / {feedbackMemory?.maximum_window ?? 13}</i>
+            </strong>
+          </div>
+          <div>
+            <small>最近結算目標</small>
+            <strong>
+              {feedbackMemory?.as_of_target
+                ? `${feedbackMemory.as_of_target.date} · ${feedbackMemory.as_of_target.period}`
+                : "尚無樣本"}
+            </strong>
+          </div>
+          <div>
+            <small>Qwen − 規則平均最佳命中</small>
+            <strong>
+              {feedbackMemory?.aggregate
+                ?.mean_qwen_minus_rule_best_main_hits ?? "待累積"}
+            </strong>
+          </div>
+          <div>
+            <small>本次裁決讀取</small>
+            <strong>
+              {feedbackProvenance
+                ? `${feedbackProvenance.settlement_count} 期`
+                : "尚未重建"}
+            </strong>
+          </div>
+        </div>
+        <div className="feedback-memory-detail">
+          <span>
+            <small>最新固定診斷</small>
+            <strong>
+              {latestFeedbackFlags.length
+                ? latestFeedbackFlags.join(" · ")
+                : "等待第一筆前向結算"}
+            </strong>
+          </span>
+          <button
+            type="button"
+            className="feedback-hash-copy"
+            title={feedbackHash ?? "尚未建立回饋雜湊"}
+            disabled={!feedbackHash}
+            onClick={copyFeedbackHash}
+          >
+            <code>feedback / {shortFeedbackHash}</code>
+            <span>{feedbackHashCopied ? "COPIED" : "COPY HASH"}</span>
+          </button>
+        </div>
+        <p>
+          回饋只保留覆蓋度、重複集中與相對命中等組合層統計，不把實際開獎號碼交給下一輪，
+          也不把單期落差解釋成因果。任何含目標期或未來資料的回饋都會在呼叫 Qwen 前被拒絕。
+        </p>
       </section>
 
       <section className="automation-proof-panel">

@@ -26,6 +26,7 @@ STAGE_TESTS = (
         (
             "tests/test_sync_service.py",
             "tests/test_forward_lab.py",
+            "tests/test_forward_feedback.py",
         ),
     ),
 )

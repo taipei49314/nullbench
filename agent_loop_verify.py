@@ -17,7 +17,12 @@ from pathlib import Path
 
 from engine.agent_loop import run_all, verify_replay
 from engine.env import Env
-from engine.forward_lab import reconcile_forward_registry
+from engine.forward_feedback import FEEDBACK_EXPERIMENT_ID
+from engine.forward_lab import (
+    feedback_for_target,
+    reconcile_forward_registry,
+    settle_forward_registry,
+)
 from engine.games import LOTTO649, SUPER
 from engine.qwen_judge import adjudicate as qwen_adjudicate
 
@@ -81,11 +86,24 @@ def main() -> None:
     if records_before != records_after:
         raise RuntimeError("正式 records/ 在 agent 閉環驗證期間遭到修改")
 
-    print("\n== 階段 6：qwen3:8b 下一期終局裁決 ==")
+    print("\n== 階段 6：先結算舊預測，再由 qwen3:8b 裁決下一期 ==")
+    settle_forward_registry(ROOT, env.store)
+
+    def qwen_with_feedback(decision: dict) -> dict:
+        feedback = feedback_for_target(
+            ROOT,
+            decision["game"],
+            decision["target"],
+        )
+        return qwen_adjudicate(
+            decision,
+            feedback=feedback,
+        )
+
     final = run_all(
         env.store,
         RESULTS,
-        final_judge=qwen_adjudicate,
+        final_judge=qwen_with_feedback,
     )
     for game in (SUPER, LOTTO649):
         judge = final["games"][game]["next_decision"]["adjudication"]["judge"]
@@ -105,6 +123,19 @@ def main() -> None:
             raise RuntimeError(f"{game} qwen3:8b 運作遙測不完整")
         if diagnostics.get("selected_count") != 5:
             raise RuntimeError(f"{game} qwen3:8b 五注選擇診斷不完整")
+        feedback = judge.get("feedback_provenance", {})
+        feedback_context = judge.get("feedback_context")
+        if (
+            feedback.get("experiment_id")
+            != FEEDBACK_EXPERIMENT_ID
+            or feedback.get("status")
+            not in {"verified", "verified_empty"}
+            or not feedback.get("feedback_hash")
+            or not isinstance(feedback_context, dict)
+            or feedback_context.get("feedback_hash")
+            != feedback.get("feedback_hash")
+        ):
+            raise RuntimeError(f"{game} qwen3:8b 回饋來源證明不完整")
 
     print("\n== 階段 7：凍結下一期三臂前向 A/B ==")
     forward = reconcile_forward_registry(ROOT, env.store, final)

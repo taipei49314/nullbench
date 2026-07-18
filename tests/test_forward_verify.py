@@ -4,7 +4,43 @@ from copy import deepcopy
 import pytest
 
 import forward_verify
+from engine.agent_loop import canonical_hash
 from engine.decision_observatory import OPS_EXPERIMENT_ID
+from engine.forward_feedback import FEEDBACK_HONESTY_NOTE
+
+
+def _empty_feedback(game):
+    context = {
+        "schema_version": "1",
+        "experiment_id": "settled-forward-feedback-v1",
+        "game": game,
+        "before_target": {
+            "date": "9999-12-31",
+            "period": 9_999_999_999,
+        },
+        "settlement_count": 0,
+        "maximum_window": 13,
+        "as_of_target": None,
+        "source_postmortem_hashes": [],
+        "aggregate": {
+            "mean_qwen_minus_rule_best_main_hits": None,
+            "mean_qwen_minus_random_best_main_hits": None,
+            "mean_qwen_union_size": None,
+            "mean_rule_union_size": None,
+            "diagnostic_flag_counts": {},
+            "latest_diagnostic_flags": [],
+        },
+        "rows": [],
+        "guardrails": [
+            "feedback_contains_no_raw_draw_numbers",
+            "never_treat_single_draw_as_causal",
+            "never_chase_previous_missed_numbers",
+            "use_only_as_portfolio_structure_guardrail",
+        ],
+        "honesty_note": FEEDBACK_HONESTY_NOTE,
+    }
+    context["feedback_hash"] = canonical_hash(context)
+    return context
 
 
 def _valid_result():
@@ -26,6 +62,10 @@ def _valid_result():
                 "registrations": 2,
             },
             "games": {"super": {}, "lotto649": {}},
+            "feedback_memory": {
+                "super": _empty_feedback("super"),
+                "lotto649": _empty_feedback("lotto649"),
+            },
             "operations": {
                 "experiment_id": OPS_EXPERIMENT_ID,
                 "games": {"super": {}, "lotto649": {}},
@@ -51,6 +91,10 @@ def test_stage_commands_cover_core_and_sync_tests():
         "-m",
         "pytest",
     ] for _, command in commands)
+    assert all(
+        "tests/test_forward_feedback.py" in command
+        for _, command in commands
+    )
 
 
 def test_run_resolves_platform_launcher(monkeypatch, tmp_path):
@@ -96,6 +140,9 @@ def test_formal_forward_result_requires_chain_and_both_games():
             {"evidence_status": "unknown"}
         ),
         lambda result: result["summary"].update({"games": {}}),
+        lambda result: result["summary"].update(
+            {"feedback_memory": {}}
+        ),
         lambda result: result["summary"]["operations"].update(
             {"experiment_id": "wrong"}
         ),

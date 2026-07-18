@@ -34,6 +34,7 @@ def test_stage_commands_cover_automation_and_sync_contract():
         == ["python", "-B", "-X", "utf8", "-m", "pytest"]
         for _, command in commands
     )
+    assert "tests/test_forward_feedback.py" in commands[1][1]
 
 
 def test_runtime_requires_live_watcher_and_valid_history(

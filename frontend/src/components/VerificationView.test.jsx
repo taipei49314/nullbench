@@ -11,7 +11,24 @@ describe("VerificationView forward experiment", () => {
       last_event_hash: "event-sha",
       draws_replayed: 100,
       verification: { lines: 100 },
-      next_decision: { decision_hash: "decision-sha" },
+      next_decision: {
+        decision_hash: "decision-sha",
+        adjudication: {
+          judge: {
+            feedback_provenance: {
+              experiment_id: "settled-forward-feedback-v1",
+              status: "verified",
+              feedback_hash: "feedback-sha",
+              settlement_count: 3,
+              as_of_target: {
+                date: "2026-07-16",
+                period: 115000057,
+              },
+              source_postmortem_hashes: ["a", "b", "c"],
+            },
+          },
+        },
+      },
     };
     const manifest = {
       manifest_hash: "manifest-sha",
@@ -20,6 +37,24 @@ describe("VerificationView forward experiment", () => {
         evidence_status: "collecting_forward_data",
         verification: { chain_valid: true },
         methodology: { minimum_paired_draws_per_game: 52 },
+        feedback_memory: {
+          super: {
+            settlement_count: 3,
+            maximum_window: 13,
+            as_of_target: {
+              date: "2026-07-16",
+              period: 115000057,
+            },
+            feedback_hash: "feedback-sha",
+            aggregate: {
+              mean_qwen_minus_rule_best_main_hits: -0.3333,
+              latest_diagnostic_flags: [
+                "qwen_below_rule_best",
+                "qwen_repetition_without_hit",
+              ],
+            },
+          },
+        },
         games: {
           super: {
             eligible_qwen_rule_pairs: 3,
@@ -89,6 +124,12 @@ describe("VerificationView forward experiment", () => {
     expect(html).toContain("0.25");
     expect(html).toContain("keep_rule_as_control");
     expect(html).toContain("既有未儀器化登記：<b>1</b>筆");
+    expect(html).toContain("SETTLED ERROR MEMORY");
+    expect(html).toContain("CONSUMED BY QWEN");
+    expect(html).toContain("3<i> / 13</i>");
+    expect(html).toContain("2026-07-16 · 115000057");
+    expect(html).toContain("qwen_repetition_without_hit");
+    expect(html).toContain("feedback-sha");
     expect(html).toContain("桌機無人值守 LOOP");
     expect(html).toContain("AUTONOMOUS LOOP ONLINE");
     expect(html).toContain("done / ready");

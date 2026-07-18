@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+from copy import deepcopy
 import hashlib
 import json
 import re
@@ -13,6 +14,10 @@ from collections import Counter
 from itertools import combinations
 from typing import Callable
 
+from .forward_feedback import (
+    FEEDBACK_EXPERIMENT_ID,
+    verify_feedback_context,
+)
 from .ollama_seat import MODEL, StructuredResponse, generate_structured
 
 
@@ -58,9 +63,18 @@ FINAL_SCHEMA = {
 class QwenJudgeError(RuntimeError):
     """Qwen 終局結果不符合裁決契約。"""
 
-    def __init__(self, message: str, *, telemetry: dict | None = None):
+    def __init__(
+        self,
+        message: str,
+        *,
+        telemetry: dict | None = None,
+        feedback_provenance: dict | None = None,
+        feedback_context: dict | None = None,
+    ):
         super().__init__(message)
         self.telemetry = telemetry
+        self.feedback_provenance = feedback_provenance
+        self.feedback_context = feedback_context
 
 
 def _duration_ms(value: int | None) -> float | None:
@@ -302,7 +316,45 @@ def _compact_evidence(proposal: dict) -> dict:
     return {"calibration": "uniform-null"}
 
 
-def build_prompt(decision: dict) -> str:
+def _feedback_provenance(
+    decision: dict,
+    feedback: dict | None,
+) -> dict:
+    if feedback is None:
+        return {
+            "experiment_id": FEEDBACK_EXPERIMENT_ID,
+            "status": "not_supplied",
+            "feedback_hash": None,
+            "settlement_count": 0,
+            "as_of_target": None,
+            "source_postmortem_hashes": [],
+        }
+    verify_feedback_context(
+        feedback,
+        game=decision["game"],
+        target=decision["target"],
+    )
+    return {
+        "experiment_id": FEEDBACK_EXPERIMENT_ID,
+        "status": (
+            "verified"
+            if feedback["settlement_count"] > 0
+            else "verified_empty"
+        ),
+        "feedback_hash": feedback["feedback_hash"],
+        "settlement_count": feedback["settlement_count"],
+        "as_of_target": deepcopy(feedback["as_of_target"]),
+        "source_postmortem_hashes": list(
+            feedback["source_postmortem_hashes"]
+        ),
+    }
+
+
+def build_prompt(
+    decision: dict,
+    feedback: dict | None = None,
+) -> str:
+    _feedback_provenance(decision, feedback)
     proposal_map = {
         proposal["proposal_id"]: proposal for proposal in decision["proposals"]
     }
@@ -336,6 +388,15 @@ def build_prompt(decision: dict) -> str:
             agent: state["rating"]
             for agent, state in decision["state_before"]["agents"].items()
         },
+        "settled_forward_feedback": (
+            deepcopy(feedback)
+            if feedback is not None
+            else {
+                "experiment_id": FEEDBACK_EXPERIMENT_ID,
+                "status": "not_supplied",
+                "settlement_count": 0,
+            }
+        ),
         "candidates": candidates,
     }
     compact_json = json.dumps(
@@ -349,7 +410,10 @@ def build_prompt(decision: dict) -> str:
         "不得宣稱能預知隨機開獎。請只從下列 15 個 id 中依序挑出剛好 5 個，絕不可"
         "自創、修改或重複號碼。綜合評議分數與信心度、較低分歧、五組之間的主號"
         "分散、Agent 來源多樣性；將亂數修士視為零假設，避免把微弱歷史波動說成"
-        "因果。summary 與每組 reason 請用精簡繁體中文，只寫可公開的決策依據，"
+        "因果。settled_forward_feedback 只包含嚴格早於本期的已結算組合層診斷；"
+        "它不是隨機開獎的因果證據。絕不可追逐上一期漏掉的號碼、不可把單期結果"
+        "升格為熱冷號規律，只能把重複出現的覆蓋或集中度訊號當作組合結構護欄。"
+        "summary 與每組 reason 請用精簡繁體中文，只寫可公開的決策依據，"
         "不要輸出思考過程。輸出必須符合指定 JSON Schema。\nDATA="
         + compact_json
     )
@@ -358,20 +422,27 @@ def build_prompt(decision: dict) -> str:
 def adjudicate(
     decision: dict,
     *,
+    feedback: dict | None = None,
     generator: Callable[..., StructuredResponse] = generate_structured,
     model: str = MODEL,
     clock_ns: Callable[[], int] = time.perf_counter_ns,
 ) -> dict:
     """呼叫 qwen3:8b 並回傳已驗證、可公開的終局裁決資訊。"""
-    allowed_ids = {
-        proposal["proposal_id"] for proposal in decision["proposals"]
-    }
-    prompt = build_prompt(decision)
-    prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
-    seed = int(decision["decision_hash"][:8], 16)
     started_ns = clock_ns()
     response = None
+    feedback_provenance = None
+    feedback_context = None
     try:
+        feedback_provenance = _feedback_provenance(decision, feedback)
+        feedback_context = (
+            deepcopy(feedback) if feedback is not None else None
+        )
+        allowed_ids = {
+            proposal["proposal_id"] for proposal in decision["proposals"]
+        }
+        prompt = build_prompt(decision, feedback)
+        prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+        seed = int(decision["decision_hash"][:8], 16)
         response = generator(
             prompt,
             FINAL_SCHEMA,
@@ -390,7 +461,12 @@ def adjudicate(
             outcome="error",
             error_type=type(exc).__name__,
         )
-        raise QwenJudgeError(str(exc), telemetry=telemetry) from exc
+        raise QwenJudgeError(
+            str(exc),
+            telemetry=telemetry,
+            feedback_provenance=feedback_provenance,
+            feedback_context=feedback_context,
+        ) from exc
     telemetry = _runtime_telemetry(
         response,
         wall_duration_ms=(clock_ns() - started_ns) / 1_000_000,
@@ -407,6 +483,8 @@ def adjudicate(
         "response_hash": response.response_hash,
         "eval_count": response.eval_count,
         "telemetry": telemetry,
+        "feedback_provenance": feedback_provenance,
+        "feedback_context": feedback_context,
         "selection_diagnostics": selection_diagnostics(
             decision,
             validated["selected_proposal_ids"],
