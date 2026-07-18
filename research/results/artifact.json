@@ -5,7 +5,7 @@
     "surface": "report",
     "title": "台彩策略歷史外驗決策",
     "description": "全歷史走步回測、兩階段調參與封存測試集決策。",
-    "generatedAt": "2026-07-18T15:59:21+08:00",
+    "generatedAt": "2026-07-18T17:04:23+08:00",
     "sources": [
       {
         "id": "strategy-study",
@@ -317,7 +317,7 @@
   },
   "snapshot": {
     "version": 1,
-    "generatedAt": "2026-07-18T15:59:21+08:00",
+    "generatedAt": "2026-07-18T17:04:23+08:00",
     "status": "ready",
     "datasets": {
       "policy_holdout": [

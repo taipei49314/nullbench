@@ -1,8 +1,8 @@
 {
   "schema_version": "1",
   "research_id": "walkforward-v1",
-  "generated_at": "2026-07-18T15:59:21+08:00",
-  "git_commit": "9287d7d7e5c993ab030f21a15577f22b75cc969f",
+  "generated_at": "2026-07-18T17:04:23+08:00",
+  "git_commit": "97ed7e55fbe1bf248283a5e9aa2526633fcfea21",
   "replicates": 8,
   "bootstrap_samples": 1000,
   "methodology": {
@@ -28,6 +28,10 @@
       "period_max": 115000057,
       "duplicate_periods": 0,
       "duplicate_dates": 0,
+      "invalid_dates": 0,
+      "ordered_chronologically": true,
+      "game_mismatches": 0,
+      "invalid_periods": 0,
       "invalid_numbers": 0,
       "invalid_special": 0,
       "missing_prize_fields": {
@@ -42,12 +46,15 @@
         "super638NinthAssign": 0,
         "super638NormalAssign": 0
       },
+      "invalid_prize_records": 0,
       "off_regular_schedule_draws": 0,
       "weeks_with_extra_draws": 0,
       "draws_per_week": {
         "1": 1,
         "2": 964
       },
+      "dataset_sha256": "dbe22c6ce8a2029384294b377aa1f3b6fcafd520bb47eb745d3f8dfe0049063a",
+      "quality_failures": [],
       "quality_status": "pass"
     },
     {
@@ -61,6 +68,10 @@
       "period_max": 115000071,
       "duplicate_periods": 0,
       "duplicate_dates": 0,
+      "invalid_dates": 0,
+      "ordered_chronologically": true,
+      "game_mismatches": 0,
+      "invalid_periods": 0,
       "invalid_numbers": 0,
       "invalid_special": 0,
       "missing_prize_fields": {
@@ -73,6 +84,7 @@
         "seventhAssign": 0,
         "normalAssign": 0
       },
+      "invalid_prize_records": 0,
       "off_regular_schedule_draws": 113,
       "weeks_with_extra_draws": 35,
       "draws_per_week": {
@@ -83,9 +95,700 @@
         "6": 4,
         "7": 12
       },
+      "dataset_sha256": "6cd28556d795db804fdc777ade1764423877077223fae20edd2869568ce81627",
+      "quality_failures": [],
       "quality_status": "pass"
     }
   ],
+  "holdout_seal": {
+    "schema_version": "1",
+    "status": "sealed",
+    "sha256": "bdad676ee1771aae15c3d8c60c577afa0a52b1306184c1cb1168e3407649b1b2",
+    "games": {
+      "super": {
+        "dataset_sha256": "dbe22c6ce8a2029384294b377aa1f3b6fcafd520bb47eb745d3f8dfe0049063a",
+        "holdout_weeks": 242,
+        "holdout_draws": 484,
+        "policy_ids": [
+          "current_ensemble",
+          "random_5",
+          "trained_best_5",
+          "trained_blend",
+          "trained_family_ensemble"
+        ]
+      },
+      "lotto649": {
+        "dataset_sha256": "6cd28556d795db804fdc777ade1764423877077223fae20edd2869568ce81627",
+        "holdout_weeks": 255,
+        "holdout_draws": 573,
+        "policy_ids": [
+          "current_ensemble",
+          "random_5",
+          "trained_best_5",
+          "trained_blend",
+          "trained_family_ensemble"
+        ]
+      }
+    }
+  },
+  "stage_gates": {
+    "data_quality": {
+      "stage": "data_quality",
+      "status": "pass",
+      "checks": [
+        {
+          "id": "games_exactly_once",
+          "passed": true,
+          "evidence": [
+            "lotto649",
+            "super"
+          ]
+        },
+        {
+          "id": "super.nonempty",
+          "passed": true,
+          "evidence": 1929
+        },
+        {
+          "id": "super.chronological",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "super.unique_periods",
+          "passed": true,
+          "evidence": 0
+        },
+        {
+          "id": "super.unique_dates",
+          "passed": true,
+          "evidence": 0
+        },
+        {
+          "id": "super.legal_draws",
+          "passed": true,
+          "evidence": {
+            "invalid_numbers": 0,
+            "invalid_special": 0,
+            "game_mismatches": 0,
+            "invalid_periods": 0,
+            "invalid_dates": 0
+          }
+        },
+        {
+          "id": "super.complete_prizes",
+          "passed": true,
+          "evidence": {
+            "missing": {
+              "super638JackpotAssign": 0,
+              "super638SecondAssign": 0,
+              "super638ThirdAssign": 0,
+              "super638FourthAssign": 0,
+              "super638FifthAssign": 0,
+              "super638SixthAssign": 0,
+              "super638SeventhAssign": 0,
+              "super638EighthAssign": 0,
+              "super638NinthAssign": 0,
+              "super638NormalAssign": 0
+            },
+            "invalid": 0
+          }
+        },
+        {
+          "id": "super.fingerprinted",
+          "passed": true,
+          "evidence": "dbe22c6ce8a2029384294b377aa1f3b6fcafd520bb47eb745d3f8dfe0049063a"
+        },
+        {
+          "id": "super.profile_pass",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "id": "lotto649.nonempty",
+          "passed": true,
+          "evidence": 2153
+        },
+        {
+          "id": "lotto649.chronological",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "lotto649.unique_periods",
+          "passed": true,
+          "evidence": 0
+        },
+        {
+          "id": "lotto649.unique_dates",
+          "passed": true,
+          "evidence": 0
+        },
+        {
+          "id": "lotto649.legal_draws",
+          "passed": true,
+          "evidence": {
+            "invalid_numbers": 0,
+            "invalid_special": 0,
+            "game_mismatches": 0,
+            "invalid_periods": 0,
+            "invalid_dates": 0
+          }
+        },
+        {
+          "id": "lotto649.complete_prizes",
+          "passed": true,
+          "evidence": {
+            "missing": {
+              "jackpotAssign": 0,
+              "secondAssign": 0,
+              "thirdAssign": 0,
+              "fourthAssign": 0,
+              "fifthAssign": 0,
+              "sixthAssign": 0,
+              "seventhAssign": 0,
+              "normalAssign": 0
+            },
+            "invalid": 0
+          }
+        },
+        {
+          "id": "lotto649.fingerprinted",
+          "passed": true,
+          "evidence": "6cd28556d795db804fdc777ade1764423877077223fae20edd2869568ce81627"
+        },
+        {
+          "id": "lotto649.profile_pass",
+          "passed": true,
+          "evidence": []
+        }
+      ],
+      "failed_checks": []
+    },
+    "strategy_search": {
+      "stage": "strategy_search",
+      "status": "pass",
+      "checks": [
+        {
+          "id": "contexts_games_complete",
+          "passed": true,
+          "evidence": [
+            "lotto649",
+            "super"
+          ]
+        },
+        {
+          "id": "super.contexts_nonempty",
+          "passed": true,
+          "evidence": 965
+        },
+        {
+          "id": "super.weeks_unique_ordered",
+          "passed": true,
+          "evidence": {
+            "first": "2008-W04",
+            "last": "2026-W29"
+          }
+        },
+        {
+          "id": "super.split_boundaries",
+          "passed": true,
+          "evidence": {
+            "train": 482,
+            "validation": 241,
+            "holdout": 242
+          }
+        },
+        {
+          "id": "super.no_lookahead",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "super.history_chain",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "super.historical_floor_table",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "super.draws_in_own_week",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "lotto649.contexts_nonempty",
+          "passed": true,
+          "evidence": 1020
+        },
+        {
+          "id": "lotto649.weeks_unique_ordered",
+          "passed": true,
+          "evidence": {
+            "first": "2007-W01",
+            "last": "2026-W29"
+          }
+        },
+        {
+          "id": "lotto649.split_boundaries",
+          "passed": true,
+          "evidence": {
+            "train": 510,
+            "validation": 255,
+            "holdout": 255
+          }
+        },
+        {
+          "id": "lotto649.no_lookahead",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "lotto649.history_chain",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "lotto649.historical_floor_table",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "lotto649.draws_in_own_week",
+          "passed": true,
+          "evidence": true
+        },
+        {
+          "id": "coarse.count",
+          "passed": true,
+          "evidence": 31
+        },
+        {
+          "id": "coarse.ids_unique",
+          "passed": true,
+          "evidence": 31
+        },
+        {
+          "id": "coarse.families_complete",
+          "passed": true,
+          "evidence": [
+            "antipop",
+            "antipop",
+            "antipop",
+            "antipop",
+            "antipop",
+            "antipop",
+            "antipop",
+            "antipop",
+            "antipop",
+            "balance",
+            "balance",
+            "balance",
+            "cold",
+            "cold",
+            "cold",
+            "cold",
+            "cold",
+            "cold",
+            "cold",
+            "cold",
+            "cold",
+            "hot",
+            "hot",
+            "hot",
+            "hot",
+            "hot",
+            "hot",
+            "hot",
+            "hot",
+            "hot",
+            "uniform"
+          ]
+        },
+        {
+          "id": "coarse_winners.super.families",
+          "passed": true,
+          "evidence": [
+            "antipop",
+            "balance",
+            "cold",
+            "hot"
+          ]
+        },
+        {
+          "id": "coarse_winners.lotto649.families",
+          "passed": true,
+          "evidence": [
+            "antipop",
+            "balance",
+            "cold",
+            "hot"
+          ]
+        },
+        {
+          "id": "refined_winners.super.families",
+          "passed": true,
+          "evidence": [
+            "antipop",
+            "balance",
+            "cold",
+            "hot"
+          ]
+        },
+        {
+          "id": "refined_winners.lotto649.families",
+          "passed": true,
+          "evidence": [
+            "antipop",
+            "balance",
+            "cold",
+            "hot"
+          ]
+        },
+        {
+          "id": "final_policies.super.ids",
+          "passed": true,
+          "evidence": [
+            "random_5",
+            "current_ensemble",
+            "trained_family_ensemble",
+            "trained_best_5",
+            "trained_blend"
+          ]
+        },
+        {
+          "id": "final_policies.super.five_slots",
+          "passed": true,
+          "evidence": [
+            5,
+            5,
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "id": "final_policies.lotto649.ids",
+          "passed": true,
+          "evidence": [
+            "random_5",
+            "current_ensemble",
+            "trained_family_ensemble",
+            "trained_best_5",
+            "trained_blend"
+          ]
+        },
+        {
+          "id": "final_policies.lotto649.five_slots",
+          "passed": true,
+          "evidence": [
+            5,
+            5,
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "id": "ticket_generation_deterministic",
+          "passed": true,
+          "evidence": {
+            "passed": true,
+            "comparisons": 10,
+            "ticket_sha256": {
+              "super:random_5": "affdf852cdd63535d8b58d56096eafaaed473432ede74b94e9957d505bb19ac7",
+              "super:current_ensemble": "f3c5a0bcc4dbb28c36a2ede25047af8c5962fcb7c4863a9a35398dc7c7fa8e22",
+              "super:trained_family_ensemble": "851b8fd81d2ba205fb883445e331c184f43a81551dd64981742c87824a88edce",
+              "super:trained_best_5": "53f3a48d9ba936bc1def88fabf183d6a39ccc527a8a58e5510d1031080561cd2",
+              "super:trained_blend": "b8d2985e8fea102553f3d805aab42382a802bb0f5d549d7bb97e792996a97efb",
+              "lotto649:random_5": "39d777a8e7c3c6fb3a770e481fb8e7e2ece05d2623f97c9d1a5e90449b71d190",
+              "lotto649:current_ensemble": "10fca66e5a68b4045e0cbe06410fa63bd51c8233fa5934c5ea82faffbc0f7192",
+              "lotto649:trained_family_ensemble": "203666a296f4b912380056e5bfb523d7cdb02d7e611fc9288fd78023ad867cf5",
+              "lotto649:trained_best_5": "8973fe2a7571608ed2cf17a0ca8b8c9738b63187227df183343be113d606b181",
+              "lotto649:trained_blend": "f9d44c1ddf0a44d798971cec332e90ccd08c40b408000fa05182760f24b6b0af"
+            }
+          }
+        }
+      ],
+      "failed_checks": []
+    },
+    "validation_holdout": {
+      "stage": "validation_holdout",
+      "status": "pass",
+      "checks": [
+        {
+          "id": "holdout_seal_valid",
+          "passed": true,
+          "evidence": "bdad676ee1771aae15c3d8c60c577afa0a52b1306184c1cb1168e3407649b1b2"
+        },
+        {
+          "id": "selected_games_complete",
+          "passed": true,
+          "evidence": [
+            "lotto649",
+            "super"
+          ]
+        },
+        {
+          "id": "super.train.policy_coverage",
+          "passed": true,
+          "evidence": [
+            "current_ensemble",
+            "random_5",
+            "trained_best_5",
+            "trained_blend",
+            "trained_family_ensemble"
+          ]
+        },
+        {
+          "id": "super.validation.policy_coverage",
+          "passed": true,
+          "evidence": [
+            "current_ensemble",
+            "random_5",
+            "trained_best_5",
+            "trained_blend",
+            "trained_family_ensemble"
+          ]
+        },
+        {
+          "id": "super.holdout.policy_coverage",
+          "passed": true,
+          "evidence": [
+            "current_ensemble",
+            "random_5",
+            "trained_best_5",
+            "trained_blend",
+            "trained_family_ensemble"
+          ]
+        },
+        {
+          "id": "super.validation_choice",
+          "passed": true,
+          "evidence": {
+            "expected": "current_ensemble",
+            "actual": "current_ensemble"
+          }
+        },
+        {
+          "id": "super.holdout_exact_row",
+          "passed": true,
+          "evidence": 1
+        },
+        {
+          "id": "super.edge_gate",
+          "passed": true,
+          "evidence": {
+            "expected": false,
+            "actual": false
+          }
+        },
+        {
+          "id": "super.conditional_decision",
+          "passed": true,
+          "evidence": "random_5"
+        },
+        {
+          "id": "super.paired_baseline_zero",
+          "passed": true,
+          "evidence": 3
+        },
+        {
+          "id": "lotto649.train.policy_coverage",
+          "passed": true,
+          "evidence": [
+            "current_ensemble",
+            "random_5",
+            "trained_best_5",
+            "trained_blend",
+            "trained_family_ensemble"
+          ]
+        },
+        {
+          "id": "lotto649.validation.policy_coverage",
+          "passed": true,
+          "evidence": [
+            "current_ensemble",
+            "random_5",
+            "trained_best_5",
+            "trained_blend",
+            "trained_family_ensemble"
+          ]
+        },
+        {
+          "id": "lotto649.holdout.policy_coverage",
+          "passed": true,
+          "evidence": [
+            "current_ensemble",
+            "random_5",
+            "trained_best_5",
+            "trained_blend",
+            "trained_family_ensemble"
+          ]
+        },
+        {
+          "id": "lotto649.validation_choice",
+          "passed": true,
+          "evidence": {
+            "expected": "current_ensemble",
+            "actual": "current_ensemble"
+          }
+        },
+        {
+          "id": "lotto649.holdout_exact_row",
+          "passed": true,
+          "evidence": 1
+        },
+        {
+          "id": "lotto649.edge_gate",
+          "passed": true,
+          "evidence": {
+            "expected": false,
+            "actual": false
+          }
+        },
+        {
+          "id": "lotto649.conditional_decision",
+          "passed": true,
+          "evidence": "random_5"
+        },
+        {
+          "id": "lotto649.paired_baseline_zero",
+          "passed": true,
+          "evidence": 3
+        }
+      ],
+      "failed_checks": []
+    },
+    "decision_report": {
+      "stage": "decision_report",
+      "status": "pass",
+      "checks": [
+        {
+          "id": "previous_gates_pass",
+          "passed": true,
+          "evidence": {
+            "data_quality": "pass",
+            "strategy_search": "pass",
+            "validation_holdout": "pass"
+          }
+        },
+        {
+          "id": "economic_decision_no_play",
+          "passed": true,
+          "evidence": "no_play"
+        },
+        {
+          "id": "records_tree_unchanged",
+          "passed": true,
+          "evidence": {
+            "before": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+            "after": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509"
+          }
+        },
+        {
+          "id": "output_isolated_from_records",
+          "passed": true,
+          "evidence": "%USERPROFILE%\\Desktop\\lotto-lab\\research\\results"
+        },
+        {
+          "id": "artifact_title_and_first_heading",
+          "passed": true,
+          "evidence": "台彩策略歷史外驗決策"
+        },
+        {
+          "id": "artifact_has_chart_and_table",
+          "passed": true,
+          "evidence": {
+            "charts": 1,
+            "tables": 1
+          }
+        },
+        {
+          "id": "artifact_snapshot_ready",
+          "passed": true,
+          "evidence": {
+            "status": "ready",
+            "datasets": [
+              "decision_rows",
+              "policy_holdout"
+            ]
+          }
+        },
+        {
+          "id": "artifact_sources_have_sql",
+          "passed": true,
+          "evidence": 2
+        },
+        {
+          "id": "super.conditional_matches_edge",
+          "passed": true,
+          "evidence": "random_5"
+        },
+        {
+          "id": "super.artifact_decision_matches",
+          "passed": true,
+          "evidence": {
+            "game": "super",
+            "game_name": "威力彩",
+            "selected_policy": "current_ensemble",
+            "selected_policy_label": "現行五人格",
+            "holdout_weeks": 242,
+            "holdout_draws": 484,
+            "raw_roi": -0.7793904958677687,
+            "delta_robust_roi": 0.0065599173553719005,
+            "delta_ci_low": -0.029545454545454545,
+            "delta_ci_high": 0.0431301652892562,
+            "delta_fixed_roi": 0.0065599173553719005,
+            "active_week_win_rate": 0.5536480686695279,
+            "positive_replicate_rate": 0.625,
+            "edge_proven": "未證明",
+            "conditional_decision": "random_5",
+            "conditional_decision_label": "五注純隨機"
+          }
+        },
+        {
+          "id": "lotto649.conditional_matches_edge",
+          "passed": true,
+          "evidence": "random_5"
+        },
+        {
+          "id": "lotto649.artifact_decision_matches",
+          "passed": true,
+          "evidence": {
+            "game": "lotto649",
+            "game_name": "大樂透",
+            "selected_policy": "current_ensemble",
+            "selected_policy_label": "現行五人格",
+            "holdout_weeks": 255,
+            "holdout_draws": 573,
+            "raw_roi": -0.6872216404886562,
+            "delta_robust_roi": -0.029664921465968587,
+            "delta_ci_low": -0.09795468253968254,
+            "delta_ci_high": 0.03805742296918767,
+            "delta_fixed_roi": -0.006849912739965095,
+            "active_week_win_rate": 0.4604651162790698,
+            "positive_replicate_rate": 0.5,
+            "edge_proven": "未證明",
+            "conditional_decision": "random_5",
+            "conditional_decision_label": "五注純隨機"
+          }
+        },
+        {
+          "id": "artifact_decision_games_complete",
+          "passed": true,
+          "evidence": [
+            "lotto649",
+            "super"
+          ]
+        }
+      ],
+      "failed_checks": []
+    }
+  },
   "coarse_candidates": [
     {
       "candidate_id": "uniform",
@@ -1046,5 +1749,10 @@
       "super": "random_5",
       "lotto649": "random_5"
     }
+  },
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
   }
 }
