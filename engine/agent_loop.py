@@ -695,6 +695,7 @@ def apply_final_judge(
     """只對下一期決策套用終局模型；失敗時保留可重現規則裁決並明確標示。"""
     baseline_tickets = decision["selected_tickets"]
     baseline_ranking = decision["adjudication"]["ranking"]
+    judge_result = None
     try:
         judge_result = judge(decision)
         if judge_result.get("source") != "ollama":
@@ -715,6 +716,24 @@ def apply_final_judge(
         )
         decision["adjudication"]["judge"] = judge_result
     except Exception as exc:
+        telemetry = getattr(exc, "telemetry", None)
+        if telemetry is None and isinstance(judge_result, dict):
+            telemetry = judge_result.get("telemetry")
+        if telemetry is None:
+            telemetry = {
+                "schema_version": "1",
+                "outcome": "error",
+                "wall_duration_ms": None,
+                "ollama_total_duration_ms": None,
+                "load_duration_ms": None,
+                "prompt_eval_count": None,
+                "prompt_eval_duration_ms": None,
+                "eval_count": None,
+                "eval_duration_ms": None,
+                "eval_tokens_per_second": None,
+                "error_type": type(exc).__name__,
+                "complete": False,
+            }
         decision["selected_tickets"] = baseline_tickets
         decision["adjudication"]["ranking"] = baseline_ranking
         decision["adjudication"]["method"] = (
@@ -730,6 +749,7 @@ def apply_final_judge(
             "summary": "本次模型輸出不可驗證，已保留規則裁決結果。",
             "reasons": [],
             "fallback_reason": str(exc)[:300],
+            "telemetry": telemetry,
         }
     decision.pop("decision_hash", None)
     decision["decision_hash"] = canonical_hash(decision)

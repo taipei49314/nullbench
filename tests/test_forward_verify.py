@@ -4,6 +4,7 @@ from copy import deepcopy
 import pytest
 
 import forward_verify
+from engine.decision_observatory import OPS_EXPERIMENT_ID
 
 
 def _valid_result():
@@ -25,6 +26,13 @@ def _valid_result():
                 "registrations": 2,
             },
             "games": {"super": {}, "lotto649": {}},
+            "operations": {
+                "experiment_id": OPS_EXPERIMENT_ID,
+                "games": {"super": {}, "lotto649": {}},
+                "deployment_gate": {
+                    "status": "collecting_joint_evidence"
+                },
+            },
         },
     }
 
@@ -88,6 +96,12 @@ def test_formal_forward_result_requires_chain_and_both_games():
             {"evidence_status": "unknown"}
         ),
         lambda result: result["summary"].update({"games": {}}),
+        lambda result: result["summary"]["operations"].update(
+            {"experiment_id": "wrong"}
+        ),
+        lambda result: result["summary"]["operations"].update(
+            {"deployment_gate": {"status": "unknown"}}
+        ),
     ],
 )
 def test_formal_forward_result_rejects_missing_evidence(mutation):

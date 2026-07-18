@@ -72,17 +72,64 @@ def test_qwen_adjudicate_uses_qwen3_8b_and_returns_verified_result(decision):
             payload=_valid_payload(proposal_ids),
             model="qwen3:8b",
             response_hash="response-sha",
-            total_duration=123,
+            total_duration=123_000_000,
             eval_count=77,
+            load_duration=3_000_000,
+            prompt_eval_count=900,
+            prompt_eval_duration=20_000_000,
+            eval_duration=100_000_000,
         )
 
-    result = adjudicate(decision, generator=generator)
+    ticks = iter([1_000_000, 51_000_000])
+    result = adjudicate(
+        decision,
+        generator=generator,
+        clock_ns=lambda: next(ticks),
+    )
     assert result["source"] == "ollama"
     assert result["model"] == "qwen3:8b"
     assert result["selected_proposal_ids"] == proposal_ids[:5]
     assert calls[0][2]["model"] == "qwen3:8b"
     assert calls[0][2]["seed"] == int(decision["decision_hash"][:8], 16)
     assert "不得宣稱能預知隨機開獎" in calls[0][0]
+    assert result["telemetry"] == {
+        "schema_version": "1",
+        "outcome": "success",
+        "wall_duration_ms": 50.0,
+        "ollama_total_duration_ms": 123.0,
+        "load_duration_ms": 3.0,
+        "prompt_eval_count": 900,
+        "prompt_eval_duration_ms": 20.0,
+        "eval_count": 77,
+        "eval_duration_ms": 100.0,
+        "eval_tokens_per_second": 770.0,
+        "error_type": None,
+        "complete": True,
+    }
+    diagnostics = result["selection_diagnostics"]
+    assert diagnostics["selected_count"] == 5
+    assert diagnostics["source_agent_count"] >= 1
+    assert 6 <= diagnostics["main_number_union_size"] <= 30
+    assert diagnostics["mean_pairwise_main_overlap"] >= 0
+
+
+def test_qwen_failure_keeps_structured_runtime_telemetry(decision):
+    ticks = iter([10_000_000, 35_000_000])
+
+    def generator(prompt, schema, **kwargs):
+        raise TimeoutError("model timeout")
+
+    with pytest.raises(QwenJudgeError, match="model timeout") as captured:
+        adjudicate(
+            decision,
+            generator=generator,
+            clock_ns=lambda: next(ticks),
+        )
+
+    assert captured.value.telemetry["outcome"] == "error"
+    assert captured.value.telemetry["wall_duration_ms"] == 25.0
+    assert captured.value.telemetry["complete"] is False
+    assert captured.value.telemetry["error_type"] == "TimeoutError"
 
 
 def test_final_judge_replaces_baseline_only_with_valid_qwen_selection(decision):
@@ -121,6 +168,11 @@ def test_invalid_model_output_falls_back_without_impersonating_qwen(decision):
     assert judged["adjudication"]["judge"]["source"] == "deterministic_fallback"
     assert judged["adjudication"]["judge"]["model"] is None
     assert "測試用不合法輸出" in judged["adjudication"]["judge"]["fallback_reason"]
+    assert judged["adjudication"]["judge"]["telemetry"]["outcome"] == "error"
+    assert (
+        judged["adjudication"]["judge"]["telemetry"]["complete"]
+        is False
+    )
     assert [
         ticket["source_proposal"] for ticket in judged["selected_tickets"]
     ] == baseline_ids

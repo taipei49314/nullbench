@@ -52,6 +52,8 @@ def main() -> None:
         "階段 1：逐期 agent 閉環與前向 A/B 專用測試",
         "tests/test_agent_loop.py",
         "tests/test_forward_lab.py",
+        "tests/test_qwen_judge.py",
+        "tests/test_decision_observatory.py",
     )
     run_tests("階段 2：全專案前置回歸測試", "tests")
 
@@ -93,6 +95,16 @@ def main() -> None:
             )
         if len(judge["selected_proposal_ids"]) != 5 or len(judge["reasons"]) != 5:
             raise RuntimeError(f"{game} qwen3:8b 裁決不是五組完整理由")
+        telemetry = judge.get("telemetry", {})
+        diagnostics = judge.get("selection_diagnostics", {})
+        if (
+            telemetry.get("outcome") != "success"
+            or telemetry.get("complete") is not True
+            or telemetry.get("wall_duration_ms") is None
+        ):
+            raise RuntimeError(f"{game} qwen3:8b 運作遙測不完整")
+        if diagnostics.get("selected_count") != 5:
+            raise RuntimeError(f"{game} qwen3:8b 五注選擇診斷不完整")
 
     print("\n== 階段 7：凍結下一期三臂前向 A/B ==")
     forward = reconcile_forward_registry(ROOT, env.store, final)

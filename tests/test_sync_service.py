@@ -60,6 +60,12 @@ def _forward_result():
                 "settlements": 0,
                 "pending": 2,
             },
+            "operations": {
+                "deployment_gate": {
+                    "status": "collecting_joint_evidence",
+                    "recommendation": "keep_rule_as_control",
+                }
+            },
         },
     }
 
@@ -108,6 +114,9 @@ def test_sync_rebuilds_only_when_new_draws_exist(tmp_path, monkeypatch):
     assert len(forward_calls) == 1
     assert result["forward_experiment"]["evidence_status"] == (
         "collecting_forward_data"
+    )
+    assert result["forward_experiment"]["deployment_gate"]["status"] == (
+        "collecting_joint_evidence"
     )
     assert phases == [
         "checking",

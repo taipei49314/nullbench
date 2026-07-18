@@ -22,6 +22,10 @@ from datetime import datetime
 from pathlib import Path
 
 from .agent_loop import AGENT_IDS, _adjudicate, canonical_hash
+from .decision_observatory import (
+    OPS_EXPERIMENT_ID,
+    build_observatory,
+)
 from .games import (
     GAME_NAMES,
     LOTTO649,
@@ -227,6 +231,11 @@ def preregister_decision(
         and judge.get("model") == "qwen3:8b"
         and len(judge.get("selected_proposal_ids", [])) == SELECTED_TICKETS
     )
+    telemetry = judge.get("telemetry")
+    ops_instrumented = (
+        isinstance(telemetry, dict)
+        and telemetry.get("schema_version") == "1"
+    )
     common_eligible = not late
     arms = {
         ARM_RULE: _arm(
@@ -255,6 +264,11 @@ def preregister_decision(
                 "selected_proposal_ids": judge.get(
                     "selected_proposal_ids", []
                 ),
+                "telemetry": deepcopy(telemetry),
+                "selection_diagnostics": deepcopy(
+                    judge.get("selection_diagnostics")
+                ),
+                "fallback_reason": judge.get("fallback_reason"),
             },
             ineligible_reason=(
                 "late_registration"
@@ -292,6 +306,9 @@ def preregister_decision(
         "history_count": int(decision["history_count"]),
         "history_last": deepcopy(decision.get("history_last")),
         "source_decision_hash": decision["decision_hash"],
+        "ops_experiment_id": (
+            OPS_EXPERIMENT_ID if ops_instrumented else None
+        ),
         "arms": arms,
         "honesty_note": (
             "三臂在開獎前同時凍結；若沒有本事件，開獎後不得補做該期比較。"
@@ -523,6 +540,39 @@ def verify_registry(ledger: Ledger) -> dict:
                     content["game"], arm["tickets"]
                 ):
                     raise ValueError("前向實驗 selection_hash 不符")
+            ops_id = content.get("ops_experiment_id")
+            if ops_id is not None:
+                if ops_id != OPS_EXPERIMENT_ID:
+                    raise ValueError("終局裁判遙測實驗版本不符")
+                qwen = content["arms"][ARM_QWEN]
+                metadata = qwen.get("metadata") or {}
+                telemetry = metadata.get("telemetry")
+                if (
+                    not isinstance(telemetry, dict)
+                    or telemetry.get("schema_version") != "1"
+                    or telemetry.get("outcome")
+                    not in {"success", "error"}
+                ):
+                    raise ValueError("終局裁判遙測契約不完整")
+                if (
+                    qwen.get("source") == "ollama"
+                    and telemetry.get("outcome") != "success"
+                ):
+                    raise ValueError("Qwen 成功來源與遙測結果矛盾")
+                if (
+                    qwen.get("source") != "ollama"
+                    and telemetry.get("outcome") != "error"
+                ):
+                    raise ValueError("Qwen 降級來源與遙測結果矛盾")
+                if qwen.get("source") == "ollama":
+                    diagnostics = metadata.get("selection_diagnostics")
+                    if (
+                        not isinstance(diagnostics, dict)
+                        or diagnostics.get("schema_version") != "1"
+                        or diagnostics.get("selected_count")
+                        != SELECTED_TICKETS
+                    ):
+                        raise ValueError("Qwen 選擇診斷契約不完整")
             registrations[event["content_hash"]] = content
         elif event["type"] == "forward_settlement":
             registration_hash = content["registration_hash"]
@@ -662,6 +712,11 @@ def build_summary(ledger: Ledger) -> dict:
     else:
         evidence_status = "qwen_advantage_not_supported"
         recommendation = "keep_rule_as_control"
+    operations = build_observatory(
+        registrations,
+        settlements,
+        performance_status=evidence_status,
+    )
     return {
         "schema_version": "1",
         "experiment_id": FORWARD_EXPERIMENT_ID,
@@ -681,6 +736,7 @@ def build_summary(ledger: Ledger) -> dict:
         },
         "evidence_status": evidence_status,
         "recommendation": recommendation,
+        "operations": operations,
         "games": games,
         "honesty_note": (
             "只統計開獎前已存在且未逾截止時間的 Qwen/規則配對；"

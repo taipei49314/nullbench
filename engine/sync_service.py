@@ -147,6 +147,9 @@ def sync_latest(
                 "recommendation"
             ],
             "verification": forward_experiment["summary"]["verification"],
+            "deployment_gate": forward_experiment["summary"].get(
+                "operations", {}
+            ).get("deployment_gate"),
         },
     }
     emit(

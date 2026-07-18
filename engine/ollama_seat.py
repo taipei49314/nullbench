@@ -25,8 +25,12 @@ class StructuredResponse:
     payload: dict
     model: str
     response_hash: str
-    total_duration: int | None
-    eval_count: int | None
+    total_duration: int | None = None
+    eval_count: int | None = None
+    load_duration: int | None = None
+    prompt_eval_count: int | None = None
+    prompt_eval_duration: int | None = None
+    eval_duration: int | None = None
 
 
 class OllamaRequestError(RuntimeError):
@@ -91,6 +95,10 @@ def generate_structured(
         response_hash=hashlib.sha256(raw.encode("utf-8")).hexdigest(),
         total_duration=data.get("total_duration"),
         eval_count=data.get("eval_count"),
+        load_duration=data.get("load_duration"),
+        prompt_eval_count=data.get("prompt_eval_count"),
+        prompt_eval_duration=data.get("prompt_eval_duration"),
+        eval_duration=data.get("eval_duration"),
     )
 
 

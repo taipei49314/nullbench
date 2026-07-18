@@ -162,6 +162,13 @@ def cmd_status(env: Env) -> None:
             f"帳本 {status['verification']['registrations']} 筆登記、"
             f"{status['verification']['settlements']} 筆結算"
         )
+        operations = status.get("operations", {})
+        deployment = operations.get("deployment_gate", {})
+        print(
+            "終局裁判聯合閘門："
+            f"{deployment.get('status', '尚未建立')}｜"
+            f"建議 {deployment.get('recommendation', 'keep_rule_as_control')}"
+        )
     automation_status = automation.read_status(env.base)
     print(
         "\n背景自動 Loop："
@@ -261,6 +268,24 @@ def cmd_forward(env: Env) -> None:
             f"  {GAME_NAMES[game]}：有效配對 "
             f"{game_summary['eligible_qwen_rule_pairs']}｜"
             f"待開獎 {target or '無'}"
+        )
+    operations = summary.get("operations", {})
+    deployment = operations.get("deployment_gate", {})
+    print(
+        "  聯合閘門："
+        f"{deployment.get('status', '尚未建立')}｜"
+        f"{deployment.get('recommendation', 'keep_rule_as_control')}"
+    )
+    for game in picker.GAMES:
+        ops_game = operations.get("games", {}).get(game, {})
+        latency = ops_game.get("latency_ms", {})
+        p95 = latency.get("p95")
+        print(
+            f"  {GAME_NAMES[game]}運作："
+            f"{ops_game.get('window_attempts', 0)}/"
+            f"{operations.get('methodology', {}).get('minimum_observations_per_game', 10)} 次｜"
+            f"p95 {f'{p95} ms' if p95 is not None else '待累積'}｜"
+            f"降級率 {ops_game.get('fallback_rate') if ops_game.get('fallback_rate') is not None else '待累積'}"
         )
 
 

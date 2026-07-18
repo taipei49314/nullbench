@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createSyncCoordinator,
+  isPythonRuntimeFile,
   readAutomationStatus,
 } from "./automation-runtime";
 
@@ -123,5 +124,23 @@ describe("desktop automation coordinator", () => {
       status: "error",
       phase: "error",
     });
+  });
+
+  it("recognizes only Python files that define the live runtime", () => {
+    const repo = path.join("C:", "workspace", "lotto-lab");
+
+    expect(isPythonRuntimeFile(path.join(repo, "lotto.py"), repo)).toBe(true);
+    expect(
+      isPythonRuntimeFile(
+        path.join(repo, "engine", "forward_lab.py"),
+        repo,
+      ),
+    ).toBe(true);
+    expect(
+      isPythonRuntimeFile(path.join(repo, "tests", "test_loop.py"), repo),
+    ).toBe(false);
+    expect(
+      isPythonRuntimeFile(path.join(repo, "engine", "notes.md"), repo),
+    ).toBe(false);
   });
 });

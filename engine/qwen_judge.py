@@ -8,6 +8,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
+from collections import Counter
+from itertools import combinations
 from typing import Callable
 
 from .ollama_seat import MODEL, StructuredResponse, generate_structured
@@ -54,6 +57,128 @@ FINAL_SCHEMA = {
 
 class QwenJudgeError(RuntimeError):
     """Qwen 終局結果不符合裁決契約。"""
+
+    def __init__(self, message: str, *, telemetry: dict | None = None):
+        super().__init__(message)
+        self.telemetry = telemetry
+
+
+def _duration_ms(value: int | None) -> float | None:
+    if value is None:
+        return None
+    return round(max(0, int(value)) / 1_000_000, 3)
+
+
+def _runtime_telemetry(
+    response: StructuredResponse | None,
+    *,
+    wall_duration_ms: float,
+    outcome: str,
+    error_type: str | None = None,
+) -> dict:
+    eval_count = response.eval_count if response is not None else None
+    eval_duration = response.eval_duration if response is not None else None
+    tokens_per_second = None
+    if (
+        eval_count is not None
+        and eval_duration is not None
+        and int(eval_duration) > 0
+    ):
+        tokens_per_second = round(
+            int(eval_count) / (int(eval_duration) / 1_000_000_000),
+            3,
+        )
+    telemetry = {
+        "schema_version": "1",
+        "outcome": outcome,
+        "wall_duration_ms": round(max(0.0, wall_duration_ms), 3),
+        "ollama_total_duration_ms": _duration_ms(
+            response.total_duration if response is not None else None
+        ),
+        "load_duration_ms": _duration_ms(
+            response.load_duration if response is not None else None
+        ),
+        "prompt_eval_count": (
+            response.prompt_eval_count if response is not None else None
+        ),
+        "prompt_eval_duration_ms": _duration_ms(
+            response.prompt_eval_duration
+            if response is not None
+            else None
+        ),
+        "eval_count": eval_count,
+        "eval_duration_ms": _duration_ms(eval_duration),
+        "eval_tokens_per_second": tokens_per_second,
+        "error_type": error_type,
+    }
+    telemetry["complete"] = bool(
+        outcome == "success"
+        and telemetry["ollama_total_duration_ms"] is not None
+        and telemetry["eval_count"] is not None
+    )
+    return telemetry
+
+
+def selection_diagnostics(
+    decision: dict,
+    selected_proposal_ids: list[str],
+) -> dict:
+    """只用開獎前候選與評議，量化終局五注的分散與基準排名。"""
+    proposals = {
+        proposal["proposal_id"]: proposal
+        for proposal in decision["proposals"]
+    }
+    scores = {
+        score["proposal_id"]: score
+        for score in decision["adjudication"]["candidate_scores"]
+    }
+    baseline_ranks = {
+        score["proposal_id"]: rank
+        for rank, score in enumerate(
+            decision["adjudication"]["candidate_scores"],
+            1,
+        )
+    }
+    selected = [proposals[proposal_id] for proposal_id in selected_proposal_ids]
+    agent_counts = Counter(proposal["agent"] for proposal in selected)
+    pair_overlaps = [
+        len(set(left["numbers"]) & set(right["numbers"]))
+        for left, right in combinations(selected, 2)
+    ]
+    union = set().union(
+        *(set(proposal["numbers"]) for proposal in selected)
+    )
+    return {
+        "schema_version": "1",
+        "selected_count": len(selected),
+        "source_agent_count": len(agent_counts),
+        "source_agent_counts": dict(sorted(agent_counts.items())),
+        "max_source_agent_share": round(
+            max(agent_counts.values()) / len(selected),
+            3,
+        ),
+        "main_number_union_size": len(union),
+        "mean_pairwise_main_overlap": round(
+            sum(pair_overlaps) / len(pair_overlaps),
+            3,
+        ),
+        "max_pairwise_main_overlap": max(pair_overlaps),
+        "mean_debate_score": round(
+            sum(scores[item]["debate_score"] for item in selected_proposal_ids)
+            / len(selected_proposal_ids),
+            6,
+        ),
+        "mean_disagreement": round(
+            sum(scores[item]["disagreement"] for item in selected_proposal_ids)
+            / len(selected_proposal_ids),
+            6,
+        ),
+        "mean_baseline_rank": round(
+            sum(baseline_ranks[item] for item in selected_proposal_ids)
+            / len(selected_proposal_ids),
+            3,
+        ),
+    }
 
 
 def _clean_text(value: object, *, field: str, maximum: int) -> str:
@@ -235,6 +360,7 @@ def adjudicate(
     *,
     generator: Callable[..., StructuredResponse] = generate_structured,
     model: str = MODEL,
+    clock_ns: Callable[[], int] = time.perf_counter_ns,
 ) -> dict:
     """呼叫 qwen3:8b 並回傳已驗證、可公開的終局裁決資訊。"""
     allowed_ids = {
@@ -243,6 +369,8 @@ def adjudicate(
     prompt = build_prompt(decision)
     prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
     seed = int(decision["decision_hash"][:8], 16)
+    started_ns = clock_ns()
+    response = None
     try:
         response = generator(
             prompt,
@@ -250,13 +378,24 @@ def adjudicate(
             seed=seed,
             model=model,
         )
+        if response.model != model:
+            raise QwenJudgeError(
+                f"模型不符：要求 {model}，實際 {response.model or 'unknown'}"
+            )
+        validated = validate_selection(response.payload, allowed_ids)
     except Exception as exc:
-        raise QwenJudgeError(str(exc)) from exc
-    if response.model != model:
-        raise QwenJudgeError(
-            f"模型不符：要求 {model}，實際 {response.model or 'unknown'}"
+        telemetry = _runtime_telemetry(
+            response,
+            wall_duration_ms=(clock_ns() - started_ns) / 1_000_000,
+            outcome="error",
+            error_type=type(exc).__name__,
         )
-    validated = validate_selection(response.payload, allowed_ids)
+        raise QwenJudgeError(str(exc), telemetry=telemetry) from exc
+    telemetry = _runtime_telemetry(
+        response,
+        wall_duration_ms=(clock_ns() - started_ns) / 1_000_000,
+        outcome="success",
+    )
     return {
         "source": "ollama",
         "requested_model": model,
@@ -267,4 +406,9 @@ def adjudicate(
         "prompt_hash": prompt_hash,
         "response_hash": response.response_hash,
         "eval_count": response.eval_count,
+        "telemetry": telemetry,
+        "selection_diagnostics": selection_diagnostics(
+            decision,
+            validated["selected_proposal_ids"],
+        ),
     }

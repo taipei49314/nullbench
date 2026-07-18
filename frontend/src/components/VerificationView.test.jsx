@@ -35,6 +35,30 @@ describe("VerificationView forward experiment", () => {
             },
           },
         },
+        operations: {
+          methodology: { minimum_observations_per_game: 10 },
+          deployment_gate: {
+            status: "collecting_joint_evidence",
+            recommendation: "keep_rule_as_control",
+          },
+          games: {
+            super: {
+              status: "collecting_operational_data",
+              legacy_uninstrumented_registrations: 1,
+              window_attempts: 3,
+              fallback_rate: 0,
+              latency_ms: { p95: 1234 },
+              tokens: { mean_eval_count: 88 },
+              selection: { mean_main_number_union_size: 24 },
+              quality: {
+                window_draws: 2,
+                maximum_window_draws: 13,
+                qwen_minus_rule_best_main_hits: 0.5,
+                qwen_minus_random_best_main_hits: 0.25,
+              },
+            },
+          },
+        },
       },
       automation: {
         supervisor_online: true,
@@ -56,6 +80,15 @@ describe("VerificationView forward experiment", () => {
     expect(html).toContain("3<i> / 52</i>");
     expect(html).toContain("2026-07-20 · 115000058");
     expect(html).toContain("collecting_forward_data");
+    expect(html).toContain("QWEN MODEL OBSERVATORY");
+    expect(html).toContain("collecting_operational_data");
+    expect(html).toContain("3<i> / 10</i>");
+    expect(html).toContain("1234 ms");
+    expect(html).toContain("2<i> / 13</i>");
+    expect(html).toContain("0.5");
+    expect(html).toContain("0.25");
+    expect(html).toContain("keep_rule_as_control");
+    expect(html).toContain("既有未儀器化登記：<b>1</b>筆");
     expect(html).toContain("桌機無人值守 LOOP");
     expect(html).toContain("AUTONOMOUS LOOP ONLINE");
     expect(html).toContain("done / ready");

@@ -3,6 +3,7 @@ import {
   Check,
   FileLock2,
   Fingerprint,
+  Gauge,
   GitCompareArrows,
   RadioTower,
   ShieldCheck,
@@ -20,6 +21,10 @@ export default function VerificationView({ gameData, manifest }) {
   const forward = manifest.forward_experiment;
   const forwardGame = forward?.games?.[gameData.game];
   const pending = forwardGame?.pending?.at(-1);
+  const operations = forward?.operations;
+  const operationsGame = operations?.games?.[gameData.game];
+  const operationsMethod = operations?.methodology;
+  const deploymentGate = operations?.deployment_gate;
   const automation = manifest.automation;
   const automationOnline =
     automation?.supervisor_online &&
@@ -138,6 +143,124 @@ export default function VerificationView({ gameData, manifest }) {
           只有 Qwen 與規則裁判都在截止前成功凍結的期數才會進入比較；
           均勻隨機五注同時保存為零假設。這裡不顯示事後補算的「預測」。
         </p>
+      </section>
+
+      <section className="model-observatory-panel">
+        <header>
+          <div>
+            <Gauge size={22} />
+            <span>
+              <strong>QWEN MODEL OBSERVATORY</strong>
+              <small>延遲 · 降級 · Token · 五注分散 · 開獎後品質</small>
+            </span>
+          </div>
+          <b
+            className={
+              operationsGame?.status === "operationally_healthy"
+                ? "is-healthy"
+                : operationsGame?.status === "operationally_degraded"
+                  ? "is-degraded"
+                  : "is-collecting"
+            }
+          >
+            {operationsGame?.status ?? "WAITING FOR INSTRUMENTED CALL"}
+          </b>
+        </header>
+        <div className="model-observatory-metrics">
+          <div>
+            <small>儀器化樣本</small>
+            <strong>
+              {operationsGame?.window_attempts ?? 0}
+              <i>
+                {" "}
+                / {operationsMethod?.minimum_observations_per_game ?? 10}
+              </i>
+            </strong>
+          </div>
+          <div>
+            <small>Qwen p95 延遲</small>
+            <strong>
+              {operationsGame?.latency_ms?.p95 == null
+                ? "待累積"
+                : `${Math.round(operationsGame.latency_ms.p95)} ms`}
+            </strong>
+          </div>
+          <div>
+            <small>規則降級率</small>
+            <strong>
+              {operationsGame?.fallback_rate == null
+                ? "待累積"
+                : `${(operationsGame.fallback_rate * 100).toFixed(1)}%`}
+            </strong>
+          </div>
+          <div>
+            <small>平均輸出 Token</small>
+            <strong>
+              {operationsGame?.tokens?.mean_eval_count == null
+                ? "待累積"
+                : Math.round(operationsGame.tokens.mean_eval_count)}
+            </strong>
+          </div>
+          <div>
+            <small>五注主號覆蓋</small>
+            <strong>
+              {operationsGame?.selection?.mean_main_number_union_size == null
+                ? "待累積"
+                : operationsGame.selection.mean_main_number_union_size}
+            </strong>
+          </div>
+        </div>
+        <div className="model-quality-strip">
+          <span>
+            <small>最近品質視窗</small>
+            <strong>
+              {operationsGame?.quality?.window_draws ?? 0}
+              <i>
+                {" "}
+                / {operationsGame?.quality?.maximum_window_draws ?? 13}
+              </i>
+            </strong>
+          </span>
+          <span>
+            <small>Qwen − 規則最佳命中</small>
+            <strong>
+              {operationsGame?.quality
+                ?.qwen_minus_rule_best_main_hits == null
+                ? "待開獎"
+                : operationsGame.quality.qwen_minus_rule_best_main_hits}
+            </strong>
+          </span>
+          <span>
+            <small>Qwen − 均勻隨機最佳命中</small>
+            <strong>
+              {operationsGame?.quality
+                ?.qwen_minus_random_best_main_hits == null
+                ? "待開獎"
+                : operationsGame.quality.qwen_minus_random_best_main_hits}
+            </strong>
+          </span>
+        </div>
+        <div className="model-deployment-gate">
+          <span>
+            <small>聯合部署閘門</small>
+            <strong>
+              {deploymentGate?.status ?? "collecting_joint_evidence"}
+            </strong>
+          </span>
+          <span>
+            <small>目前建議</small>
+            <strong>
+              {deploymentGate?.recommendation ?? "keep_rule_as_control"}
+            </strong>
+          </span>
+          <p>
+            既有未儀器化登記：
+            <b>
+              {operationsGame?.legacy_uninstrumented_registrations ?? 0}
+            </b>
+            筆；缺少的耗時與 Token 永不事後回填。
+          </p>
+        </div>
       </section>
 
       <section className="automation-proof-panel">

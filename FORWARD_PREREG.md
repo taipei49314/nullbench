@@ -43,4 +43,8 @@
 JSONL 是唯一事實源；`status.json` 只是可重建快照。正式 `records/`、
 既有歷史回放 JSONL 與過去決策不得因本實驗改寫。
 
+Qwen 的延遲、降級、Token 與五注分散另由
+`final-judge-ops-v1` sidecar 觀測；它不改寫本實驗的主要命中指標、最低樣本或
+bootstrap 門檻。詳見 [OPS_TELEMETRY.md](OPS_TELEMETRY.md)。
+
 > 本實驗為純模擬。合法組合的理論開出機率相同，不構成購買或下注建議。

@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-import { createSyncCoordinator } from "./automation-runtime.js";
+import {
+  createSyncCoordinator,
+  isPythonRuntimeFile,
+} from "./automation-runtime.js";
 
 const frontendDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(frontendDir, "..");
@@ -93,6 +96,7 @@ function createAutomationSupervisor() {
   let stopping = false;
   let restartTimer = null;
   let crashCount = 0;
+  let reloadRequested = false;
 
   const isOnline = () =>
     Boolean(child && child.exitCode === null && !child.killed);
@@ -127,6 +131,12 @@ function createAutomationSupervisor() {
     child.on("close", () => {
       child = null;
       if (stopping) return;
+      if (reloadRequested) {
+        reloadRequested = false;
+        crashCount = 0;
+        restartTimer = setTimeout(start, 250);
+        return;
+      }
       crashCount =
         Date.now() - startedAt > 60_000 ? 0 : crashCount + 1;
       const delay = Math.min(30_000, 1000 * 2 ** crashCount);
@@ -134,8 +144,21 @@ function createAutomationSupervisor() {
     });
   };
 
+  const restart = () => {
+    if (stopping || reloadRequested) return;
+    if (restartTimer) clearTimeout(restartTimer);
+    restartTimer = null;
+    if (isOnline()) {
+      reloadRequested = true;
+      child.kill();
+    } else {
+      start();
+    }
+  };
+
   const stop = () => {
     stopping = true;
+    reloadRequested = false;
     if (restartTimer) clearTimeout(restartTimer);
     restartTimer = null;
     if (child && child.exitCode === null) child.kill();
@@ -145,7 +168,20 @@ function createAutomationSupervisor() {
     if (process.env.VITEST) return;
     stopping = false;
     start();
-    server.httpServer?.once("close", stop);
+    const reloadPythonRuntime = (file) => {
+      if (isPythonRuntimeFile(file, repoDir)) restart();
+    };
+    if (server.watcher) {
+      server.watcher.add([
+        path.join(repoDir, "engine"),
+        path.join(repoDir, "lotto.py"),
+      ]);
+      server.watcher.on("change", reloadPythonRuntime);
+    }
+    server.httpServer?.once("close", () => {
+      server.watcher?.off("change", reloadPythonRuntime);
+      stop();
+    });
   };
 
   return {

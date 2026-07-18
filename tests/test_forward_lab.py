@@ -7,7 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from engine.agent_loop import apply_final_judge, conduct_debate, initial_state
+from engine.agent_loop import (
+    apply_final_judge,
+    canonical_hash,
+    conduct_debate,
+    initial_state,
+)
 from engine.forward_lab import (
     ARM_QWEN,
     ARM_RANDOM,
@@ -23,6 +28,7 @@ from engine.forward_lab import (
 )
 from engine.games import LOTTO649, SUPER, Draw
 from engine.ledger import Ledger
+from engine.qwen_judge import selection_diagnostics
 from engine.store import DrawStore
 
 
@@ -46,6 +52,19 @@ def _qwen_payload(decision):
         ],
         "prompt_hash": "prompt-sha",
         "response_hash": "response-sha",
+        "telemetry": {
+            "schema_version": "1",
+            "outcome": "success",
+            "wall_duration_ms": 1200,
+            "ollama_total_duration_ms": 1100,
+            "eval_count": 80,
+            "eval_tokens_per_second": 20,
+            "complete": True,
+        },
+        "selection_diagnostics": selection_diagnostics(
+            decision,
+            selected,
+        ),
     }
 
 
@@ -103,6 +122,16 @@ def test_preregister_freezes_three_valid_arms_without_reveal(tmp_path, game):
     assert all(len(content["arms"][arm]["tickets"]) == 5 for arm in ARMS)
     assert all(content["arms"][arm]["eligible"] for arm in ARMS)
     assert content["arms"][ARM_QWEN]["metadata"]["model"] == "qwen3:8b"
+    assert (
+        content["arms"][ARM_QWEN]["metadata"]["telemetry"]["outcome"]
+        == "success"
+    )
+    assert (
+        content["arms"][ARM_QWEN]["metadata"]["selection_diagnostics"][
+            "selected_count"
+        ]
+        == 5
+    )
     assert content["arms"][ARM_RANDOM]["source"] == "uniform_null"
     assert "actual" not in json.dumps(content)
     assert verify_registry(ledger)["registrations"] == 1
@@ -215,6 +244,50 @@ def test_registry_detects_last_line_content_tampering(tmp_path):
         verify_registry(ledger)
 
 
+def test_registry_rejects_semantically_inconsistent_qwen_telemetry(tmp_path):
+    path = tmp_path / "forward.jsonl"
+    ledger = Ledger(path)
+    preregister_decision(
+        ledger,
+        _decision(SUPER),
+        registered_at="2099-01-01T12:00:00+08:00",
+    )
+    event = json.loads(path.read_text(encoding="utf-8"))
+    event["content"]["arms"][ARM_QWEN]["metadata"]["telemetry"][
+        "outcome"
+    ] = "error"
+    event["content_hash"] = canonical_hash(event["content"])
+    path.write_text(
+        json.dumps(event, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="來源與遙測結果矛盾"):
+        verify_registry(ledger)
+
+
+def test_registry_rejects_fallback_source_with_success_telemetry(tmp_path):
+    path = tmp_path / "forward.jsonl"
+    ledger = Ledger(path)
+    preregister_decision(
+        ledger,
+        _decision(SUPER),
+        registered_at="2099-01-01T12:00:00+08:00",
+    )
+    event = json.loads(path.read_text(encoding="utf-8"))
+    event["content"]["arms"][ARM_QWEN][
+        "source"
+    ] = "deterministic_fallback"
+    event["content_hash"] = canonical_hash(event["content"])
+    path.write_text(
+        json.dumps(event, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="降級來源與遙測結果矛盾"):
+        verify_registry(ledger)
+
+
 def test_summary_stays_collecting_until_preregistered_forward_sample_exists(
     tmp_path,
 ):
@@ -232,6 +305,14 @@ def test_summary_stays_collecting_until_preregistered_forward_sample_exists(
     assert summary["games"][SUPER]["eligible_qwen_rule_pairs"] == 1
     assert summary["games"][LOTTO649]["eligible_qwen_rule_pairs"] == 0
     assert summary["verification"]["chain_valid"] is True
+    assert (
+        summary["operations"]["games"][SUPER]["status"]
+        == "collecting_operational_data"
+    )
+    assert (
+        summary["operations"]["deployment_gate"]["status"]
+        == "collecting_joint_evidence"
+    )
 
 
 def test_positive_block_bootstrap_interval_is_deterministic():

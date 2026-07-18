@@ -116,3 +116,12 @@ export function createSyncCoordinator({
 
   return { request, status };
 }
+
+export function isPythonRuntimeFile(file, repoDir) {
+  const resolved = path.resolve(file);
+  const engineDirectory = `${path.resolve(repoDir, "engine")}${path.sep}`;
+  return (
+    resolved === path.resolve(repoDir, "lotto.py") ||
+    (resolved.startsWith(engineDirectory) && resolved.endsWith(".py"))
+  );
+}

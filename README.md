@@ -99,6 +99,11 @@ python agent_loop_verify.py
 與摘要位於 `simulation/forward/`，不會修改正式 `records/`。門檻、最低樣本
 與禁止事後改指標的規則見 [FORWARD_PREREG.md](FORWARD_PREREG.md)。
 
+同一筆前向登記也會由 `final-judge-ops-v1` 保存 Qwen 延遲、Token、降級原因、
+候選分歧與五注覆蓋度；既有缺資料登記不回填。命中證據與運作健康必須同時通過，
+才允許進入保留規則控制組的 shadow promotion。規格見
+[OPS_TELEMETRY.md](OPS_TELEMETRY.md)。
+
 完整驗收：
 
 ```
@@ -172,6 +177,8 @@ engine/
   debate.py           董事會陳述＋AI 評論席
   agent_loop.py       逐期多 Agent 提案、交叉評議、回放與回饋閉環
   qwen_judge.py       qwen3:8b 終局裁判、結構化輸出與嚴格驗證
+  decision_observatory.py
+                      Qwen 延遲、降級、Token、分散與開獎後品質閘門
   automation.py       無分頁背景 watcher、單例鎖、重試與執行歷史
   ledger.py           append-only JSONL（SHA-256 雜湊鏈）
   seeds.py / config.py / stats.py / env.py / ollama_seat.py
@@ -183,6 +190,7 @@ agent_ablation_verify.py
                       分階段測試、正式消融與完整後測入口
 forward_verify.py     前向三臂帳本、sync、前端與完整回歸驗收
 FORWARD_PREREG.md     Qwen／規則前向比較的凍結門檻
+OPS_TELEMETRY.md      Qwen 運作遙測與聯合部署閘門
 automation_verify.py  背景 Loop、故障恢復、前端與完整回歸驗收
 AUTOMATION.md         桌機 watcher、監督重啟與持久狀態契約
 output/jupyter-notebook/
