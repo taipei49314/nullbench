@@ -7,3 +7,4 @@ simulation/forward/
 simulation/automation/
 frontend/node_modules/
 frontend/dist/
+output/*.log
