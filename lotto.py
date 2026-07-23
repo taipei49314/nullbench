@@ -34,6 +34,7 @@ from engine import (
     strategy,
 )
 from engine.analysts import NAMES
+from engine.mechanism_agents import NAMES as MECHANISM_NAMES
 from engine.env import Env
 from engine.fetch import ingest as fetch_ingest
 from engine.games import SUPER, LOTTO649, GAME_NAMES
@@ -216,7 +217,7 @@ def _print_loop_decision(decision: dict) -> None:
         )
         print(
             f"  第{ticket['slot']}注 {nums}{special}"
-            f"｜來源 {NAMES[ticket['source_agent']]}"
+            f"｜來源 {MECHANISM_NAMES[ticket['source_agent']]}"
         )
     print(f"  decision_hash：{decision['decision_hash']}")
 

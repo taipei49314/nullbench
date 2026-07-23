@@ -1,9 +1,25 @@
+from copy import deepcopy
+import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
 from engine.games import LOTTO649, SUPER
-from engine.sync_service import compare_draw_counts, sync_latest
+from engine.sync_service import (
+    _null_safe_probability_stale,
+    _probability_stacking_stale,
+    _refresh_null_safe_probability,
+    _shadow_research_stale,
+    _switching_bayes_stale,
+    compare_draw_counts,
+    sync_latest,
+)
+from engine.agent_loop import canonical_hash
+from research.label_signal import RANKER_NAMES
+from research.mechanism_signal import MAIN_CANDIDATES
+from research.partition_signal import PARTITIONER_NAMES
+from research.structural_optimum import structural_proof_reference
 
 
 def test_compare_draw_counts_detects_only_new_draws():
@@ -19,6 +35,506 @@ def test_compare_draw_counts_fails_closed_on_regression():
             {SUPER: 10, LOTTO649: 20},
             {SUPER: 9, LOTTO649: 20},
         )
+
+
+def test_probability_stacking_staleness_tracks_draws_and_ledger_hashes(
+    tmp_path,
+):
+    source = (
+        Path(__file__).parent.parent
+        / "research"
+        / "results"
+        / "probability_stacking.json"
+    )
+    study = json.loads(source.read_text(encoding="utf-8"))
+    results = tmp_path / "research" / "results"
+    results.mkdir(parents=True)
+    target = results / "probability_stacking.json"
+    target.write_text(
+        json.dumps(study),
+        encoding="utf-8",
+    )
+    strength = json.loads(
+        (
+            Path(__file__).parent.parent
+            / "research"
+            / "results"
+            / "decision_strength.json"
+        ).read_text(encoding="utf-8")
+    )
+    manifest = _manifest()
+    for game in (SUPER, LOTTO649):
+        manifest["games"][game]["last_target"]["date"] = study[
+            "data_quality"
+        ]["source_last_dates"][game]
+    strength["source"]["manifest_hash"] = manifest["manifest_hash"]
+    strength_payload = {
+        key: value
+        for key, value in strength.items()
+        if key != "audit_hash"
+    }
+    strength["audit_hash"] = canonical_hash(strength_payload)
+    (results / "decision_strength.json").write_text(
+        json.dumps(strength),
+        encoding="utf-8",
+    )
+
+    assert (
+        _probability_stacking_stale(tmp_path, manifest)
+        is False
+    )
+    output = tmp_path / "simulation" / "results"
+    output.mkdir(parents=True)
+    for game in (SUPER, LOTTO649):
+        (output / f"{game}.jsonl").write_text(
+            "rewritten\n",
+            encoding="utf-8",
+        )
+    assert _probability_stacking_stale(tmp_path, manifest) is True
+
+    manifest["games"][SUPER]["last_target"]["date"] = "2099-01-01"
+    assert (
+        _probability_stacking_stale(tmp_path, manifest)
+        is True
+    )
+
+
+def test_null_safe_staleness_tracks_candidate_draws_and_ledger_hashes(
+    tmp_path,
+):
+    source = (
+        Path(__file__).parent.parent
+        / "research"
+        / "results"
+        / "null_safe_probability.json"
+    )
+    study = json.loads(source.read_text(encoding="utf-8"))
+    results = tmp_path / "research" / "results"
+    results.mkdir(parents=True)
+    target = results / "null_safe_probability.json"
+    target.write_text(json.dumps(study), encoding="utf-8")
+    stacking_source = (
+        Path(__file__).parent.parent
+        / "research"
+        / "results"
+        / "probability_stacking.json"
+    )
+    (results / "probability_stacking.json").write_text(
+        stacking_source.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    manifest = _manifest()
+    for game in (SUPER, LOTTO649):
+        manifest["games"][game]["last_target"]["date"] = study[
+            "data_quality"
+        ]["source_last_dates"][game]
+
+    assert _null_safe_probability_stale(tmp_path, manifest) is False
+
+    output = tmp_path / "simulation" / "results"
+    output.mkdir(parents=True)
+    for game in (SUPER, LOTTO649):
+        (output / f"{game}.jsonl").write_text(
+            "rewritten\n",
+            encoding="utf-8",
+        )
+    assert _null_safe_probability_stale(tmp_path, manifest) is True
+
+    manifest["games"][LOTTO649]["last_target"]["date"] = (
+        "2099-01-01"
+    )
+    assert _null_safe_probability_stale(tmp_path, manifest) is True
+
+
+def test_switching_bayes_staleness_tracks_draws_and_ledger_hashes(
+    tmp_path,
+):
+    source = (
+        Path(__file__).parent.parent
+        / "research"
+        / "results"
+        / "switching_bayes.json"
+    )
+    study = json.loads(source.read_text(encoding="utf-8"))
+    results = tmp_path / "research" / "results"
+    results.mkdir(parents=True)
+    target = results / "switching_bayes.json"
+    target.write_text(json.dumps(study), encoding="utf-8")
+    manifest = _manifest()
+    for game in (SUPER, LOTTO649):
+        manifest["games"][game]["last_target"]["date"] = study[
+            "data_quality"
+        ]["source_last_dates"][game]
+
+    assert _switching_bayes_stale(tmp_path, manifest) is False
+    output = tmp_path / "simulation" / "results"
+    output.mkdir(parents=True)
+    for game in (SUPER, LOTTO649):
+        (output / f"{game}.jsonl").write_text(
+            "rewritten\n",
+            encoding="utf-8",
+        )
+    assert _switching_bayes_stale(tmp_path, manifest) is True
+
+    manifest["games"][SUPER]["last_target"]["date"] = "2099-01-01"
+    assert _switching_bayes_stale(tmp_path, manifest) is True
+
+    target.unlink()
+    assert _switching_bayes_stale(tmp_path, manifest) is False
+
+    manifest["games"][LOTTO649]["last_target"]["date"] = study[
+        "data_quality"
+    ]["source_last_dates"][LOTTO649]
+    study["future_forward_shadow_candidate"]["candidate_hash"] = (
+        "0" * 64
+    )
+    target.write_text(json.dumps(study), encoding="utf-8")
+    assert _null_safe_probability_stale(tmp_path, manifest) is True
+
+
+def test_null_safe_operational_state_is_validated_before_freshness(
+    tmp_path,
+):
+    from research.null_safe_probability import (
+        build_forward_state_artifact,
+    )
+
+    base = Path(__file__).parent.parent
+    results = tmp_path / "research" / "results"
+    results.mkdir(parents=True)
+    formal = json.loads(
+        (
+            base
+            / "research"
+            / "results"
+            / "null_safe_probability.json"
+        ).read_text(encoding="utf-8")
+    )
+    stacking_study = json.loads(
+        (
+            base
+            / "research"
+            / "results"
+            / "probability_stacking.json"
+        ).read_text(encoding="utf-8")
+    )
+    (results / "null_safe_probability.json").write_text(
+        json.dumps(formal),
+        encoding="utf-8",
+    )
+    (results / "probability_stacking.json").write_text(
+        json.dumps(stacking_study),
+        encoding="utf-8",
+    )
+    artifact = build_forward_state_artifact(
+        formal["future_forward_shadow_candidate"],
+        stacking_study["future_forward_shadow_candidate"],
+        [],
+    )
+    path = results / "null_safe_probability_forward.json"
+    path.write_text(json.dumps(artifact), encoding="utf-8")
+    manifest = _manifest()
+    for game in (SUPER, LOTTO649):
+        manifest["games"][game]["last_target"]["date"] = artifact[
+            "future_forward_shadow_candidate"
+        ]["fitted_through"][game]
+
+    assert _null_safe_probability_stale(tmp_path, manifest) is False
+
+    artifact["state_hash"] = "0" * 64
+    path.write_text(json.dumps(artifact), encoding="utf-8")
+    assert _null_safe_probability_stale(tmp_path, manifest) is True
+
+
+def test_refresh_null_safe_state_does_not_backfill_v6_settlement(
+    tmp_path,
+    monkeypatch,
+):
+    base = Path(__file__).parent.parent
+    results = tmp_path / "research" / "results"
+    results.mkdir(parents=True)
+    formal = json.loads(
+        (
+            base
+            / "research"
+            / "results"
+            / "null_safe_probability.json"
+        ).read_text(encoding="utf-8")
+    )
+    stacking_study = json.loads(
+        (
+            base
+            / "research"
+            / "results"
+            / "probability_stacking.json"
+        ).read_text(encoding="utf-8")
+    )
+    stacking = deepcopy(
+        stacking_study["future_forward_shadow_candidate"]
+    )
+    stacking.pop("candidate_hash")
+    stacking["fitted_through"] = {
+        SUPER: "2099-01-01",
+        LOTTO649: "2099-01-02",
+    }
+    stacking["candidate_hash"] = canonical_hash(stacking)
+    stacking_study["future_forward_shadow_candidate"] = stacking
+    (results / "null_safe_probability.json").write_text(
+        json.dumps(formal),
+        encoding="utf-8",
+    )
+    (results / "probability_stacking.json").write_text(
+        json.dumps(stacking_study),
+        encoding="utf-8",
+    )
+
+    class FakeLedger:
+        def events_of(self, event_type):
+            assert event_type == "forward_settlement"
+            return [
+                {
+                    "content": {
+                        "game": SUPER,
+                        "target": {
+                            "date": "2099-01-01",
+                            "period": 990001,
+                        },
+                        "registration_hash": "a" * 64,
+                        "probability_stacking_shadow": {},
+                    }
+                }
+            ]
+
+    monkeypatch.setattr(
+        "engine.sync_service.forward_lab.forward_ledger",
+        lambda base: FakeLedger(),
+    )
+    monkeypatch.setattr(
+        "engine.sync_service.forward_lab.verify_registry",
+        lambda ledger: {"chain_valid": True},
+    )
+
+    result = _refresh_null_safe_probability(
+        tmp_path,
+        tmp_path / "simulation" / "results",
+    )
+    artifact = json.loads(
+        (
+            results / "null_safe_probability_forward.json"
+        ).read_text(encoding="utf-8")
+    )
+    candidate = artifact["future_forward_shadow_candidate"]
+    prior = formal["future_forward_shadow_candidate"]
+
+    assert result["applied_transitions"] == 0
+    assert result["registered_score_capsules"] == 0
+    assert candidate["fitted_through"] == stacking["fitted_through"]
+    for game in (SUPER, LOTTO649):
+        assert (
+            candidate["models"][game]["main_e_process"]
+            == prior["models"][game]["main_e_process"]
+        )
+    assert (
+        candidate["models"][SUPER]["special_e_process"]
+        == prior["models"][SUPER]["special_e_process"]
+    )
+
+    repeated = _refresh_null_safe_probability(
+        tmp_path,
+        tmp_path / "simulation" / "results",
+    )
+    repeated_artifact = json.loads(
+        (
+            results / "null_safe_probability_forward.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert repeated["candidate_hash"] == result["candidate_hash"]
+    assert repeated_artifact == artifact
+
+
+def test_shadow_bundle_requires_both_current_research_results(tmp_path):
+    results = tmp_path / "research" / "results"
+    results.mkdir(parents=True)
+    manifest = _manifest()
+    source_dates = {
+        game: manifest["games"][game]["last_target"]["date"]
+        for game in (SUPER, LOTTO649)
+    }
+    council_payload = {
+        "data_quality": {"source_last_dates": source_dates}
+    }
+    (results / "council_quality.json").write_text(
+        json.dumps(council_payload), encoding="utf-8"
+    )
+
+    assert _shadow_research_stale(tmp_path, manifest) is True
+
+    max_coverage_payload = {
+        "schema_version": "1",
+        "methodology": {
+            "structural_optimum_proof": structural_proof_reference()
+        },
+        "data_quality": {"source_last_dates": dict(source_dates)},
+        "summary": [
+            {
+                "proposal_coverage_exact_any_prize": 0.1,
+                "max_coverage_exact_any_prize": 0.2,
+                (
+                    "minimum_max_minus_"
+                    "proposal_coverage_exact_any_prize"
+                ): 0.0,
+                "structural_non_decrease_rate": 1.0,
+            }
+            for _ in range(4)
+        ],
+    }
+    (results / "max_coverage.json").write_text(
+        json.dumps(max_coverage_payload), encoding="utf-8"
+    )
+    assert _shadow_research_stale(tmp_path, manifest) is True
+
+    label_signal_payload = {
+        "schema_version": "1",
+        "methodology": {
+            "rankers": list(RANKER_NAMES),
+            "structural_optimum_proof": structural_proof_reference(),
+        },
+        "data_quality": {"source_last_dates": dict(source_dates)},
+        "summary": [{} for _ in range(2 * 2 * len(RANKER_NAMES))],
+        "conclusion": {
+            "status": "retain_consensus_label_ranking"
+        },
+    }
+    (results / "label_signal.json").write_text(
+        json.dumps(label_signal_payload), encoding="utf-8"
+    )
+    assert _shadow_research_stale(tmp_path, manifest) is True
+
+    partition_signal_payload = {
+        "schema_version": "1",
+        "methodology": {
+            "partitioners": list(PARTITIONER_NAMES),
+            "structural_optimum_proof": structural_proof_reference(),
+        },
+        "data_quality": {"source_last_dates": dict(source_dates)},
+        "summary": [
+            {} for _ in range(2 * 2 * len(PARTITIONER_NAMES))
+        ],
+        "conclusion": {
+            "status": "retain_round_robin_partition"
+        },
+    }
+    (results / "partition_signal.json").write_text(
+        json.dumps(partition_signal_payload), encoding="utf-8"
+    )
+    assert _shadow_research_stale(tmp_path, manifest) is True
+
+    mechanism_signal_payload = {
+        "schema_version": "1",
+        "methodology": {
+            "main_candidates": {
+                game: list(candidates)
+                for game, candidates in MAIN_CANDIDATES.items()
+            },
+            "structural_optimum_proof": structural_proof_reference(),
+        },
+        "data_quality": {"source_last_dates": dict(source_dates)},
+        "conclusion": {
+            "status": "retain_current_label_and_special_ranking"
+        },
+        "future_forward_shadow_candidate": {
+            "candidate_hash": "a" * 64,
+            "use": "future_forward_shadow_only",
+        },
+        "future_profit_common_special_shadow_candidate": (
+            json.loads(
+                (
+                    Path(__file__).parent.parent
+                    / "research"
+                    / "results"
+                    / "mechanism_signal.json"
+                ).read_text(encoding="utf-8")
+            )[
+                "future_profit_common_special_shadow_candidate"
+            ]
+        ),
+    }
+    (results / "mechanism_signal.json").write_text(
+        json.dumps(mechanism_signal_payload), encoding="utf-8"
+    )
+    assert _shadow_research_stale(tmp_path, manifest) is False
+
+    output = tmp_path / "simulation" / "results"
+    output.mkdir(parents=True)
+    ledger_hashes = {}
+    for game in (SUPER, LOTTO649):
+        ledger_path = output / f"{game}.jsonl"
+        ledger_path.write_bytes(f"{game}-ledger".encode())
+        ledger_hashes[game] = hashlib.sha256(
+            ledger_path.read_bytes()
+        ).hexdigest()
+    assert _shadow_research_stale(tmp_path, manifest) is True
+
+    payloads = {
+        "council_quality.json": council_payload,
+        "max_coverage.json": max_coverage_payload,
+        "label_signal.json": label_signal_payload,
+        "partition_signal.json": partition_signal_payload,
+        "mechanism_signal.json": mechanism_signal_payload,
+    }
+    verification = {
+        game: {"ledger_sha256": ledger_hashes[game]}
+        for game in (SUPER, LOTTO649)
+    }
+    for name, payload in payloads.items():
+        payload["data_quality"]["ledger_verification"] = deepcopy(
+            verification
+        )
+        (results / name).write_text(
+            json.dumps(payload), encoding="utf-8"
+        )
+    assert _shadow_research_stale(tmp_path, manifest) is False
+
+    (output / f"{SUPER}.jsonl").write_bytes(b"rewritten-ledger")
+    assert _shadow_research_stale(tmp_path, manifest) is True
+    (output / f"{SUPER}.jsonl").write_bytes(
+        f"{SUPER}-ledger".encode()
+    )
+
+    max_coverage_payload["data_quality"]["source_last_dates"][
+        SUPER
+    ] = "2000-01-01"
+    (results / "max_coverage.json").write_text(
+        json.dumps(max_coverage_payload), encoding="utf-8"
+    )
+    assert _shadow_research_stale(tmp_path, manifest) is True
+
+
+def test_shadow_bundle_rejects_legacy_coverage_schema(tmp_path):
+    results = tmp_path / "research" / "results"
+    results.mkdir(parents=True)
+    manifest = _manifest()
+    source_dates = {
+        game: manifest["games"][game]["last_target"]["date"]
+        for game in (SUPER, LOTTO649)
+    }
+    payload = {
+        "schema_version": "0",
+        "data_quality": {"source_last_dates": source_dates},
+        "summary": [],
+    }
+    for name in (
+        "council_quality.json",
+        "max_coverage.json",
+        "label_signal.json",
+        "partition_signal.json",
+        "mechanism_signal.json",
+    ):
+        (results / name).write_text(
+            json.dumps(payload), encoding="utf-8"
+        )
+
+    assert _shadow_research_stale(tmp_path, manifest) is True
 
 
 def _manifest(super_count=10, lotto_count=20):
@@ -302,6 +818,20 @@ def test_sync_refreshes_stale_shadow_research_only_after_registration(
             "status": "retain_current_council",
         }
 
+    def calibrate(base, output_dir):
+        order.append("calibrate")
+        return {
+            "experiment_id": "online-probability-stacking-shadow-v1",
+            "status": "future_shadow_only",
+        }
+
+    def gate(base, output_dir):
+        order.append("gate")
+        return {
+            "experiment_id": "null-safe-probability-gate-v1",
+            "status": "candidate_ready_future_shadow",
+        }
+
     phases = []
     result = sync_latest(
         tmp_path,
@@ -310,17 +840,33 @@ def test_sync_refreshes_stale_shadow_research_only_after_registration(
         pre_settler=lambda base, store: {"settlements_created": 0},
         forward_syncer=register,
         shadow_researcher=research,
+        probability_stacker=calibrate,
+        null_safe_probability_stacker=gate,
         progress=lambda phase, message, details: phases.append(phase),
     )
 
-    assert order == ["runner", "register", "research"]
+    assert order == [
+        "runner",
+        "calibrate",
+        "gate",
+        "register",
+        "research",
+    ]
+    assert result["probability_stacking"]["status"] == (
+        "future_shadow_only"
+    )
     assert result["shadow_research"]["status"] == (
         "retain_current_council"
+    )
+    assert result["null_safe_probability"]["status"] == (
+        "candidate_ready_future_shadow"
     )
     assert phases == [
         "checking",
         "reviewing",
         "optimizing",
+        "calibrating",
+        "gating",
         "preregistering",
         "researching",
         "ready",
@@ -361,6 +907,12 @@ def test_stale_shadow_research_retries_without_new_draws(
             (base, output_dir)
         )
         or {"status": "refreshed"},
+        probability_stacker=lambda base, output_dir: {
+            "status": "future_shadow_only"
+        },
+        null_safe_probability_stacker=lambda base, output_dir: {
+            "status": "candidate_ready_future_shadow"
+        },
     )
 
     assert result["new_draws_total"] == 0

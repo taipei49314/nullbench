@@ -267,53 +267,15 @@ def validate_selection(payload: dict, allowed_ids: set[str]) -> dict:
 
 def _compact_evidence(proposal: dict) -> dict:
     evidence = proposal.get("evidence", {})
-    agent = proposal["agent"]
-    if agent == "hot_hunter":
-        return {
-            "window_average_counts": [
-                round(
-                    sum(item["count"] for item in window["selected_counts"]) / 6,
-                    3,
-                )
-                for window in evidence.get("windows", [])
-            ]
-        }
-    if agent == "cold_keeper":
-        values = [
-            item["relative_to_expected"]
-            for item in evidence.get("selected_gaps", [])
-        ]
-        return {
-            "mean_relative_gap": round(sum(values) / len(values), 3)
-            if values
-            else 0
-        }
-    if agent == "balance_engineer":
-        keys = (
-            "sum",
-            "odd",
-            "consecutive_pairs",
-            "tail_kinds",
-            "range",
-            "bucket_kinds",
-            "max_same_tail",
-            "gap_kinds",
-        )
-        return {key: evidence[key] for key in keys if key in evidence}
-    if agent == "antipop_taoist":
-        return {
-            key: evidence[key]
-            for key in (
-                "above_31",
-                "month_band",
-                "birthday_band",
-                "round_numbers",
-                "repeated_tail_pairs",
-                "arithmetic_sequence",
-            )
-            if key in evidence
-        }
-    return {"calibration": "uniform-null"}
+    return {
+        "hypothesis_code": evidence.get("hypothesis_code"),
+        "evidence_strength": evidence.get("evidence_strength"),
+        "mean_relative_to_uniform": evidence.get(
+            "mean_relative_to_uniform"
+        ),
+        "diagnostics": evidence.get("diagnostics", {}),
+        "distribution_hash": evidence.get("distribution_hash"),
+    }
 
 
 def _feedback_provenance(
@@ -406,13 +368,20 @@ def build_prompt(
         separators=(",", ":"),
     )
     return (
-        "你是 LOTTO//LAB 的終局裁判。這是純模擬；每個合法組合的理論開出機率相同，"
-        "不得宣稱能預知隨機開獎。請只從下列 15 個 id 中依序挑出剛好 5 個，絕不可"
+        "你是 LOTTO//LAB 的終局裁判。這是純模擬，真實生成機制未知；不得先宣告"
+        "開獎必為獨立隨機，也不得先宣告歷史必有規律，更不得宣稱能預知下一期。"
+        "請只從下列 15 個 id 中依序挑出剛好 5 個，絕不可"
         "自創、修改或重複號碼。綜合評議分數與信心度、較低分歧、五組之間的主號"
-        "分散、Agent 來源多樣性；將亂數修士視為零假設，避免把微弱歷史波動說成"
-        "因果。settled_forward_feedback 只包含嚴格早於本期的已結算組合層診斷；"
-        "它不是隨機開獎的因果證據。絕不可追逐上一期漏掉的號碼、不可把單期結果"
-        "升格為熱冷號規律，只能把重複出現的覆蓋或集中度訊號當作組合結構護欄。"
+        "分散、假說來源多樣性。H0 獨立均勻只是普通競爭基準，不享有保留席位或"
+        "裁決加成；H1–H4 也只能靠嚴格逐期盲測證據取得權重。"
+        "settled_forward_feedback 只包含嚴格早於本期的已結算組合層診斷；"
+        "它不是生成機制的因果證據。絕不可追逐上一期漏掉的號碼、不可把單期結果"
+        "升格為熱冷號規律。若含 profit_portfolio_aggregate，只能用 eligible_pair_count"
+        "及相對 coverage 的彙總值作為低權重組合結構護欄；不得由單期輸贏反推號碼，"
+        "其中 common_special_shadow 也只能看相對 baseline 的彙總差，"
+        "不得要求、猜測或追逐其候選第二區號碼。"
+        "也不得忽略開獎前精確有限枚舉證明。其餘回饋也只能把重複出現的覆蓋、"
+        "集中度或相對表現訊號當作組合結構護欄。"
         "summary 與每組 reason 請用精簡繁體中文，只寫可公開的決策依據，"
         "不要輸出思考過程。輸出必須符合指定 JSON Schema。\nDATA="
         + compact_json

@@ -3,7 +3,8 @@
 實驗識別：`final-judge-ops-v1`
 
 本規格只回答：「Qwen 終局裁判是否穩定、足夠快，而且其五注組合特徵與開獎後
-品質如何？」它不改寫 `final-judge-forward-v1` 的命中指標或 52 期門檻。
+品質如何？」它不改寫 `final-judge-forward-v1` 的命中指標或
+52／104／208／416／832 固定 checkpoint。
 
 ## 開獎前保存
 
@@ -37,4 +38,5 @@
 shadow promotion，不會自動刪除規則或均勻隨機對照。
 
 最近 13 個已開獎儀器化樣本會另外顯示 Qwen、規則與均勻隨機五注的平均最佳主號
-命中及差值；此移動視窗只作監控，不取代原本 52 期區塊 bootstrap 推論。
+命中及差值；此移動視窗只作監控，不取代固定 checkpoint、alpha spending
+與 13 期區塊 bootstrap 推論。

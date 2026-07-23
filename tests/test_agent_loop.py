@@ -110,6 +110,71 @@ def test_feedback_updates_only_after_reveal_and_flows_to_next_draw(store):
     )["decision_hash"]
 
 
+def test_unknown_generator_contract_gives_all_hypotheses_equal_access(store):
+    draws = store.draws(SUPER)
+    decision = conduct_debate(
+        SUPER,
+        target_from_draw(draws[90]),
+        draws[:90],
+        initial_state(),
+    )
+
+    assert decision["generator_contract"] == {
+        "assumption": "unknown",
+        "baseline_hypothesis": "independent_null",
+        "baseline_is_privileged": False,
+        "selection_rule": (
+            "五個假說使用相同提案數、互評數與初始評等；"
+            "只有嚴格早於目標期的逐期封存證據能更新後續權重。"
+        ),
+    }
+    assert [row["code"] for row in decision["hypotheses"]] == [
+        "H0",
+        "H1",
+        "H2",
+        "H3",
+        "H4",
+    ]
+    assert {
+        proposal["agent"] for proposal in decision["proposals"]
+    } == set(AGENT_IDS)
+    assert all(
+        sum(
+            proposal["agent"] == agent
+            for proposal in decision["proposals"]
+        )
+        == 3
+        for agent in AGENT_IDS
+    )
+
+
+def test_reveal_updates_proper_scores_against_h0_only_after_unlock(store):
+    draws = store.draws(LOTTO649)
+    state = initial_state()
+    decision = conduct_debate(
+        LOTTO649,
+        target_from_draw(draws[90]),
+        draws[:90],
+        state,
+    )
+    assert all(
+        snapshot["blind_evidence"]["mean_brier"] is None
+        for snapshot in decision["state_before"]["agents"].values()
+    )
+
+    review, after = review_after_reveal(decision, draws[90], state)
+    results = review["hypothesis_results"]
+    assert set(results) == set(AGENT_IDS)
+    assert results["independent_null"]["skill_vs_h0"] == 0
+    assert all(result["brier"] >= 0 for result in results.values())
+    assert all(
+        after["agents"][agent]["cumulative_brier"]
+        == results[agent]["brier"]
+        for agent in AGENT_IDS
+    )
+    assert state == initial_state()
+
+
 def test_replay_covers_every_draw_without_gaps_and_hash_chain_verifies(
     tmp_path, store
 ):

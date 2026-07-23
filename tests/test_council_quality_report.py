@@ -12,11 +12,11 @@ import council_quality_verify
 BASE = Path(__file__).parent.parent
 RESULT = BASE / "research" / "results" / "council_quality.json"
 AGENTS = (
-    "antipop_taoist",
-    "balance_engineer",
-    "cold_keeper",
-    "hot_hunter",
-    "random_monk",
+    "independent_null",
+    "overfit_guard",
+    "regime_shift",
+    "structural_bias",
+    "temporal_dependency",
 )
 
 
@@ -54,8 +54,8 @@ def _formal_result() -> dict:
         "judge_sensitivity": [{}] * 20,
         "selected_replacements": {
             game: {
-                "development": {"agent": "antipop_taoist"},
-                "holdout": {"agent": "antipop_taoist"},
+                "development": {"agent": "independent_null"},
+                "holdout": {"agent": "independent_null"},
             }
             for game in ("super", "lotto649")
         },
@@ -85,7 +85,7 @@ def test_formal_result_requires_all_quality_and_integrity_gates():
         lambda result: result.update({"critic_quality": []}),
         lambda result: result["selected_replacements"]["super"][
             "holdout"
-        ].update({"agent": "random_monk"}),
+        ].update({"agent": "temporal_dependency"}),
         lambda result: result.update({"recent_holdout_trace": {}}),
         lambda result: result["conclusion"].update({"status": "unknown"}),
     ],

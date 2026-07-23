@@ -43,7 +43,7 @@ def _valid_payload(proposal_ids):
     }
 
 
-def _append_settled_feedback(ledger, decision):
+def _append_settled_feedback(ledger, decision, *, with_profit=False):
     registration = {
         "game": decision["game"],
         "target": {"date": "2000-01-01", "period": 1},
@@ -84,6 +84,43 @@ def _append_settled_feedback(ledger, decision):
             "eligible": True,
             "qwen_minus_rule_best_main_hits": -1,
         },
+        (
+            {
+                "experiment_id": (
+                    "profit-portfolio-forward-shadows-v1"
+                ),
+                "eligible": True,
+                "coverage_result": {
+                    "five_ticket_cost_ntd": 500,
+                    "empirical_floor_stress_strict_profit": False,
+                    "empirical_floor_stress_net_ntd": -500,
+                },
+                "portfolios": {
+                    "guarded_profit": {
+                        "eligible": True,
+                        "result": {
+                            (
+                                "empirical_floor_stress_"
+                                "strict_profit"
+                            ): True,
+                            "empirical_floor_stress_net_ntd": 40,
+                        },
+                    },
+                    "unconstrained_profit": {
+                        "eligible": True,
+                        "result": {
+                            (
+                                "empirical_floor_stress_"
+                                "strict_profit"
+                            ): False,
+                            "empirical_floor_stress_net_ntd": -400,
+                        },
+                    },
+                },
+            }
+            if with_profit
+            else None
+        ),
     )
     content = {
         "schema_version": "1",
@@ -162,7 +199,8 @@ def test_qwen_adjudicate_uses_qwen3_8b_and_returns_verified_result(decision):
     assert result["selected_proposal_ids"] == proposal_ids[:5]
     assert calls[0][2]["model"] == "qwen3:8b"
     assert calls[0][2]["seed"] == int(decision["decision_hash"][:8], 16)
-    assert "不得宣稱能預知隨機開獎" in calls[0][0]
+    assert "真實生成機制未知" in calls[0][0]
+    assert "H0 獨立均勻只是普通競爭基準" in calls[0][0]
     assert result["telemetry"] == {
         "schema_version": "1",
         "outcome": "success",
@@ -208,7 +246,7 @@ def test_qwen_consumes_verified_settled_feedback_and_returns_provenance(
     tmp_path,
 ):
     ledger = Ledger(tmp_path / "forward.jsonl")
-    _append_settled_feedback(ledger, decision)
+    _append_settled_feedback(ledger, decision, with_profit=True)
     feedback = build_feedback_context(
         ledger,
         decision["game"],
@@ -239,6 +277,9 @@ def test_qwen_consumes_verified_settled_feedback_and_returns_provenance(
     assert feedback["feedback_hash"] in prompts[0]
     assert "never_chase_previous_missed_numbers" in prompts[0]
     assert "絕不可追逐上一期漏掉的號碼" in prompts[0]
+    assert "profit_portfolio_aggregate" in prompts[0]
+    assert "eligible_pair_count" in prompts[0]
+    assert "ticket_results" not in prompts[0]
     assert "missed_actual_numbers" not in prompts[0]
     assert result["feedback_provenance"] == {
         "experiment_id": "settled-forward-feedback-v1",

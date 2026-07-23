@@ -60,7 +60,7 @@ def test_coverage_candidate_is_deterministic_legal_and_reveal_free(game):
     existing = [
         proposal
         for proposal in event["decision"]["proposals"]
-        if proposal["agent"] != "hot_hunter"
+        if proposal["agent"] != "temporal_dependency"
     ]
     first = build_coverage_proposals(
         game,
@@ -95,13 +95,13 @@ def test_replacement_council_restores_fifteen_proposals_and_sixty_critiques(
         event["decision"]["target"],
         _history(game, 60),
         event["decision"],
-        "hot_hunter",
+        "temporal_dependency",
     )
 
     assert len(proposals) == 15
     assert len(critiques) == 60
     assert len(tickets) == 5
-    assert "hot_hunter" not in {
+    assert "temporal_dependency" not in {
         proposal["agent"] for proposal in proposals
     }
     assert CANDIDATE_AGENT_ID in {

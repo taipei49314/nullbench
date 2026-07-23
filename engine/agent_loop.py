@@ -21,11 +21,19 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from . import config
-from .analysts import NAMES, PERSONAS
+from .mechanism_agents import (
+    HYPOTHESES,
+    HYPOTHESIS_IDS,
+    NAMES,
+    build_hypothesis_context,
+    propose,
+    public_hypothesis_snapshots,
+)
 from .games import (
     DRAW_WEEKDAYS,
     GAME_NAMES,
     LOTTO649,
+    PICK_N,
     POOL,
     SPECIAL_POOL,
     SUPER,
@@ -34,10 +42,9 @@ from .games import (
     validate_pick,
 )
 from .seeds import seed_int
-from .stats import gaps, main_freq
 
-LOOP_EXPERIMENT_ID = "agent-loop-v2-qwen-final"
-AGENT_IDS = tuple(sorted(PERSONAS))
+LOOP_EXPERIMENT_ID = "agent-loop-v3-unknown-generator"
+AGENT_IDS = tuple(sorted(HYPOTHESIS_IDS))
 PROPOSALS_PER_AGENT = 3
 SELECTED_TICKETS = 5
 LEARNING_RATE = 0.18
@@ -83,9 +90,51 @@ def initial_state() -> dict:
                 "reviews": 0,
                 "cumulative_best_main_hits": 0,
                 "cumulative_special_hits": 0,
+                "cumulative_brier": 0.0,
+                "cumulative_skill_vs_h0": 0.0,
+                "cumulative_skill_sq": 0.0,
+                "evidence_wins": 0,
             }
             for agent in AGENT_IDS
         },
+    }
+
+
+def _evidence_summary(agent_state: dict) -> dict:
+    reviews = int(agent_state["reviews"])
+    cumulative_skill = float(
+        agent_state.get("cumulative_skill_vs_h0", 0.0)
+    )
+    mean_skill = cumulative_skill / reviews if reviews else 0.0
+    cumulative_square = float(
+        agent_state.get("cumulative_skill_sq", 0.0)
+    )
+    if reviews > 1:
+        variance = max(
+            0.0,
+            (
+                cumulative_square
+                - reviews * mean_skill * mean_skill
+            )
+            / (reviews - 1),
+        )
+        margin = 1.96 * math.sqrt(variance / reviews)
+    else:
+        margin = 0.0
+    return {
+        "mean_brier": round(
+            float(agent_state.get("cumulative_brier", 0.0))
+            / reviews,
+            10,
+        )
+        if reviews
+        else None,
+        "mean_skill_vs_h0": round(mean_skill, 10),
+        "confidence_interval_95": [
+            round(mean_skill - margin, 10),
+            round(mean_skill + margin, 10),
+        ],
+        "evidence_wins": int(agent_state.get("evidence_wins", 0)),
     }
 
 
@@ -101,6 +150,39 @@ def _state_snapshot(state: dict) -> dict:
                 ),
                 "cumulative_special_hits": int(
                     state["agents"][agent]["cumulative_special_hits"]
+                ),
+                "cumulative_brier": round(
+                    float(
+                        state["agents"][agent].get(
+                            "cumulative_brier",
+                            0.0,
+                        )
+                    ),
+                    10,
+                ),
+                "cumulative_skill_vs_h0": round(
+                    float(
+                        state["agents"][agent].get(
+                            "cumulative_skill_vs_h0",
+                            0.0,
+                        )
+                    ),
+                    10,
+                ),
+                "cumulative_skill_sq": round(
+                    float(
+                        state["agents"][agent].get(
+                            "cumulative_skill_sq",
+                            0.0,
+                        )
+                    ),
+                    12,
+                ),
+                "evidence_wins": int(
+                    state["agents"][agent].get("evidence_wins", 0)
+                ),
+                "blind_evidence": _evidence_summary(
+                    state["agents"][agent]
                 ),
             }
             for agent in AGENT_IDS
@@ -183,15 +265,7 @@ def _antipop_features(numbers: list[int]) -> dict:
 
 
 def _analysis_context(game: str, history: list[Draw]) -> dict:
-    frequency = {
-        window: main_freq(history, window)
-        for window in HOT_WINDOWS
-    }
-    return {
-        "frequency": frequency,
-        "gaps": gaps(history, game),
-        "expected_gap": POOL[game] / 6,
-    }
+    return build_hypothesis_context(game, history)
 
 
 def _argument(
@@ -202,61 +276,41 @@ def _argument(
     context: dict,
 ) -> tuple[str, dict]:
     numbers = ticket["numbers"]
-    if agent == "random_monk":
-        return (
-            "均勻抽樣不假設歷史能改變下一期機率，作為辯論基準。",
-            {"history_used": 0, "sampling": "uniform"},
-        )
-    if agent == "hot_hunter":
-        windows = []
-        for window in HOT_WINDOWS:
-            freq = context["frequency"][window]
-            windows.append(
-                {
-                    "window": min(window, len(history)),
-                    "selected_counts": [
-                        {"number": number, "count": freq[number]}
-                        for number in numbers
-                    ],
-                }
-            )
-        return (
-            "同時檢視短、中、長三個近期窗，避免單一時間窗把偶然波動誤認為訊號。",
-            {
-                "windows": windows,
-                "decay": config.HOT_HUNTER["LAMBDA"],
-            },
-        )
-    if agent == "cold_keeper":
-        gap_map = context["gaps"]
-        expected_gap = context["expected_gap"]
-        return (
-            "把目前遺漏與遊戲池的基準等待期並列，避免只追逐極端冷號。",
-            {
-                "selected_gaps": [
-                    {
-                        "number": number,
-                        "gap": gap_map[number],
-                        "relative_to_expected": round(
-                            gap_map[number] / expected_gap, 4
-                        ),
-                    }
-                    for number in numbers
-                ],
-                "expected_gap": round(expected_gap, 4),
-            },
-        )
-    if agent == "balance_engineer":
-        return (
-            "偏好結構分散的候選，檢驗外觀約束是否只是在篩選組合。",
-            _structural_features(game, numbers),
-        )
-    if agent == "antipop_taoist":
-        return (
-            "檢查生日帶、整數偏好、尾數重複與規則序列；只評估可能分彩，不宣稱提高開出率。",
-            _antipop_features(numbers),
-        )
-    raise ValueError(agent)
+    model = context["models"][agent]
+    uniform = PICK_N / POOL[game]
+    selected_probabilities = [
+        {
+            "number": number,
+            "probability": round(
+                model["main_probabilities"][number],
+                10,
+            ),
+            "relative_to_uniform": round(
+                model["main_probabilities"][number] / uniform,
+                6,
+            ),
+        }
+        for number in numbers
+    ]
+    return (
+        model["thesis"],
+        {
+            "hypothesis_code": model["code"],
+            "evidence_strength": model["evidence_strength"],
+            "selected_probabilities": selected_probabilities,
+            "mean_relative_to_uniform": round(
+                sum(
+                    item["relative_to_uniform"]
+                    for item in selected_probabilities
+                )
+                / len(selected_probabilities),
+                6,
+            ),
+            "diagnostics": model["diagnostics"],
+            "distribution_hash": ticket["meta"]["distribution_hash"],
+            "history_used": context["history_count"],
+        },
+    )
 
 
 def _build_proposals(
@@ -269,7 +323,7 @@ def _build_proposals(
             retry = 0
             while True:
                 rng = _proposal_rng(game, target, agent, variant, retry)
-                output = PERSONAS[agent](game, history, rng)
+                output = propose(agent, game, rng, context)
                 validate_pick(game, output["numbers"], output["special"])
                 key = frozenset(output["numbers"])
                 if key not in seen or retry >= config.DEDUP_MAX_RETRY:
@@ -310,109 +364,39 @@ def _critique_score(
     context: dict,
 ) -> tuple[float, float, str, dict]:
     numbers = proposal["numbers"]
-    if critic == "random_monk":
-        return (
-            0.5,
-            1.0,
-            "歷史不能證明單一合法組合較可能；以固定 0.5 維持校準基準。",
-            {"calibration": "uniform-null", "history_used": 0},
+    model = context["models"][critic]
+    probabilities = model["main_probabilities"]
+    population = list(probabilities.values())
+    percentile_score = sum(
+        _percentile(probabilities[number], population)
+        for number in numbers
+    ) / PICK_N
+    uniform = PICK_N / POOL[game]
+    relative_probability = sum(
+        probabilities[number] / uniform
+        for number in numbers
+    ) / PICK_N
+    confidence = float(model["evidence_strength"])
+    evidence = {
+        "hypothesis_code": model["code"],
+        "probability_percentile": round(percentile_score, 6),
+        "mean_relative_to_uniform": round(relative_probability, 6),
+        "evidence_strength": confidence,
+        "diagnostics": model["diagnostics"],
+    }
+    if critic == "independent_null":
+        reason = (
+            "H0 對所有合法號碼給相同邊際機率；本候選維持 0.5 校準分，"
+            "但 H0 不享有席位或裁決加成。"
         )
-
-    if critic == "hot_hunter":
-        window_scores = []
-        for window in HOT_WINDOWS:
-            freq = context["frequency"][window]
-            population = [freq[number] for number in range(1, POOL[game] + 1)]
-            window_scores.append(
-                sum(_percentile(freq[number], population) for number in numbers) / 6
-            )
-        score = (
-            0.50 * window_scores[0]
-            + 0.30 * window_scores[1]
-            + 0.20 * window_scores[2]
+    else:
+        reason = (
+            f"{model['code']} 對本候選的機率秩為 "
+            f"{percentile_score:.3f}，相對均勻邊際 "
+            f"{relative_probability:.3f} 倍；證據強度 "
+            f"{confidence:.3f}。"
         )
-        dispersion = math.sqrt(
-            sum((item - sum(window_scores) / 3) ** 2 for item in window_scores) / 3
-        )
-        confidence = min(1.0, len(history) / HOT_WINDOWS[-1]) * max(
-            0.55, 1.0 - dispersion
-        )
-        evidence = {
-            "windows": [
-                {"window": window, "score": round(value, 6)}
-                for window, value in zip(HOT_WINDOWS, window_scores)
-            ],
-            "window_dispersion": round(dispersion, 6),
-        }
-        return (
-            score,
-            confidence,
-            f"12/30/60 期頻率分數為 "
-            f"{window_scores[0]:.3f}/{window_scores[1]:.3f}/{window_scores[2]:.3f}。",
-            evidence,
-        )
-
-    if critic == "cold_keeper":
-        gap_map = context["gaps"]
-        population = list(gap_map.values())
-        percentile_score = (
-            sum(_percentile(gap_map[number], population) for number in numbers) / 6
-        )
-        expected_gap = context["expected_gap"]
-        pressure_score = sum(
-            min(2.0, gap_map[number] / expected_gap) / 2 for number in numbers
-        ) / 6
-        score = 0.70 * percentile_score + 0.30 * pressure_score
-        confidence = min(1.0, len(history) / 40)
-        return (
-            score,
-            confidence,
-            f"遺漏百分位 {percentile_score:.3f}；相對基準等待期 {pressure_score:.3f}。",
-            {
-                "gap_percentile": round(percentile_score, 6),
-                "relative_gap_pressure": round(pressure_score, 6),
-                "expected_gap": round(expected_gap, 6),
-            },
-        )
-
-    if critic == "balance_engineer":
-        features = _structural_features(game, numbers)
-        checks = (
-            features["sum_in_band"],
-            features["odd_in_band"],
-            features["consecutive_ok"],
-            features["tails_ok"],
-            features["range_ok"],
-            features["bucket_coverage_ok"],
-            features["tail_concentration_ok"],
-        )
-        score = sum(checks) / len(checks)
-        return (
-            score,
-            0.9,
-            f"七項結構與分散條件通過 {sum(checks)}/{len(checks)}。",
-            features,
-        )
-
-    if critic == "antipop_taoist":
-        features = _antipop_features(numbers)
-        score = 0.22
-        score += 0.10 * features["above_31"]
-        score -= 0.035 * features["month_band"]
-        score -= 0.025 * features["round_numbers"]
-        score -= 0.035 * features["repeated_tail_pairs"]
-        score += 0.08 if not features["arithmetic_sequence"] else -0.15
-        score = min(1.0, max(0.0, score))
-        return (
-            score,
-            0.75,
-            f"31 以上 {features['above_31']} 個、生日帶 "
-            f"{features['birthday_band']} 個、重複尾數對 "
-            f"{features['repeated_tail_pairs']} 組。",
-            features,
-        )
-
-    raise ValueError(critic)
+    return percentile_score, confidence, reason, evidence
 
 
 def _build_critiques(
@@ -580,7 +564,7 @@ def conduct_debate(
     critiques = _build_critiques(game, history, proposals, context)
     selected, ranking, candidate_scores = _adjudicate(proposals, critiques, state)
     decision = {
-        "schema_version": "2",
+        "schema_version": "3",
         "experiment_id": LOOP_EXPERIMENT_ID,
         "phase": "decision",
         "game": game,
@@ -593,11 +577,24 @@ def conduct_debate(
             else None
         ),
         "state_before": _state_snapshot(state),
+        "generator_contract": {
+            "assumption": "unknown",
+            "baseline_hypothesis": "independent_null",
+            "baseline_is_privileged": False,
+            "selection_rule": (
+                "五個假說使用相同提案數、互評數與初始評等；"
+                "只有嚴格早於目標期的逐期封存證據能更新後續權重。"
+            ),
+        },
+        "hypotheses": public_hypothesis_snapshots(context),
         "proposals": proposals,
         "critiques": critiques,
         "adjudication": {
             "selected_count": SELECTED_TICKETS,
-            "method": "信心度與可信度加權共識－評議分歧＋主號重疊與同 Agent 集中懲罰",
+            "method": (
+                "未知生成機制假說競爭：proper-score 可信度加權共識"
+                "－評議分歧＋主號重疊與同假說集中懲罰"
+            ),
             "ranking": ranking,
             "candidate_scores": candidate_scores,
             "judge": {
@@ -610,7 +607,8 @@ def conduct_debate(
         },
         "selected_tickets": selected,
         "honesty_note": (
-            "這是依歷史假設排序的純模擬候選；合法組合的理論開出機率相同。"
+            "這是未知生成機制下的純模擬候選；不預設開獎獨立隨機，"
+            "也不預設歷史必有規律。只有封存後的逐期盲測能累積證據。"
         ),
     }
     decision["decision_hash"] = canonical_hash(decision)
@@ -785,9 +783,75 @@ def _ticket_result(game: str, ticket: dict, draw: Draw) -> dict:
     }
 
 
+def _proper_score_results(decision: dict, draw: Draw) -> dict[str, dict]:
+    snapshots = {
+        hypothesis["id"]: hypothesis
+        for hypothesis in decision["hypotheses"]
+    }
+    actual = set(draw.numbers)
+    results = {}
+    for agent in AGENT_IDS:
+        snapshot = snapshots[agent]
+        main_probabilities = snapshot["main_probabilities"]
+        if len(main_probabilities) != POOL[draw.game]:
+            raise ValueError(f"{agent} 主號機率快照長度不符")
+        main_brier = sum(
+            (
+                float(probability)
+                - float(number in actual)
+            )
+            ** 2
+            for number, probability in enumerate(
+                main_probabilities,
+                1,
+            )
+        ) / POOL[draw.game]
+        special_brier = None
+        combined_brier = main_brier
+        if draw.game == SUPER:
+            special_probabilities = snapshot["special_probabilities"]
+            if (
+                special_probabilities is None
+                or len(special_probabilities) != SPECIAL_POOL[SUPER]
+            ):
+                raise ValueError(f"{agent} 第二區機率快照長度不符")
+            special_brier = sum(
+                (
+                    float(probability)
+                    - float(number == draw.special)
+                )
+                ** 2
+                for number, probability in enumerate(
+                    special_probabilities,
+                    1,
+                )
+            ) / SPECIAL_POOL[SUPER]
+            combined_brier = 0.85 * main_brier + 0.15 * special_brier
+        results[agent] = {
+            "main_brier": round(main_brier, 10),
+            "special_brier": (
+                round(special_brier, 10)
+                if special_brier is not None
+                else None
+            ),
+            "brier": round(combined_brier, 10),
+        }
+    baseline = results["independent_null"]["brier"]
+    for agent in AGENT_IDS:
+        results[agent]["skill_vs_h0"] = round(
+            baseline - results[agent]["brier"],
+            10,
+        )
+    return results
+
+
 def _updated_state(state: dict, agent_results: dict[str, dict]) -> dict:
     qualities = {
-        agent: result["best_hit_points"] for agent, result in agent_results.items()
+        agent: min(
+            2.0,
+            max(-2.0, 100.0 * result["skill_vs_h0"]),
+        )
+        for agent, result in agent_results.items()
     }
     mean_quality = sum(qualities.values()) / len(qualities)
     raw = {
@@ -818,6 +882,23 @@ def _updated_state(state: dict, agent_results: dict[str, dict]) -> dict:
             + result["best_main_hits"],
             "cumulative_special_hits": int(before["cumulative_special_hits"])
             + int(result["best_special_hit"]),
+            "cumulative_brier": round(
+                float(before.get("cumulative_brier", 0.0))
+                + result["brier"],
+                10,
+            ),
+            "cumulative_skill_vs_h0": round(
+                float(before.get("cumulative_skill_vs_h0", 0.0))
+                + result["skill_vs_h0"],
+                10,
+            ),
+            "cumulative_skill_sq": round(
+                float(before.get("cumulative_skill_sq", 0.0))
+                + result["skill_vs_h0"] ** 2,
+                12,
+            ),
+            "evidence_wins": int(before.get("evidence_wins", 0))
+            + int(result["skill_vs_h0"] > 0),
         }
     return next_state
 
@@ -825,14 +906,14 @@ def _updated_state(state: dict, agent_results: dict[str, dict]) -> dict:
 def _lesson(agent: str, result: dict) -> str:
     outcome = (
         f"本期三個提案最佳主號命中 {result['best_main_hits']}/6，"
-        f"特別號訊號命中={result['best_special_hit']}。"
+        f"proper-score 相對 H0 技能={result['skill_vs_h0']:+.6f}。"
     )
     notes = {
-        "random_monk": "此結果是隨機基準的一次樣本，不外推成趨勢。",
-        "hot_hunter": "近期頻率沒有因果保證；只把本期表現回饋到後續可信度。",
-        "cold_keeper": "遺漏深不代表到期；本期只檢驗該排序是否碰巧貼近結果。",
-        "balance_engineer": "組合外觀不改變理論機率；結構條件只作候選排序。",
-        "antipop_taoist": "避開熱門選號不提高開出率；其原始動機僅是可能減少分彩。",
+        "independent_null": "H0 只是比較尺，不因單期輸贏被宣告為真。",
+        "temporal_dependency": "檢查短期記憶是否跨期重現；單期熱點不升格為規律。",
+        "regime_shift": "檢查短長窗漂移是否延續；變點訊號失效時權重會下降。",
+        "structural_bias": "檢查長期邊際與組合幾何是否持續；外觀相似不等於因果。",
+        "overfit_guard": "只有跨窗一致且收縮後仍有效的訊號，才保留到下一期。",
     }
     return outcome + notes[agent]
 
@@ -863,6 +944,7 @@ def review_after_reveal(
             }
         )
 
+    proper_results = _proper_score_results(decision, draw)
     agent_results = {}
     for agent, results in by_agent.items():
         best = sorted(
@@ -877,6 +959,7 @@ def review_after_reveal(
             "best_main_hits": best["main_hits"],
             "best_special_hit": best["special_hit"],
             "best_hit_points": best["hit_points"],
+            **proper_results[agent],
         }
 
     next_state = _updated_state(state, agent_results)
@@ -908,7 +991,7 @@ def review_after_reveal(
         if count > 1 and number not in draw.numbers
     ]
     review = {
-        "schema_version": "1",
+        "schema_version": "2",
         "experiment_id": LOOP_EXPERIMENT_ID,
         "phase": "review",
         "game": draw.game,
@@ -920,6 +1003,7 @@ def review_after_reveal(
         },
         "selected_results": selected_results,
         "agent_results": agent_results,
+        "hypothesis_results": agent_results,
         "error_analysis": {
             "fully_matched": any(
                 item["main_hits"] == 6
@@ -940,7 +1024,8 @@ def review_after_reveal(
                 2,
             ),
             "interpretation": (
-                "錯誤指候選與實際結果不一致；以下是可量化落差，不宣稱找到隨機開獎的因果。"
+                "錯誤指封存機率與實際結果的落差；比較同時保留 H0 與替代假說，"
+                "不預設生成機制，也不把單期結果升格為因果。"
             ),
         },
         "lessons": [

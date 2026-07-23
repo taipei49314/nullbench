@@ -55,7 +55,7 @@ def test_all_agent_subsets_are_covered_once():
 def test_subset_adjudication_uses_only_members_and_never_receives_reveal(game):
     event = _event(game, 61)
     decision = event["decision"]
-    subset = ("balance_engineer", "random_monk")
+    subset = ("independent_null", "structural_bias")
     ratings = {agent: 1.0 for agent in AGENT_IDS}
 
     first = adjudicate_council(
@@ -79,17 +79,17 @@ def test_subset_adjudication_uses_only_members_and_never_receives_reveal(game):
 def test_subset_rating_update_is_local_deterministic_and_post_reveal():
     ratings = {agent: 1.0 for agent in AGENT_IDS}
     qualities = {
-        "antipop_taoist": 2.0,
-        "balance_engineer": 1.0,
-        "cold_keeper": 3.0,
-        "hot_hunter": 0.0,
-        "random_monk": 2.0,
+        "independent_null": 2.0,
+        "overfit_guard": 1.0,
+        "regime_shift": 3.0,
+        "structural_bias": 0.0,
+        "temporal_dependency": 2.0,
     }
-    subset = ("antipop_taoist", "cold_keeper")
+    subset = ("independent_null", "regime_shift")
     updated = update_subset_ratings(ratings, qualities, subset)
 
     assert updated == update_subset_ratings(ratings, qualities, subset)
-    assert updated["cold_keeper"] > updated["antipop_taoist"]
+    assert updated["regime_shift"] > updated["independent_null"]
     assert all(
         updated[agent] == 1.0 for agent in set(AGENT_IDS) - set(subset)
     )

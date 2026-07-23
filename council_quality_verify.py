@@ -75,11 +75,11 @@ def verify_formal_result(result: dict) -> None:
         for game in ("super", "lotto649")
         for split in ("development", "holdout")
         for agent in (
-            "antipop_taoist",
-            "balance_engineer",
-            "cold_keeper",
-            "hot_hunter",
-            "random_monk",
+            "independent_null",
+            "overfit_guard",
+            "regime_shift",
+            "structural_bias",
+            "temporal_dependency",
         )
     }
     actual_agent_rows = {
