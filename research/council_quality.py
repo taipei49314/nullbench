@@ -26,7 +26,7 @@ from engine.agent_loop import (
     _critique_score,
     verify_replay,
 )
-from engine.analysts import NAMES
+from engine.mechanism_agents import NAMES
 from engine.games import (
     GAME_NAMES,
     LOTTO649,

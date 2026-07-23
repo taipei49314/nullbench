@@ -1,0 +1,662 @@
+{
+  "schema_version": "1",
+  "experiment_id": "five-ticket-unconstrained-profit-optimum-proof-v2",
+  "rules_as_of": "2026-07-19",
+  "official_prize_rules": {
+    "super": "https://www.taiwanlottery.com/lotto/info/super_lotto638",
+    "lotto649": "https://www.taiwanlottery.com/lotto/info/lotto649"
+  },
+  "official_history": {
+    "cutoff_inclusive": "2026-07-17",
+    "source": "台灣彩券官方 API 月快取；只納入截止日以前、實際有人中獎且 per_prize > 0 的觀測值",
+    "download_page": "https://www.taiwanlottery.com/lotto/history/result_download/",
+    "games": {
+      "super": {
+        "draw_count": 1929,
+        "first_date": "2008-01-24",
+        "last_date": "2026-07-16",
+        "normalized_prize_snapshot_hash": "1aee44402df74e99855fdfb0016648321b0fa94094b4bcf04d75cc00b60da6e6",
+        "minimum_observed_per_prize_ntd": {
+          "super638JackpotAssign": 176434164,
+          "super638SecondAssign": 716941,
+          "super638ThirdAssign": 54252,
+          "super638FourthAssign": 9462,
+          "super638FifthAssign": 2058,
+          "super638SixthAssign": 540,
+          "super638SeventhAssign": 277,
+          "super638EighthAssign": 200,
+          "super638NinthAssign": 100,
+          "super638NormalAssign": 100
+        }
+      },
+      "lotto649": {
+        "draw_count": 2153,
+        "first_date": "2007-01-02",
+        "last_date": "2026-07-17",
+        "normalized_prize_snapshot_hash": "aecf66e29f1a48bf87eb63e7c173c69071eca46042798c72dd057676761b483a",
+        "minimum_observed_per_prize_ntd": {
+          "jackpotAssign": 33333333,
+          "secondAssign": 198367,
+          "thirdAssign": 13563,
+          "fourthAssign": 3736,
+          "fifthAssign": 999,
+          "sixthAssign": 1000,
+          "seventhAssign": 400,
+          "normalAssign": 274
+        }
+      }
+    }
+  },
+  "source_pareto_certificate": {
+    "experiment_id": "five-ticket-profit-pareto-proof-v1",
+    "certificate_hash": "b91fb1e1f4a4f7ba6478389b05182761472fcdc9784460967b9011a739356ee4"
+  },
+  "question": "移除 pairwise overlap <= 1 守門後，五張威力彩票在凍結歷史最低實領壓力與現行名目獎金兩種口徑下的嚴格獲利機率全域上限是多少？",
+  "event_reduction": {
+    "empirical_common_special": "五注第二區全同時，第二區未中且任一票至少四主號會獲利；第二區命中時，任一票至少四主號，或五票 ticket-hit incidence 合計至少六，也會獲利。",
+    "weighted_count_formula": "empirical favorable count = 7 * count(max_main_hits>=4) + count(max_main_hits>=4 or total_hits>=6)",
+    "nominal_boundary": "名目面額只多出總命中五次且排序為 [3,2,0,0,0] 或 [3,1,1,0,0] 的第二區命中邊界。",
+    "nominal_proper_special": "proper special 先以 single-block 與兩群 macro 上界排除安全域；3+2 與 2+2+1 的危險域再完整展開每票degree=6 結構，配合交叉 macro、Hunter union bound與逐候選整數 DP 閉合。"
+  },
+  "proof": {
+    "universal_main_four_upper_count": 38165,
+    "multiplicity_histograms": {
+      "histograms_evaluated": 674,
+      "unique_maximum_histogram_n1_to_n5": [
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      "maximum_total_hits_at_least_six_count": 1401141,
+      "second_best_total_hits_at_least_six_count": 1245971,
+      "non_optimum_histogram_empirical_profit_upper_count": 1551291
+    },
+    "three_uniform_profiles": {
+      "profiles_evaluated": 158,
+      "unique_maximum_profile": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "maximum_at_least_four_main_count": 35280,
+      "second_best_at_least_four_main_count": 34412,
+      "unique_up_to_ticket_and_number_relabeling": true
+    },
+    "proper_special_partition_relaxations": [
+      {
+        "special_block_sizes": [
+          4,
+          1
+        ],
+        "macro_ticket_sizes": [
+          4,
+          1
+        ],
+        "relaxed_histograms_evaluated": 8621,
+        "low_hit_special_outcome_weight_upper_count": 1123750,
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "total_empirical_strict_profit_upper_count": 1429070,
+        "upper_probability": 0.06470640758566455,
+        "relaxation_winner": [
+          {
+            "macro_a_members": 3,
+            "macro_b_members": 0,
+            "number_count": 2
+          },
+          {
+            "macro_a_members": 3,
+            "macro_b_members": 1,
+            "number_count": 6
+          }
+        ],
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          3,
+          2
+        ],
+        "macro_ticket_sizes": [
+          3,
+          2
+        ],
+        "relaxed_histograms_evaluated": 42125,
+        "low_hit_special_outcome_weight_upper_count": 1277200,
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "total_empirical_strict_profit_upper_count": 1582520,
+        "upper_probability": 0.07165442149962274,
+        "relaxation_winner": [
+          {
+            "macro_a_members": 3,
+            "macro_b_members": 2,
+            "number_count": 6
+          }
+        ],
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          3,
+          1,
+          1
+        ],
+        "macro_ticket_sizes": [
+          3,
+          2
+        ],
+        "relaxed_histograms_evaluated": 42125,
+        "low_hit_special_outcome_weight_upper_count": 868000,
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "total_empirical_strict_profit_upper_count": 1173320,
+        "upper_probability": 0.05312638439573424,
+        "relaxation_winner": [
+          {
+            "macro_a_members": 0,
+            "macro_b_members": 2,
+            "number_count": 1
+          },
+          {
+            "macro_a_members": 3,
+            "macro_b_members": 0,
+            "number_count": 1
+          },
+          {
+            "macro_a_members": 3,
+            "macro_b_members": 2,
+            "number_count": 5
+          }
+        ],
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          2,
+          2,
+          1
+        ],
+        "macro_ticket_sizes": [
+          4,
+          1
+        ],
+        "relaxed_histograms_evaluated": 8621,
+        "low_hit_special_outcome_weight_upper_count": 1228875,
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "total_empirical_strict_profit_upper_count": 1534195,
+        "upper_probability": 0.06946632914125174,
+        "relaxation_winner": [
+          {
+            "macro_a_members": 3,
+            "macro_b_members": 0,
+            "number_count": 2
+          },
+          {
+            "macro_a_members": 3,
+            "macro_b_members": 1,
+            "number_count": 6
+          }
+        ],
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          2,
+          1,
+          1,
+          1
+        ],
+        "macro_ticket_sizes": [
+          2,
+          3
+        ],
+        "relaxed_histograms_evaluated": 42125,
+        "low_hit_special_outcome_weight_upper_count": 936200,
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "total_empirical_strict_profit_upper_count": 1241520,
+        "upper_probability": 0.05621439057971566,
+        "relaxation_winner": [
+          {
+            "macro_a_members": 2,
+            "macro_b_members": 3,
+            "number_count": 6
+          }
+        ],
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "macro_ticket_sizes": [
+          1,
+          4
+        ],
+        "relaxed_histograms_evaluated": 8621,
+        "low_hit_special_outcome_weight_upper_count": 496000,
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "total_empirical_strict_profit_upper_count": 801320,
+        "upper_probability": 0.03628271430129015,
+        "relaxation_winner": [
+          {
+            "macro_a_members": 1,
+            "macro_b_members": 4,
+            "number_count": 6
+          }
+        ],
+        "strictly_below_optimum": true
+      }
+    ],
+    "maximum_proper_special_empirical_upper_count": 1582520,
+    "nominal_common_special": {
+      "nominal_only_low_hit_vectors": [
+        [
+          3,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          1,
+          1,
+          0,
+          0
+        ]
+      ],
+      "non_optimum_histogram_maximum_upper_count": 1642111,
+      "upper_winner_histogram_n1_to_n5": [
+        3,
+        0,
+        9,
+        0,
+        0
+      ],
+      "upper_winner_total_hits_at_least_six_count": 1219791,
+      "upper_winner_designated_ticket_boundary_count": 23400,
+      "optimum_histogram_boundary_count": 0,
+      "common_special_nominal_global_optimum_proved": true,
+      "certificate_scope": "common_special_structures"
+    },
+    "nominal_proper_special_global_bounds": [
+      {
+        "special_block_sizes": [
+          4,
+          1
+        ],
+        "method": "independent_single_block_relaxation",
+        "single_block_upper_counts": [
+          1162055,
+          139500
+        ],
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "global_nominal_strict_profit_upper_count": 1606875,
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          3,
+          2
+        ],
+        "method": "macro_danger_set_exact_refinement",
+        "macro_ticket_sizes": [
+          3,
+          2
+        ],
+        "macro_histograms_evaluated": 42125,
+        "dangerous_macro_histograms": 160,
+        "non_dangerous_macro_upper_count": 1647962,
+        "labeled_degree_valid_refinements": 4083,
+        "cross_macro_survivors": 4083,
+        "cross_macro_pruned_upper_count": 0,
+        "hunter_survivors": 4083,
+        "hunter_pruned_upper_count": 0,
+        "ticket_permutations_removed": 12,
+        "canonical_exact_candidates": 565,
+        "maximum_exact_nominal_strict_profit_count": 906434,
+        "maximum_exact_probability": 0.0410421377913638,
+        "maximum_exact_structure": [
+          {
+            "membership_mask": 15,
+            "number_count": 1
+          },
+          {
+            "membership_mask": 23,
+            "number_count": 1
+          },
+          {
+            "membership_mask": 24,
+            "number_count": 1
+          },
+          {
+            "membership_mask": 31,
+            "number_count": 4
+          }
+        ],
+        "global_nominal_strict_profit_upper_count": 1647962,
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          3,
+          1,
+          1
+        ],
+        "method": "independent_single_block_relaxation",
+        "single_block_upper_counts": [
+          1012100,
+          139500,
+          139500
+        ],
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "global_nominal_strict_profit_upper_count": 1596420,
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          2,
+          2,
+          1
+        ],
+        "method": "cross_macro_hunter_exact_refinement",
+        "macro_ticket_sizes": [
+          4,
+          1
+        ],
+        "macro_histograms_evaluated": 8621,
+        "dangerous_macro_histograms": 2098,
+        "non_dangerous_macro_upper_count": 1648080,
+        "labeled_degree_valid_refinements": 1721537,
+        "cross_macro_survivors": 814501,
+        "cross_macro_pruned_upper_count": 1648046,
+        "hunter_survivors": 75195,
+        "hunter_pruned_upper_count": 1648088,
+        "ticket_permutations_removed": 8,
+        "canonical_exact_candidates": 10199,
+        "maximum_exact_nominal_strict_profit_count": 606888,
+        "maximum_exact_probability": 0.02747908939859404,
+        "maximum_exact_structure": [
+          {
+            "membership_mask": 13,
+            "number_count": 1
+          },
+          {
+            "membership_mask": 14,
+            "number_count": 2
+          },
+          {
+            "membership_mask": 16,
+            "number_count": 1
+          },
+          {
+            "membership_mask": 23,
+            "number_count": 2
+          },
+          {
+            "membership_mask": 27,
+            "number_count": 2
+          },
+          {
+            "membership_mask": 29,
+            "number_count": 1
+          }
+        ],
+        "global_nominal_strict_profit_upper_count": 1648088,
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          2,
+          1,
+          1,
+          1
+        ],
+        "method": "independent_single_block_relaxation",
+        "single_block_upper_counts": [
+          725555,
+          139500,
+          139500,
+          139500
+        ],
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "global_nominal_strict_profit_upper_count": 1449375,
+        "strictly_below_optimum": true
+      },
+      {
+        "special_block_sizes": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "method": "independent_single_block_relaxation",
+        "single_block_upper_counts": [
+          139500,
+          139500,
+          139500,
+          139500,
+          139500
+        ],
+        "at_least_four_main_eight_outcome_upper_count": 305320,
+        "global_nominal_strict_profit_upper_count": 1002820,
+        "strictly_below_optimum": true
+      }
+    ],
+    "maximum_proper_special_nominal_upper_count": 1648088,
+    "global_empirical_optimum_proved": true,
+    "global_empirical_optimum_unique_up_to_relabeling": true,
+    "global_nominal_optimum_proved": true,
+    "global_nominal_optimum_unique_up_to_relabeling": true,
+    "calculation": "全程整數組合計數。主號 multiplicity、三均勻 profile、proper special macro 鬆弛、single-block、degree refinement、Hunter 二階上界與名目危險集均有限枚舉；不使用 Monte Carlo。"
+  },
+  "games": {
+    "super": {
+      "game_name": "威力彩",
+      "five_ticket_cost_ntd": 500,
+      "optimum_structure": {
+        "description": "十個三票子集各配置一個不同主號；每個主號恰好出現在三張票、每張票包含六個主號；五注第二區相同。",
+        "membership_masks": [
+          7,
+          11,
+          13,
+          14,
+          19,
+          21,
+          22,
+          25,
+          26,
+          28
+        ],
+        "membership_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "main_number_union_size": 10,
+        "pairwise_main_overlap": 3,
+        "special_partition": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "example_tickets": [
+          {
+            "slot": 1,
+            "source_agent": "unconstrained_profit_proof",
+            "source_proposal": "triple-design:1",
+            "numbers": [
+              1,
+              2,
+              3,
+              5,
+              6,
+              8
+            ],
+            "special": 1
+          },
+          {
+            "slot": 2,
+            "source_agent": "unconstrained_profit_proof",
+            "source_proposal": "triple-design:2",
+            "numbers": [
+              1,
+              2,
+              4,
+              5,
+              7,
+              9
+            ],
+            "special": 1
+          },
+          {
+            "slot": 3,
+            "source_agent": "unconstrained_profit_proof",
+            "source_proposal": "triple-design:3",
+            "numbers": [
+              1,
+              3,
+              4,
+              6,
+              7,
+              10
+            ],
+            "special": 1
+          },
+          {
+            "slot": 4,
+            "source_agent": "unconstrained_profit_proof",
+            "source_proposal": "triple-design:4",
+            "numbers": [
+              2,
+              3,
+              4,
+              8,
+              9,
+              10
+            ],
+            "special": 1
+          },
+          {
+            "slot": 5,
+            "source_agent": "unconstrained_profit_proof",
+            "source_proposal": "triple-design:5",
+            "numbers": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "special": 1
+          }
+        ]
+      },
+      "metrics": {
+        "any_prize": {
+          "numerator": 5054343,
+          "denominator": 22085448,
+          "probability": 0.2288539947208678
+        },
+        "nominal_break_even": {
+          "numerator": 1650453,
+          "denominator": 22085448,
+          "probability": 0.07473033827522992
+        },
+        "nominal_strict_profit": {
+          "numerator": 1648101,
+          "denominator": 22085448,
+          "probability": 0.07462384281269731
+        },
+        "empirical_floor_break_even": {
+          "numerator": 1650453,
+          "denominator": 22085448,
+          "probability": 0.07473033827522992
+        },
+        "empirical_floor_strict_profit": {
+          "numerator": 1648101,
+          "denominator": 22085448,
+          "probability": 0.07462384281269731
+        },
+        "at_least_three_main": {
+          "numerator": 3051888,
+          "denominator": 22085448,
+          "probability": 0.1381854694548193
+        },
+        "at_least_four_main": {
+          "numerator": 282240,
+          "denominator": 22085448,
+          "probability": 0.012779455503913708
+        }
+      },
+      "empirical_floor_strict_profit_global_maximum": {
+        "numerator": 1648101,
+        "denominator": 22085448,
+        "probability": 0.07462384281269731
+      },
+      "nominal_strict_profit_global_maximum": {
+        "numerator": 1648101,
+        "denominator": 22085448,
+        "probability": 0.07462384281269731,
+        "scope": "五注第二區全同與六類 proper special 均已完成有限整數上界或危險集完整 refinement，證明為現行名目獎金全域最優。"
+      }
+    },
+    "lotto649": {
+      "game_name": "大樂透",
+      "conclusion": "大樂透任一獎即高於五注成本；本補充不改變完全分散五注的嚴格獲利全域最優結論。"
+    }
+  },
+  "comparison": {
+    "coverage_empirical_profit_probability": 0.013824487508698035,
+    "high_tier_guarded_profit_probability": 0.054512183769149715,
+    "unconstrained_profit_probability": 0.07462384281269731,
+    "unconstrained_vs_coverage_ratio": 5.397946416874099,
+    "unconstrained_vs_guarded_ratio": 1.3689387885966413,
+    "tradeoffs": {
+      "any_prize_probability": 0.2288539947208678,
+      "at_least_three_main_probability": 0.1381854694548193,
+      "at_least_four_main_probability": 0.012779455503913708
+    }
+  },
+  "decision": {
+    "automatic_switch": false,
+    "reason": "這是嚴格獲利效用的全域最優，但會顯著降低任一獎、三主號與四主號機率；未取得效用目標選擇前不替換 coverage。",
+    "current_forward_registrations_unchanged": true,
+    "eligible_as_future_profit_shadow": true
+  },
+  "limitations": [
+    "全域結論針對截至 2026-07-17 的歷史最低實領壓力獎金；該最低值不是未來保證。",
+    "現行名目獎金的全域結論依 2026-07-19 官方獎級面額；規則變更時必須開新證書重算。",
+    "不估算浮動獎金期望值、多人均分、稅負或風險偏好。",
+    "提高的是五注合計事件率，不讓任何號碼標籤或單注頭獎變得較可能。",
+    "純模擬研究，不構成購買或下注建議。"
+  ],
+  "certificate_hash": "9fa8d7949ce75887af774e664ef913392d723eb58c5bacab1e47e50838216acb",
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  }
+}

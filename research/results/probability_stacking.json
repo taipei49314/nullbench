@@ -1,0 +1,359 @@
+{
+  "schema_version": "1",
+  "experiment_id": "online-probability-stacking-shadow-v1",
+  "source_experiment_id": "agent-loop-v3-unknown-generator",
+  "generated_at": "2026-07-17T23:59:59+08:00",
+  "question": "逐期 proper-score 縮權能否建立比未校準辯論共識更可信的未來號碼標籤 shadow？",
+  "methodology": {
+    "experts": [
+      "independent_null",
+      "overfit_guard",
+      "regime_shift",
+      "structural_bias",
+      "temporal_dependency",
+      "debate_consensus",
+      "uniform"
+    ],
+    "smoothing": 0.5,
+    "debate_temperature": 1.0,
+    "loss": "mean_negative_log_mass_of_six_drawn_main_numbers",
+    "special_loss": "negative_log_mass_of_drawn_special",
+    "learning_rate": "eta_t=1/sqrt(t)",
+    "main_selection": "top_30_then_round_robin_five_disjoint_tickets",
+    "special_selection": "top_5_then_pair_by_ticket_main_mass",
+    "monitoring_checkpoints": [
+      52,
+      104,
+      208,
+      416,
+      832
+    ],
+    "bootstrap_block_draws": 13,
+    "bootstrap_samples": 2000,
+    "look_lower_tail_alpha": 0.005,
+    "historical_use": "prequential_initialization_and_description_only",
+    "promotion_evidence": "future_forward_pairs_only",
+    "protocol_hash": "fbe7eac82cac7a79e08b4aeb75d7e5a840fed092102744adb4afc52b9280df85",
+    "unit": "每款遊戲每期一個開獎前專家集合",
+    "lookahead_control": "第 t 期票券使用 update 前權重；第 t 期 reveal 只更新第 t+1 期權重。",
+    "structural_optimum_proof": {
+      "experiment_id": "five-ticket-structural-optimum-proof-v1",
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
+    }
+  },
+  "data_quality": {
+    "status": "pass",
+    "ledger_verification": {
+      "super": {
+        "lines": 1929,
+        "last_event_hash": "dd73e41b44d72161be95e0747e9ddfa16dae92c3ae62e16d96110e2a5d8643c1",
+        "ledger_sha256": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3"
+      },
+      "lotto649": {
+        "lines": 2153,
+        "last_event_hash": "e5c637e43566b0c522392f41a8697c8c7983ee3e435af3ea1945ba3106941fcb",
+        "ledger_sha256": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+      }
+    },
+    "source_first_dates": {
+      "super": "2008-01-24",
+      "lotto649": "2007-01-02"
+    },
+    "source_last_dates": {
+      "super": "2026-07-16",
+      "lotto649": "2026-07-17"
+    },
+    "chronology": "strictly_increasing",
+    "duplicate_periods": 0,
+    "proposal_coverage": "5 agents × 3 proposals per draw",
+    "critique_coverage": "60 cross-agent critiques per draw",
+    "candidate_score_coverage": "15 per draw",
+    "expert_distributions": "strictly_positive_finite_and_sum_to_one"
+  },
+  "prequential_summary": {
+    "super": {
+      "game": "super",
+      "game_name": "威力彩",
+      "draws": 1929,
+      "first_date": "2008-01-24",
+      "last_date": "2026-07-16",
+      "mean_mixture_main_log_loss": 3.63840270902994,
+      "mean_expert_main_log_loss": {
+        "independent_null": 3.8315526575070367,
+        "overfit_guard": 3.8233714644129533,
+        "regime_shift": 3.8271679439166912,
+        "structural_bias": 3.8232387819343296,
+        "temporal_dependency": 3.826188660654262,
+        "debate_consensus": 3.786673110140126,
+        "uniform": 3.6375861597263857
+      },
+      "stacking_minus_consensus": {
+        "union_main_hits": {
+          "mean": -0.015552099533437015,
+          "first_half_mean": 0.002074688796680498,
+          "second_half_mean": -0.03316062176165803,
+          "same_nonzero_direction": false
+        },
+        "best_main_hits": {
+          "mean": -0.014515292897874546,
+          "first_half_mean": -0.023858921161825725,
+          "second_half_mean": -0.0051813471502590676,
+          "same_nonzero_direction": true
+        },
+        "any_three_plus": {
+          "mean": -0.01607050285121825,
+          "first_half_mean": -0.00933609958506224,
+          "second_half_mean": -0.022797927461139896,
+          "same_nonzero_direction": true
+        },
+        "any_prize": {
+          "mean": -0.01607050285121825,
+          "first_half_mean": -0.021784232365145227,
+          "second_half_mean": -0.010362694300518135,
+          "same_nonzero_direction": true
+        }
+      },
+      "mean_mixture_special_log_loss": 2.080263888888311,
+      "mean_expert_special_log_loss": {
+        "independent_null": 2.2642251968953198,
+        "overfit_guard": 2.245674150280537,
+        "regime_shift": 2.25286788964919,
+        "structural_bias": 2.259059205165388,
+        "temporal_dependency": 2.2662822497368733,
+        "debate_consensus": 2.2698980334468715,
+        "uniform": 2.0794415416798357
+      }
+    },
+    "lotto649": {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "draws": 2153,
+      "first_date": "2007-01-02",
+      "last_date": "2026-07-17",
+      "mean_mixture_main_log_loss": 3.892527458645956,
+      "mean_expert_main_log_loss": {
+        "independent_null": 4.061127619691329,
+        "overfit_guard": 4.058125317218557,
+        "regime_shift": 4.06798242844167,
+        "structural_bias": 4.057863211623343,
+        "temporal_dependency": 4.065387468985903,
+        "debate_consensus": 4.060059007083959,
+        "uniform": 3.891820298110627
+      },
+      "stacking_minus_consensus": {
+        "union_main_hits": {
+          "mean": -0.030654900139340455,
+          "first_half_mean": -0.04460966542750929,
+          "second_half_mean": -0.016713091922005572,
+          "same_nonzero_direction": true
+        },
+        "best_main_hits": {
+          "mean": 0.006038086391082211,
+          "first_half_mean": 0.006505576208178439,
+          "second_half_mean": 0.005571030640668524,
+          "same_nonzero_direction": true
+        },
+        "any_three_plus": {
+          "mean": 0.002786809103576405,
+          "first_half_mean": -0.0027881040892193307,
+          "second_half_mean": 0.008356545961002786,
+          "same_nonzero_direction": false
+        },
+        "any_prize": {
+          "mean": 0.010218300046446818,
+          "first_half_mean": 0.0027881040892193307,
+          "second_half_mean": 0.017641597028783658,
+          "same_nonzero_direction": true
+        }
+      }
+    }
+  },
+  "final_models": {
+    "super": {
+      "main_log_weights": {
+        "independent_null": -17.206509134657907,
+        "overfit_guard": -16.982008582339564,
+        "regime_shift": -16.003324773388304,
+        "structural_bias": -16.606051767436995,
+        "temporal_dependency": -16.03072186420148,
+        "debate_consensus": -13.387326966389873,
+        "uniform": 0.0
+      },
+      "main_weights": {
+        "independent_null": 3.3674969255413834e-08,
+        "overfit_guard": 4.215087155244032e-08,
+        "regime_shift": 1.1216142974625705e-07,
+        "structural_bias": 6.138786496033196e-08,
+        "temporal_dependency": 1.091302452860902e-07,
+        "debate_consensus": 1.5344648657608929e-06,
+        "uniform": 0.9999981070297534
+      },
+      "special_log_weights": {
+        "independent_null": -16.41765069314638,
+        "overfit_guard": -13.40461895888126,
+        "regime_shift": -15.047914219191266,
+        "structural_bias": -15.502042746111405,
+        "temporal_dependency": -15.997497659514474,
+        "debate_consensus": -16.830238840280035,
+        "uniform": 0.0
+      },
+      "special_weights": {
+        "independent_null": 7.411462808685027e-08,
+        "overfit_guard": 1.5081585120922189e-06,
+        "regime_shift": 2.9159020144783423e-07,
+        "structural_bias": 1.8516010253609882e-07,
+        "temporal_dependency": 1.1281687811277879e-07,
+        "debate_consensus": 4.90590549630935e-08,
+        "uniform": 0.9999977791006228
+      }
+    },
+    "lotto649": {
+      "main_log_weights": {
+        "independent_null": -15.976342604450664,
+        "overfit_guard": -15.598376745190471,
+        "regime_shift": -15.382562950368968,
+        "structural_bias": -15.680348214700501,
+        "temporal_dependency": -15.419156571672202,
+        "debate_consensus": -15.580583253103505,
+        "uniform": 0.0
+      },
+      "main_weights": {
+        "independent_null": 1.1522908763193236e-07,
+        "overfit_guard": 1.6815531938642242e-07,
+        "regime_shift": 2.0865910990772404e-07,
+        "structural_bias": 1.5492120037104127e-07,
+        "temporal_dependency": 2.0116153579598015e-07,
+        "debate_consensus": 1.7117416801189795e-07,
+        "uniform": 0.9999989806995788
+      }
+    }
+  },
+  "conclusion": {
+    "status": "future_shadow_only",
+    "historical_promotion_eligible": false,
+    "reason": "完整歷史已被多項研究使用；描述性 prequential 結果不得重開歷史 holdout。",
+    "next_evidence": "只接受不可回填的前向 52/104/208/416/832 共同 checkpoint。"
+  },
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  },
+  "limitations": [
+    "公平模型下每個合法號碼標籤理論等機率。",
+    "歷史結果只初始化 online weights，不是新的確認性 holdout。",
+    "前向樣本未達共同 checkpoint 前不得宣稱機率提高。",
+    "本系統純模擬，不構成購買或下注建議。"
+  ],
+  "future_forward_shadow_candidate": {
+    "schema_version": "1",
+    "experiment_id": "probability-stacking-forward-shadow-v1",
+    "source_experiment_id": "online-probability-stacking-shadow-v1",
+    "protocol_hash": "fbe7eac82cac7a79e08b4aeb75d7e5a840fed092102744adb4afc52b9280df85",
+    "parameters": {
+      "experts": [
+        "independent_null",
+        "overfit_guard",
+        "regime_shift",
+        "structural_bias",
+        "temporal_dependency",
+        "debate_consensus",
+        "uniform"
+      ],
+      "smoothing": 0.5,
+      "debate_temperature": 1.0,
+      "loss": "mean_negative_log_mass_of_six_drawn_main_numbers",
+      "special_loss": "negative_log_mass_of_drawn_special",
+      "learning_rate": "eta_t=1/sqrt(t)",
+      "main_selection": "top_30_then_round_robin_five_disjoint_tickets",
+      "special_selection": "top_5_then_pair_by_ticket_main_mass",
+      "monitoring_checkpoints": [
+        52,
+        104,
+        208,
+        416,
+        832
+      ],
+      "bootstrap_block_draws": 13,
+      "bootstrap_samples": 2000,
+      "look_lower_tail_alpha": 0.005,
+      "historical_use": "prequential_initialization_and_description_only",
+      "promotion_evidence": "future_forward_pairs_only"
+    },
+    "use": "future_forward_shadow_only",
+    "historical_evidence_status": "reused_history_for_prequential_initialization_only",
+    "fitted_through": {
+      "super": "2026-07-16",
+      "lotto649": "2026-07-17"
+    },
+    "source_ledger_hashes": {
+      "super": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3",
+      "lotto649": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+    },
+    "models": {
+      "super": {
+        "main_log_weights": {
+          "independent_null": -17.206509134657907,
+          "overfit_guard": -16.982008582339564,
+          "regime_shift": -16.003324773388304,
+          "structural_bias": -16.606051767436995,
+          "temporal_dependency": -16.03072186420148,
+          "debate_consensus": -13.387326966389873,
+          "uniform": 0.0
+        },
+        "main_weights": {
+          "independent_null": 3.3674969255413834e-08,
+          "overfit_guard": 4.215087155244032e-08,
+          "regime_shift": 1.1216142974625705e-07,
+          "structural_bias": 6.138786496033196e-08,
+          "temporal_dependency": 1.091302452860902e-07,
+          "debate_consensus": 1.5344648657608929e-06,
+          "uniform": 0.9999981070297534
+        },
+        "special_log_weights": {
+          "independent_null": -16.41765069314638,
+          "overfit_guard": -13.40461895888126,
+          "regime_shift": -15.047914219191266,
+          "structural_bias": -15.502042746111405,
+          "temporal_dependency": -15.997497659514474,
+          "debate_consensus": -16.830238840280035,
+          "uniform": 0.0
+        },
+        "special_weights": {
+          "independent_null": 7.411462808685027e-08,
+          "overfit_guard": 1.5081585120922189e-06,
+          "regime_shift": 2.9159020144783423e-07,
+          "structural_bias": 1.8516010253609882e-07,
+          "temporal_dependency": 1.1281687811277879e-07,
+          "debate_consensus": 4.90590549630935e-08,
+          "uniform": 0.9999977791006228
+        }
+      },
+      "lotto649": {
+        "main_log_weights": {
+          "independent_null": -15.976342604450664,
+          "overfit_guard": -15.598376745190471,
+          "regime_shift": -15.382562950368968,
+          "structural_bias": -15.680348214700501,
+          "temporal_dependency": -15.419156571672202,
+          "debate_consensus": -15.580583253103505,
+          "uniform": 0.0
+        },
+        "main_weights": {
+          "independent_null": 1.1522908763193236e-07,
+          "overfit_guard": 1.6815531938642242e-07,
+          "regime_shift": 2.0865910990772404e-07,
+          "structural_bias": 1.5492120037104127e-07,
+          "temporal_dependency": 2.0116153579598015e-07,
+          "debate_consensus": 1.7117416801189795e-07,
+          "uniform": 0.9999989806995788
+        }
+      }
+    },
+    "structural_optimum_proof": {
+      "experiment_id": "five-ticket-structural-optimum-proof-v1",
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
+    },
+    "candidate_hash": "57885004b35a01f79df8cce3883e6238891e5e2312906cbd2cff65eae133f563"
+  }
+}

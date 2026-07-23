@@ -1,0 +1,400 @@
+{
+  "schema_version": "1",
+  "experiment_id": "null-safe-probability-gate-v1",
+  "source_experiment_id": "agent-loop-v3-unknown-generator",
+  "generated_at": "2026-07-17T23:59:59+08:00",
+  "question": "在沒有足夠非均勻 likelihood 證據時回退精確均勻分布，能否消除 stacking 的無證據 proper-score 損失？",
+  "methodology": {
+    "e_process_protocol_id": "restart-mixture-e-process-v1",
+    "main_likelihood": "product_weighted_unordered_six_number_subset",
+    "special_likelihood": "categorical_probability_mass",
+    "restart_start_weight": "6/(pi^2*s^2)",
+    "family_alpha": 0.05,
+    "evidence_streams": [
+      "super_main",
+      "super_special",
+      "lotto649_main"
+    ],
+    "stream_alpha": 0.016666666666666666,
+    "activation_e_threshold": 60.0,
+    "activation_timing": "target_t_uses_only_e_value_through_reveal_t_minus_1",
+    "inactive_main_forecast": "exact_discrete_uniform",
+    "inactive_special_forecast": "exact_discrete_uniform",
+    "inactive_ticket_labels": "consensus_coverage",
+    "historical_use": "initialization_and_description_only",
+    "promotion_evidence": "future_forward_scores_only",
+    "protocol_hash": "5f9846d9731d38ca026682f9a95e32d0343e6e25fa96509dbd51bfe2b40b6fb7",
+    "unit": "每款遊戲每期一個開獎前可預測分布",
+    "lookahead_control": "第 t 期 gate 只讀截至 t-1 reveal 的 e-value；第 t 期 reveal 只更新 t+1 gate。",
+    "structural_optimum_proof": {
+      "experiment_id": "five-ticket-structural-optimum-proof-v1",
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
+    }
+  },
+  "data_quality": {
+    "status": "pass",
+    "ledger_verification": {
+      "super": {
+        "lines": 1929,
+        "last_event_hash": "dd73e41b44d72161be95e0747e9ddfa16dae92c3ae62e16d96110e2a5d8643c1",
+        "ledger_sha256": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3"
+      },
+      "lotto649": {
+        "lines": 2153,
+        "last_event_hash": "e5c637e43566b0c522392f41a8697c8c7983ee3e435af3ea1945ba3106941fcb",
+        "ledger_sha256": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+      }
+    },
+    "source_first_dates": {
+      "super": "2008-01-24",
+      "lotto649": "2007-01-02"
+    },
+    "source_last_dates": {
+      "super": "2026-07-16",
+      "lotto649": "2026-07-17"
+    },
+    "chronology": "strictly_increasing",
+    "duplicate_periods": 0,
+    "likelihood": "normalized_unordered_subset_and_categorical",
+    "e_process_complexity": "O(draws)"
+  },
+  "prequential_summary": {
+    "super": {
+      "game": "super",
+      "game_name": "威力彩",
+      "draws": 1929,
+      "first_date": "2008-01-24",
+      "last_date": "2026-07-16",
+      "main": {
+        "draws": 1929,
+        "mean_existing_mixture_log_loss": 14.835433785991992,
+        "mean_null_safe_log_loss": 14.830987946388674,
+        "uniform_log_loss": 14.830987946388674,
+        "existing_mixture_regret_vs_uniform": 0.0044458396033171255,
+        "null_safe_regret_vs_uniform": 0.0,
+        "null_safe_improvement_vs_existing": 0.0044458396033171255,
+        "cumulative_log_likelihood_ratio_vs_uniform": -8.576024594796595,
+        "maximum_restart_e_value": 1.2377173946467543,
+        "final_restart_e_value": 0.0181830292669766,
+        "activation_periods": 0,
+        "sensitivity_activation_periods": {
+          "3.0": 0,
+          "20.0": 0,
+          "60.0": 0
+        },
+        "final_state": {
+          "schema_version": "1",
+          "protocol_id": "restart-mixture-e-process-v1",
+          "sequence": 1929,
+          "log_active_component_wealth": -4.024746141329528,
+          "allocated_start_weight": 0.999684930247089,
+          "log_e_value": -4.007266577767084
+        }
+      },
+      "special": {
+        "draws": 1929,
+        "mean_existing_mixture_log_loss": 2.080263888888311,
+        "mean_null_safe_log_loss": 2.0794415416798357,
+        "uniform_log_loss": 2.0794415416798357,
+        "existing_mixture_regret_vs_uniform": 0.0008223472084751826,
+        "null_safe_regret_vs_uniform": 0.0,
+        "null_safe_improvement_vs_existing": 0.0008223472084751826,
+        "cumulative_log_likelihood_ratio_vs_uniform": -1.5863077651479005,
+        "maximum_restart_e_value": 1.784132197586711,
+        "final_restart_e_value": 0.2877808548748199,
+        "activation_periods": 0,
+        "sensitivity_activation_periods": {
+          "3.0": 0,
+          "20.0": 0,
+          "60.0": 0
+        },
+        "final_state": {
+          "schema_version": "1",
+          "protocol_id": "restart-mixture-e-process-v1",
+          "sequence": 1929,
+          "log_active_component_wealth": -1.2466514340983994,
+          "allocated_start_weight": 0.999684930247089,
+          "log_e_value": -1.2455560090667344
+        }
+      }
+    },
+    "lotto649": {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "draws": 2153,
+      "first_date": "2007-01-02",
+      "last_date": "2026-07-17",
+      "main": {
+        "draws": 2153,
+        "mean_existing_mixture_log_loss": 16.457213778758597,
+        "mean_null_safe_log_loss": 16.45341121889615,
+        "uniform_log_loss": 16.45341121889615,
+        "existing_mixture_regret_vs_uniform": 0.0038025598624464862,
+        "null_safe_regret_vs_uniform": 0.0,
+        "null_safe_improvement_vs_existing": 0.0038025598624464862,
+        "cumulative_log_likelihood_ratio_vs_uniform": -8.186911383846967,
+        "maximum_restart_e_value": 1.2979297575339965,
+        "final_restart_e_value": 0.01956418635393228,
+        "activation_periods": 0,
+        "sensitivity_activation_periods": {
+          "3.0": 0,
+          "20.0": 0,
+          "60.0": 0
+        },
+        "final_state": {
+          "schema_version": "1",
+          "protocol_id": "restart-mixture-e-process-v1",
+          "sequence": 2153,
+          "log_active_component_wealth": -3.948589011140793,
+          "allocated_start_weight": 0.9997177027671574,
+          "log_e_value": -3.934054611001165
+        }
+      }
+    }
+  },
+  "final_models": {
+    "super": {
+      "main_log_weights": {
+        "independent_null": -17.206509134657907,
+        "overfit_guard": -16.982008582339564,
+        "regime_shift": -16.003324773388304,
+        "structural_bias": -16.606051767436995,
+        "temporal_dependency": -16.03072186420148,
+        "debate_consensus": -13.387326966389873,
+        "uniform": 0.0
+      },
+      "main_weights": {
+        "independent_null": 3.3674969255413834e-08,
+        "overfit_guard": 4.215087155244032e-08,
+        "regime_shift": 1.1216142974625705e-07,
+        "structural_bias": 6.138786496033196e-08,
+        "temporal_dependency": 1.091302452860902e-07,
+        "debate_consensus": 1.5344648657608929e-06,
+        "uniform": 0.9999981070297534
+      },
+      "main_e_process": {
+        "schema_version": "1",
+        "protocol_id": "restart-mixture-e-process-v1",
+        "sequence": 1929,
+        "log_active_component_wealth": -4.024746141329528,
+        "allocated_start_weight": 0.999684930247089,
+        "log_e_value": -4.007266577767084
+      },
+      "main_gate_active": false,
+      "special_log_weights": {
+        "independent_null": -16.41765069314638,
+        "overfit_guard": -13.40461895888126,
+        "regime_shift": -15.047914219191266,
+        "structural_bias": -15.502042746111405,
+        "temporal_dependency": -15.997497659514474,
+        "debate_consensus": -16.830238840280035,
+        "uniform": 0.0
+      },
+      "special_weights": {
+        "independent_null": 7.411462808685027e-08,
+        "overfit_guard": 1.5081585120922189e-06,
+        "regime_shift": 2.9159020144783423e-07,
+        "structural_bias": 1.8516010253609882e-07,
+        "temporal_dependency": 1.1281687811277879e-07,
+        "debate_consensus": 4.90590549630935e-08,
+        "uniform": 0.9999977791006228
+      },
+      "special_e_process": {
+        "schema_version": "1",
+        "protocol_id": "restart-mixture-e-process-v1",
+        "sequence": 1929,
+        "log_active_component_wealth": -1.2466514340983994,
+        "allocated_start_weight": 0.999684930247089,
+        "log_e_value": -1.2455560090667344
+      },
+      "special_gate_active": false
+    },
+    "lotto649": {
+      "main_log_weights": {
+        "independent_null": -15.976342604450664,
+        "overfit_guard": -15.598376745190471,
+        "regime_shift": -15.382562950368968,
+        "structural_bias": -15.680348214700501,
+        "temporal_dependency": -15.419156571672202,
+        "debate_consensus": -15.580583253103505,
+        "uniform": 0.0
+      },
+      "main_weights": {
+        "independent_null": 1.1522908763193236e-07,
+        "overfit_guard": 1.6815531938642242e-07,
+        "regime_shift": 2.0865910990772404e-07,
+        "structural_bias": 1.5492120037104127e-07,
+        "temporal_dependency": 2.0116153579598015e-07,
+        "debate_consensus": 1.7117416801189795e-07,
+        "uniform": 0.9999989806995788
+      },
+      "main_e_process": {
+        "schema_version": "1",
+        "protocol_id": "restart-mixture-e-process-v1",
+        "sequence": 2153,
+        "log_active_component_wealth": -3.948589011140793,
+        "allocated_start_weight": 0.9997177027671574,
+        "log_e_value": -3.934054611001165
+      },
+      "main_gate_active": false
+    }
+  },
+  "conclusion": {
+    "status": "candidate_ready_future_shadow",
+    "historical_promotion_eligible": false,
+    "current_gate_active": {
+      "super": {
+        "main": false,
+        "special": false
+      },
+      "lotto649": {
+        "main": false,
+        "special": null
+      }
+    },
+    "reason": "所有歷史 evidence stream 都遠低於固定啟用門檻；無證據時精確均勻 forecast 消除現行微小正 regret。",
+    "next_evidence": "只接受新 experiment ID 下不可回填的前向 proper score。"
+  },
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  },
+  "limitations": [
+    "公平零模型下合法號碼標籤與合法六號子集理論等機率。",
+    "歷史只初始化 gate，不是新的確認性 holdout。",
+    "regret 降為 0 代表回到公平基準，不代表提高中獎率。",
+    "只有未來證據跨過固定門檻後才允許非均勻 forecast。",
+    "本系統純模擬，不構成購買或下注建議。"
+  ],
+  "future_forward_shadow_candidate": {
+    "schema_version": "1",
+    "experiment_id": "null-safe-probability-forward-shadow-v1",
+    "source_experiment_id": "null-safe-probability-gate-v1",
+    "underlying_stacking_experiment_id": "probability-stacking-forward-shadow-v1",
+    "underlying_stacking_protocol_hash": "fbe7eac82cac7a79e08b4aeb75d7e5a840fed092102744adb4afc52b9280df85",
+    "protocol_hash": "5f9846d9731d38ca026682f9a95e32d0343e6e25fa96509dbd51bfe2b40b6fb7",
+    "parameters": {
+      "e_process_protocol_id": "restart-mixture-e-process-v1",
+      "main_likelihood": "product_weighted_unordered_six_number_subset",
+      "special_likelihood": "categorical_probability_mass",
+      "restart_start_weight": "6/(pi^2*s^2)",
+      "family_alpha": 0.05,
+      "evidence_streams": [
+        "super_main",
+        "super_special",
+        "lotto649_main"
+      ],
+      "stream_alpha": 0.016666666666666666,
+      "activation_e_threshold": 60.0,
+      "activation_timing": "target_t_uses_only_e_value_through_reveal_t_minus_1",
+      "inactive_main_forecast": "exact_discrete_uniform",
+      "inactive_special_forecast": "exact_discrete_uniform",
+      "inactive_ticket_labels": "consensus_coverage",
+      "historical_use": "initialization_and_description_only",
+      "promotion_evidence": "future_forward_scores_only"
+    },
+    "use": "future_forward_shadow_only",
+    "historical_evidence_status": "descriptive_only_not_promotion",
+    "fitted_through": {
+      "super": "2026-07-16",
+      "lotto649": "2026-07-17"
+    },
+    "source_ledger_hashes": {
+      "super": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3",
+      "lotto649": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+    },
+    "models": {
+      "super": {
+        "main_log_weights": {
+          "independent_null": -17.206509134657907,
+          "overfit_guard": -16.982008582339564,
+          "regime_shift": -16.003324773388304,
+          "structural_bias": -16.606051767436995,
+          "temporal_dependency": -16.03072186420148,
+          "debate_consensus": -13.387326966389873,
+          "uniform": 0.0
+        },
+        "main_weights": {
+          "independent_null": 3.3674969255413834e-08,
+          "overfit_guard": 4.215087155244032e-08,
+          "regime_shift": 1.1216142974625705e-07,
+          "structural_bias": 6.138786496033196e-08,
+          "temporal_dependency": 1.091302452860902e-07,
+          "debate_consensus": 1.5344648657608929e-06,
+          "uniform": 0.9999981070297534
+        },
+        "main_e_process": {
+          "schema_version": "1",
+          "protocol_id": "restart-mixture-e-process-v1",
+          "sequence": 1929,
+          "log_active_component_wealth": -4.024746141329528,
+          "allocated_start_weight": 0.999684930247089,
+          "log_e_value": -4.007266577767084
+        },
+        "main_gate_active": false,
+        "special_log_weights": {
+          "independent_null": -16.41765069314638,
+          "overfit_guard": -13.40461895888126,
+          "regime_shift": -15.047914219191266,
+          "structural_bias": -15.502042746111405,
+          "temporal_dependency": -15.997497659514474,
+          "debate_consensus": -16.830238840280035,
+          "uniform": 0.0
+        },
+        "special_weights": {
+          "independent_null": 7.411462808685027e-08,
+          "overfit_guard": 1.5081585120922189e-06,
+          "regime_shift": 2.9159020144783423e-07,
+          "structural_bias": 1.8516010253609882e-07,
+          "temporal_dependency": 1.1281687811277879e-07,
+          "debate_consensus": 4.90590549630935e-08,
+          "uniform": 0.9999977791006228
+        },
+        "special_e_process": {
+          "schema_version": "1",
+          "protocol_id": "restart-mixture-e-process-v1",
+          "sequence": 1929,
+          "log_active_component_wealth": -1.2466514340983994,
+          "allocated_start_weight": 0.999684930247089,
+          "log_e_value": -1.2455560090667344
+        },
+        "special_gate_active": false
+      },
+      "lotto649": {
+        "main_log_weights": {
+          "independent_null": -15.976342604450664,
+          "overfit_guard": -15.598376745190471,
+          "regime_shift": -15.382562950368968,
+          "structural_bias": -15.680348214700501,
+          "temporal_dependency": -15.419156571672202,
+          "debate_consensus": -15.580583253103505,
+          "uniform": 0.0
+        },
+        "main_weights": {
+          "independent_null": 1.1522908763193236e-07,
+          "overfit_guard": 1.6815531938642242e-07,
+          "regime_shift": 2.0865910990772404e-07,
+          "structural_bias": 1.5492120037104127e-07,
+          "temporal_dependency": 2.0116153579598015e-07,
+          "debate_consensus": 1.7117416801189795e-07,
+          "uniform": 0.9999989806995788
+        },
+        "main_e_process": {
+          "schema_version": "1",
+          "protocol_id": "restart-mixture-e-process-v1",
+          "sequence": 2153,
+          "log_active_component_wealth": -3.948589011140793,
+          "allocated_start_weight": 0.9997177027671574,
+          "log_e_value": -3.934054611001165
+        },
+        "main_gate_active": false
+      }
+    },
+    "structural_optimum_proof": {
+      "experiment_id": "five-ticket-structural-optimum-proof-v1",
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
+    },
+    "candidate_hash": "7e1b3dbd23a21eaea683cffb61c5efd59429fc170088aef765ffbad8412d98da"
+  }
+}

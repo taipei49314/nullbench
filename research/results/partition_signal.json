@@ -1,0 +1,645 @@
+{
+  "schema_version": "1",
+  "experiment_id": "partition-signal-shadow-v1",
+  "source_experiment_id": "agent-loop-v3-unknown-generator",
+  "generated_at": "2026-07-17T23:59:59+08:00",
+  "question": "同一批 30 個 Agent 共識主號，在保持五注完全互斥時，提案或歷史共現分組能否於封存 holdout 提高三主號事件？",
+  "methodology": {
+    "warmup_draws": 60,
+    "development_fraction": 0.7,
+    "bootstrap_samples": 2000,
+    "bootstrap_block_draws": 13,
+    "partitioners": [
+      "round_robin",
+      "chunks",
+      "snake",
+      "proposal_affinity",
+      "proposal_anti",
+      "history_all_affinity",
+      "history_all_anti",
+      "history_52_affinity",
+      "history_52_anti",
+      "seeded_shuffle"
+    ],
+    "primary_metric": "any_three_plus",
+    "guardrails": [
+      "best_main_hits",
+      "any_prize"
+    ],
+    "selection_rule": "development 的 any_three_plus 嚴格提高，且最佳主號命中與完整任一獎級均不下降者才可進 holdout；holdout 區塊區間下界須大於 0 且護欄不下降。",
+    "lookahead_control": "candidate_partitions 不接受 reveal；歷史 pair state只在該期評分後更新。",
+    "structural_invariance": "所有候選使用完全相同的 30 個主號、五注各六號且兩兩互斥，精確理論結構機率完全相同。",
+    "structural_optimum_proof": {
+      "experiment_id": "five-ticket-structural-optimum-proof-v1",
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
+    }
+  },
+  "data_quality": {
+    "status": "pass",
+    "ledger_verification": {
+      "super": {
+        "lines": 1929,
+        "last_event_hash": "dd73e41b44d72161be95e0747e9ddfa16dae92c3ae62e16d96110e2a5d8643c1",
+        "ledger_sha256": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3"
+      },
+      "lotto649": {
+        "lines": 2153,
+        "last_event_hash": "e5c637e43566b0c522392f41a8697c8c7983ee3e435af3ea1945ba3106941fcb",
+        "ledger_sha256": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+      }
+    },
+    "split_profiles": {
+      "super": {
+        "total_draws": 1929,
+        "warmup_draws": 60,
+        "eligible_draws": 1869,
+        "development_draws": 1308,
+        "holdout_draws": 561
+      },
+      "lotto649": {
+        "total_draws": 2153,
+        "warmup_draws": 60,
+        "eligible_draws": 2093,
+        "development_draws": 1465,
+        "holdout_draws": 628
+      }
+    },
+    "source_last_dates": {
+      "super": "2026-07-16",
+      "lotto649": "2026-07-17"
+    }
+  },
+  "summary": [
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "round_robin",
+      "draws": 1308,
+      "best_main_hits": 2.0726299694189603,
+      "any_three_plus": 0.20412844036697247,
+      "any_prize": 0.5466360856269113,
+      "best_main_hits_minus_round_robin": 0.0,
+      "any_three_plus_minus_round_robin": 0.0,
+      "any_prize_minus_round_robin": 0.0
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "chunks",
+      "draws": 1308,
+      "best_main_hits": 2.058103975535168,
+      "any_three_plus": 0.18807339449541285,
+      "any_prize": 0.5359327217125383,
+      "best_main_hits_minus_round_robin": -0.014525993883792054,
+      "any_three_plus_minus_round_robin": -0.01605504587155962,
+      "any_prize_minus_round_robin": -0.010703363914373099
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "snake",
+      "draws": 1308,
+      "best_main_hits": 2.061926605504587,
+      "any_three_plus": 0.18577981651376146,
+      "any_prize": 0.540519877675841,
+      "best_main_hits_minus_round_robin": -0.01070336391437321,
+      "any_three_plus_minus_round_robin": -0.01834862385321101,
+      "any_prize_minus_round_robin": -0.006116207951070374
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "proposal_affinity",
+      "draws": 1308,
+      "best_main_hits": 2.079510703363914,
+      "any_three_plus": 0.19954128440366972,
+      "any_prize": 0.5535168195718655,
+      "best_main_hits_minus_round_robin": 0.006880733944953921,
+      "any_three_plus_minus_round_robin": -0.0045871559633027525,
+      "any_prize_minus_round_robin": 0.006880733944954143
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "proposal_anti",
+      "draws": 1308,
+      "best_main_hits": 2.067278287461774,
+      "any_three_plus": 0.19648318042813456,
+      "any_prize": 0.5451070336391437,
+      "best_main_hits_minus_round_robin": -0.005351681957186383,
+      "any_three_plus_minus_round_robin": -0.007645259938837912,
+      "any_prize_minus_round_robin": -0.001529051987767649
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "history_all_affinity",
+      "draws": 1308,
+      "best_main_hits": 2.0603975535168195,
+      "any_three_plus": 0.18883792048929662,
+      "any_prize": 0.5519877675840978,
+      "best_main_hits_minus_round_robin": -0.012232415902140747,
+      "any_three_plus_minus_round_robin": -0.015290519877675851,
+      "any_prize_minus_round_robin": 0.005351681957186494
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "history_all_anti",
+      "draws": 1308,
+      "best_main_hits": 2.055810397553517,
+      "any_three_plus": 0.18042813455657492,
+      "any_prize": 0.5535168195718655,
+      "best_main_hits_minus_round_robin": -0.01681957186544336,
+      "any_three_plus_minus_round_robin": -0.02370030581039756,
+      "any_prize_minus_round_robin": 0.006880733944954143
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "history_52_affinity",
+      "draws": 1308,
+      "best_main_hits": 2.062691131498471,
+      "any_three_plus": 0.2018348623853211,
+      "any_prize": 0.5565749235474006,
+      "best_main_hits_minus_round_robin": -0.00993883792048944,
+      "any_three_plus_minus_round_robin": -0.0022935779816513624,
+      "any_prize_minus_round_robin": 0.009938837920489219
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "history_52_anti",
+      "draws": 1308,
+      "best_main_hits": 2.0535168195718656,
+      "any_three_plus": 0.1926605504587156,
+      "any_prize": 0.5481651376146789,
+      "best_main_hits_minus_round_robin": -0.019113149847094668,
+      "any_three_plus_minus_round_robin": -0.011467889908256867,
+      "any_prize_minus_round_robin": 0.001529051987767538
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "development",
+      "partitioner": "seeded_shuffle",
+      "draws": 1308,
+      "best_main_hits": 2.0825688073394497,
+      "any_three_plus": 0.20718654434250763,
+      "any_prize": 0.5573394495412844,
+      "best_main_hits_minus_round_robin": 0.00993883792048944,
+      "any_three_plus_minus_round_robin": 0.003058103975535159,
+      "any_prize_minus_round_robin": 0.010703363914373099
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "round_robin",
+      "draws": 561,
+      "best_main_hits": 2.073083778966132,
+      "any_three_plus": 0.19964349376114082,
+      "any_prize": 0.5454545454545454,
+      "best_main_hits_minus_round_robin": 0.0,
+      "any_three_plus_minus_round_robin": 0.0,
+      "any_prize_minus_round_robin": 0.0
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "chunks",
+      "draws": 561,
+      "best_main_hits": 2.0944741532976825,
+      "any_three_plus": 0.2192513368983957,
+      "any_prize": 0.5258467023172906,
+      "best_main_hits_minus_round_robin": 0.021390374331550444,
+      "any_three_plus_minus_round_robin": 0.019607843137254888,
+      "any_prize_minus_round_robin": -0.019607843137254832
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "snake",
+      "draws": 561,
+      "best_main_hits": 2.121212121212121,
+      "any_three_plus": 0.2192513368983957,
+      "any_prize": 0.5543672014260249,
+      "best_main_hits_minus_round_robin": 0.04812834224598905,
+      "any_three_plus_minus_round_robin": 0.019607843137254888,
+      "any_prize_minus_round_robin": 0.0089126559714795
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "proposal_affinity",
+      "draws": 561,
+      "best_main_hits": 2.0980392156862746,
+      "any_three_plus": 0.20855614973262032,
+      "any_prize": 0.5222816399286988,
+      "best_main_hits_minus_round_robin": 0.024955436720142554,
+      "any_three_plus_minus_round_robin": 0.0089126559714795,
+      "any_prize_minus_round_robin": -0.02317290552584661
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "proposal_anti",
+      "draws": 561,
+      "best_main_hits": 2.124777183600713,
+      "any_three_plus": 0.22638146167557932,
+      "any_prize": 0.5472370766488414,
+      "best_main_hits_minus_round_robin": 0.051693404634581164,
+      "any_three_plus_minus_round_robin": 0.0267379679144385,
+      "any_prize_minus_round_robin": 0.0017825311942959443
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "history_all_affinity",
+      "draws": 561,
+      "best_main_hits": 2.0623885918003566,
+      "any_three_plus": 0.19429590017825313,
+      "any_prize": 0.5347593582887701,
+      "best_main_hits_minus_round_robin": -0.010695187165775444,
+      "any_three_plus_minus_round_robin": -0.005347593582887694,
+      "any_prize_minus_round_robin": -0.010695187165775333
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "history_all_anti",
+      "draws": 561,
+      "best_main_hits": 2.0659536541889483,
+      "any_three_plus": 0.2014260249554367,
+      "any_prize": 0.5454545454545454,
+      "best_main_hits_minus_round_robin": -0.007130124777183777,
+      "any_three_plus_minus_round_robin": 0.0017825311942958888,
+      "any_prize_minus_round_robin": 0.0
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "history_52_affinity",
+      "draws": 561,
+      "best_main_hits": 2.10873440285205,
+      "any_three_plus": 0.21390374331550802,
+      "any_prize": 0.5418894830659536,
+      "best_main_hits_minus_round_robin": 0.035650623885918,
+      "any_three_plus_minus_round_robin": 0.014260249554367194,
+      "any_prize_minus_round_robin": -0.0035650623885917776
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "history_52_anti",
+      "draws": 561,
+      "best_main_hits": 2.064171122994652,
+      "any_three_plus": 0.18716577540106952,
+      "any_prize": 0.5472370766488414,
+      "best_main_hits_minus_round_robin": -0.008912655971479833,
+      "any_three_plus_minus_round_robin": -0.012477718360071305,
+      "any_prize_minus_round_robin": 0.0017825311942959443
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "split": "holdout",
+      "partitioner": "seeded_shuffle",
+      "draws": 561,
+      "best_main_hits": 2.10873440285205,
+      "any_three_plus": 0.21746880570409982,
+      "any_prize": 0.5436720142602496,
+      "best_main_hits_minus_round_robin": 0.035650623885918,
+      "any_three_plus_minus_round_robin": 0.017825311942959,
+      "any_prize_minus_round_robin": -0.0017825311942958333
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "round_robin",
+      "draws": 1465,
+      "best_main_hits": 1.7406143344709897,
+      "any_three_plus": 0.09965870307167235,
+      "any_prize": 0.157679180887372,
+      "best_main_hits_minus_round_robin": 0.0,
+      "any_three_plus_minus_round_robin": 0.0,
+      "any_prize_minus_round_robin": 0.0
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "chunks",
+      "draws": 1465,
+      "best_main_hits": 1.7522184300341297,
+      "any_three_plus": 0.1037542662116041,
+      "any_prize": 0.1597269624573379,
+      "best_main_hits_minus_round_robin": 0.011604095563140016,
+      "any_three_plus_minus_round_robin": 0.004095563139931743,
+      "any_prize_minus_round_robin": 0.0020477815699658786
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "snake",
+      "draws": 1465,
+      "best_main_hits": 1.7488054607508532,
+      "any_three_plus": 0.09419795221843004,
+      "any_prize": 0.15426621160409557,
+      "best_main_hits_minus_round_robin": 0.008191126279863514,
+      "any_three_plus_minus_round_robin": -0.0054607508532423105,
+      "any_prize_minus_round_robin": -0.0034129692832764458
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "proposal_affinity",
+      "draws": 1465,
+      "best_main_hits": 1.731740614334471,
+      "any_three_plus": 0.08668941979522184,
+      "any_prize": 0.16040955631399317,
+      "best_main_hits_minus_round_robin": -0.00887372013651877,
+      "any_three_plus_minus_round_robin": -0.012969283276450513,
+      "any_prize_minus_round_robin": 0.002730375426621162
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "proposal_anti",
+      "draws": 1465,
+      "best_main_hits": 1.7488054607508532,
+      "any_three_plus": 0.09897610921501707,
+      "any_prize": 0.1590443686006826,
+      "best_main_hits_minus_round_robin": 0.008191126279863514,
+      "any_three_plus_minus_round_robin": -0.0006825938566552836,
+      "any_prize_minus_round_robin": 0.001365187713310595
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "history_all_affinity",
+      "draws": 1465,
+      "best_main_hits": 1.7344709897610922,
+      "any_three_plus": 0.09146757679180888,
+      "any_prize": 0.14812286689419796,
+      "best_main_hits_minus_round_robin": -0.006143344709897525,
+      "any_three_plus_minus_round_robin": -0.008191126279863473,
+      "any_prize_minus_round_robin": -0.009556313993174054
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "history_all_anti",
+      "draws": 1465,
+      "best_main_hits": 1.7569965870307167,
+      "any_three_plus": 0.09761092150170649,
+      "any_prize": 0.15494880546075085,
+      "best_main_hits_minus_round_robin": 0.01638225255972703,
+      "any_three_plus_minus_round_robin": -0.0020477815699658647,
+      "any_prize_minus_round_robin": -0.002730375426621162
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "history_52_affinity",
+      "draws": 1465,
+      "best_main_hits": 1.7426621160409557,
+      "any_three_plus": 0.09488054607508532,
+      "any_prize": 0.1658703071672355,
+      "best_main_hits_minus_round_robin": 0.0020477815699659896,
+      "any_three_plus_minus_round_robin": -0.004778156996587027,
+      "any_prize_minus_round_robin": 0.008191126279863487
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "history_52_anti",
+      "draws": 1465,
+      "best_main_hits": 1.7508532423208192,
+      "any_three_plus": 0.09761092150170649,
+      "any_prize": 0.1453924914675768,
+      "best_main_hits_minus_round_robin": 0.010238907849829504,
+      "any_three_plus_minus_round_robin": -0.0020477815699658647,
+      "any_prize_minus_round_robin": -0.012286689419795216
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "development",
+      "partitioner": "seeded_shuffle",
+      "draws": 1465,
+      "best_main_hits": 1.7242320819112629,
+      "any_three_plus": 0.08327645051194539,
+      "any_prize": 0.1378839590443686,
+      "best_main_hits_minus_round_robin": -0.016382252559726806,
+      "any_three_plus_minus_round_robin": -0.01638225255972696,
+      "any_prize_minus_round_robin": -0.01979522184300342
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "round_robin",
+      "draws": 628,
+      "best_main_hits": 1.7054140127388535,
+      "any_three_plus": 0.07802547770700637,
+      "any_prize": 0.11942675159235669,
+      "best_main_hits_minus_round_robin": 0.0,
+      "any_three_plus_minus_round_robin": 0.0,
+      "any_prize_minus_round_robin": 0.0
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "chunks",
+      "draws": 628,
+      "best_main_hits": 1.7213375796178343,
+      "any_three_plus": 0.08917197452229299,
+      "any_prize": 0.1464968152866242,
+      "best_main_hits_minus_round_robin": 0.015923566878980777,
+      "any_three_plus_minus_round_robin": 0.011146496815286622,
+      "any_prize_minus_round_robin": 0.02707006369426751
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "snake",
+      "draws": 628,
+      "best_main_hits": 1.7770700636942676,
+      "any_three_plus": 0.09713375796178345,
+      "any_prize": 0.15445859872611464,
+      "best_main_hits_minus_round_robin": 0.07165605095541405,
+      "any_three_plus_minus_round_robin": 0.01910828025477708,
+      "any_prize_minus_round_robin": 0.035031847133757954
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "proposal_affinity",
+      "draws": 628,
+      "best_main_hits": 1.7372611464968153,
+      "any_three_plus": 0.1035031847133758,
+      "any_prize": 0.1735668789808917,
+      "best_main_hits_minus_round_robin": 0.031847133757961776,
+      "any_three_plus_minus_round_robin": 0.025477707006369435,
+      "any_prize_minus_round_robin": 0.05414012738853502
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "proposal_anti",
+      "draws": 628,
+      "best_main_hits": 1.7245222929936306,
+      "any_three_plus": 0.08121019108280254,
+      "any_prize": 0.13853503184713375,
+      "best_main_hits_minus_round_robin": 0.019108280254777066,
+      "any_three_plus_minus_round_robin": 0.0031847133757961776,
+      "any_prize_minus_round_robin": 0.019108280254777066
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "history_all_affinity",
+      "draws": 628,
+      "best_main_hits": 1.7197452229299364,
+      "any_three_plus": 0.08439490445859872,
+      "any_prize": 0.1480891719745223,
+      "best_main_hits_minus_round_robin": 0.014331210191082855,
+      "any_three_plus_minus_round_robin": 0.006369426751592355,
+      "any_prize_minus_round_robin": 0.0286624203821656
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "history_all_anti",
+      "draws": 628,
+      "best_main_hits": 1.7484076433121019,
+      "any_three_plus": 0.1035031847133758,
+      "any_prize": 0.15286624203821655,
+      "best_main_hits_minus_round_robin": 0.04299363057324834,
+      "any_three_plus_minus_round_robin": 0.025477707006369435,
+      "any_prize_minus_round_robin": 0.033439490445859865
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "history_52_affinity",
+      "draws": 628,
+      "best_main_hits": 1.7643312101910829,
+      "any_three_plus": 0.09235668789808917,
+      "any_prize": 0.15445859872611464,
+      "best_main_hits_minus_round_robin": 0.05891719745222934,
+      "any_three_plus_minus_round_robin": 0.0143312101910828,
+      "any_prize_minus_round_robin": 0.035031847133757954
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "history_52_anti",
+      "draws": 628,
+      "best_main_hits": 1.7563694267515924,
+      "any_three_plus": 0.1035031847133758,
+      "any_prize": 0.17038216560509553,
+      "best_main_hits_minus_round_robin": 0.05095541401273884,
+      "any_three_plus_minus_round_robin": 0.025477707006369435,
+      "any_prize_minus_round_robin": 0.05095541401273884
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "split": "holdout",
+      "partitioner": "seeded_shuffle",
+      "draws": 628,
+      "best_main_hits": 1.7611464968152866,
+      "any_three_plus": 0.10668789808917198,
+      "any_prize": 0.1735668789808917,
+      "best_main_hits_minus_round_robin": 0.05573248407643305,
+      "any_three_plus_minus_round_robin": 0.028662420382165613,
+      "any_prize_minus_round_robin": 0.05414012738853502
+    }
+  ],
+  "development_selection_and_holdout": {
+    "super": {
+      "development_selected_partitioner": "seeded_shuffle",
+      "development_deltas_vs_round_robin": {
+        "best_main_hits": 0.00993883792048944,
+        "any_three_plus": 0.003058103975535159,
+        "any_prize": 0.010703363914373099
+      },
+      "holdout_deltas_vs_round_robin": {
+        "best_main_hits": 0.035650623885918005,
+        "any_three_plus": 0.017825311942959002,
+        "any_prize": -0.0017825311942959
+      },
+      "holdout_any_three_plus_ci_low": -0.023172905525846704,
+      "holdout_any_three_plus_ci_high": 0.06060606060606061,
+      "promotion_eligible": false,
+      "decision": "retain_round_robin"
+    },
+    "lotto649": {
+      "development_selected_partitioner": "chunks",
+      "development_deltas_vs_round_robin": {
+        "best_main_hits": 0.011604095563140016,
+        "any_three_plus": 0.004095563139931743,
+        "any_prize": 0.0020477815699658786
+      },
+      "holdout_deltas_vs_round_robin": {
+        "best_main_hits": 0.01592356687898089,
+        "any_three_plus": 0.011146496815286623,
+        "any_prize": 0.027070063694267517
+      },
+      "holdout_any_three_plus_ci_low": -0.02388535031847134,
+      "holdout_any_three_plus_ci_high": 0.044585987261146494,
+      "promotion_eligible": false,
+      "decision": "retain_round_robin"
+    }
+  },
+  "conclusion": {
+    "status": "retain_round_robin_partition",
+    "both_games_promotion_eligible": false,
+    "decision_rule": "禁止依 holdout 改選其他分組；未同時通過兩款遊戲就保留 round-robin。"
+  },
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  },
+  "limitations": [
+    "公平獨立開獎下，30 號的任何互斥五注分割理論機率相同。",
+    "歷史共現只是假說，不能從單一 holdout 失敗後改選另一候選。",
+    "純模擬，不構成購買或下注建議。"
+  ]
+}

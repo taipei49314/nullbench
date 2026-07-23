@@ -1,0 +1,290 @@
+{
+  "schema_version": "1",
+  "experiment_id": "five-ticket-structural-optimum-proof-v1",
+  "rules_as_of": "2026-07-18",
+  "official_prize_rules": {
+    "super": "https://www.taiwanlottery.com/lotto/info/super_lotto638",
+    "lotto649": "https://www.taiwanlottery.com/lotto/info/lotto649"
+  },
+  "question": "固定五注時，主號完全互斥（威力彩第二區亦互異）是否為完整任一獎級與至少三主號聯集機率的全域最大結構？",
+  "methodology": {
+    "finite_state_space": "三個六號集合的全部 256 個 Venn membership 計數向量；排除 19 個含重複票券結構後，逐遊戲精算 237 個。",
+    "upper_bound": "三階 Bonferroni：U <= sum(Pi) - sum(Pij) + sum(Pijk)。",
+    "triple_charge_inequality": "每個三注結構精確驗證 3*Pijk <= sum_pairs(Pij-P0)；加總時每一票對恰出現三次。",
+    "super_duplicate_special": "若任兩注第二區相同，Hunter spanning-tree 上界已嚴格低於五個互異第二區的完全分散值。",
+    "calculation": "整數組合計數；不使用 Monte Carlo",
+    "lookahead": "純結構定理，不讀取歷史開獎或目標期 reveal"
+  },
+  "games": {
+    "super": {
+      "pool": 38,
+      "ticket_count": 5,
+      "pick_n": 6,
+      "any_prize": {
+        "denominator": 22085448,
+        "single_ticket_favorable_count": 2602320,
+        "pair_intersection_by_main_overlap": [
+          {
+            "main_overlap": 0,
+            "favorable_count": 102002,
+            "probability": 0.004618516228423349
+          },
+          {
+            "main_overlap": 1,
+            "favorable_count": 169602,
+            "probability": 0.007679355202575017
+          },
+          {
+            "main_overlap": 2,
+            "favorable_count": 244230,
+            "probability": 0.011058412761199139
+          },
+          {
+            "main_overlap": 3,
+            "favorable_count": 325878,
+            "probability": 0.014755326674831318
+          },
+          {
+            "main_overlap": 4,
+            "favorable_count": 428364,
+            "probability": 0.019395757785850665
+          },
+          {
+            "main_overlap": 5,
+            "favorable_count": 584964,
+            "probability": 0.026486399551415032
+          }
+        ],
+        "pair_intersection_strictly_increasing": true,
+        "three_ticket_profiles_total": 256,
+        "three_ticket_profiles_valid_distinct": 237,
+        "three_ticket_profiles_excluded_duplicate": 19,
+        "triple_charge_violations": 0,
+        "minimum_charge_slack_numerator": 0,
+        "minimum_non_disjoint_charge_slack_numerator": 28944,
+        "maximum_triple_intersection_numerator": 473314,
+        "disjoint_triple_intersection_numerator": 0,
+        "global_maximum_favorable_count": 11991580,
+        "global_maximum_probability": 0.5429629500836931,
+        "disjoint_actual_favorable_count": 11991580,
+        "global_optimum_proved": true,
+        "unique_structural_condition": "五注主號兩兩互斥；號碼標籤與票券順序可任意置換"
+      },
+      "three_main": {
+        "denominator": 2760681,
+        "single_ticket_favorable_count": 106833,
+        "pair_intersection_by_main_overlap": [
+          {
+            "main_overlap": 0,
+            "favorable_count": 400,
+            "probability": 0.00014489178575865881
+          },
+          {
+            "main_overlap": 1,
+            "favorable_count": 3000,
+            "probability": 0.0010866883931899413
+          },
+          {
+            "main_overlap": 2,
+            "favorable_count": 9588,
+            "probability": 0.003473056104635052
+          },
+          {
+            "main_overlap": 3,
+            "favorable_count": 19920,
+            "probability": 0.00721561093078121
+          },
+          {
+            "main_overlap": 4,
+            "favorable_count": 35783,
+            "probability": 0.01296165692450522
+          },
+          {
+            "main_overlap": 5,
+            "favorable_count": 61883,
+            "probability": 0.02241584594525771
+          }
+        ],
+        "pair_intersection_strictly_increasing": true,
+        "three_ticket_profiles_total": 256,
+        "three_ticket_profiles_valid_distinct": 237,
+        "three_ticket_profiles_excluded_duplicate": 19,
+        "triple_charge_violations": 0,
+        "minimum_charge_slack_numerator": 0,
+        "minimum_non_disjoint_charge_slack_numerator": 2600,
+        "maximum_triple_intersection_numerator": 57533,
+        "disjoint_triple_intersection_numerator": 0,
+        "global_maximum_favorable_count": 530165,
+        "global_maximum_probability": 0.1920413839918484,
+        "disjoint_actual_favorable_count": 530165,
+        "global_optimum_proved": true,
+        "unique_structural_condition": "五注主號兩兩互斥；號碼標籤與票券順序可任意置換"
+      },
+      "special_pool": 8,
+      "duplicate_special_proof": {
+        "same_special_pair_intersection_by_main_overlap": [
+          {
+            "main_overlap": 0,
+            "favorable_count": 1181327,
+            "probability": 0.05348893081091224
+          },
+          {
+            "main_overlap": 1,
+            "favorable_count": 1265307,
+            "probability": 0.057291434613416035
+          },
+          {
+            "main_overlap": 2,
+            "favorable_count": 1392153,
+            "probability": 0.06303485444352318
+          },
+          {
+            "main_overlap": 3,
+            "favorable_count": 1562757,
+            "probability": 0.07075957888651387
+          },
+          {
+            "main_overlap": 4,
+            "favorable_count": 1792553,
+            "probability": 0.08116443913657535
+          },
+          {
+            "main_overlap": 5,
+            "favorable_count": 2117759,
+            "probability": 0.09588933853639736
+          }
+        ],
+        "minimum_same_special_pair_intersection": 1181327,
+        "minimum_distinct_special_pair_intersection": 102002,
+        "hunter_tree_margin_numerator": 467313,
+        "hunter_upper_bound_favorable_count": 11524267,
+        "disjoint_distinct_special_favorable_count": 11991580,
+        "duplicate_special_cannot_reach_global_maximum": true
+      }
+    },
+    "lotto649": {
+      "pool": 49,
+      "ticket_count": 5,
+      "pick_n": 6,
+      "any_prize": {
+        "denominator": 601304088,
+        "single_ticket_favorable_count": 18611432,
+        "pair_intersection_by_main_overlap": [
+          {
+            "main_overlap": 0,
+            "favorable_count": 107800,
+            "probability": 0.00017927701166734793
+          },
+          {
+            "main_overlap": 1,
+            "favorable_count": 574000,
+            "probability": 0.0009545918803066577
+          },
+          {
+            "main_overlap": 2,
+            "favorable_count": 1695988,
+            "probability": 0.00282051633083193
+          },
+          {
+            "main_overlap": 3,
+            "favorable_count": 3469942,
+            "probability": 0.00577069417828405
+          },
+          {
+            "main_overlap": 4,
+            "favorable_count": 6224512,
+            "probability": 0.01035168748096055
+          },
+          {
+            "main_overlap": 5,
+            "favorable_count": 10776332,
+            "probability": 0.017921601091792343
+          }
+        ],
+        "pair_intersection_strictly_increasing": true,
+        "three_ticket_profiles_total": 256,
+        "three_ticket_profiles_valid_distinct": 237,
+        "three_ticket_profiles_excluded_duplicate": 19,
+        "triple_charge_violations": 0,
+        "minimum_charge_slack_numerator": 0,
+        "minimum_non_disjoint_charge_slack_numerator": 466200,
+        "maximum_triple_intersection_numerator": 10030132,
+        "disjoint_triple_intersection_numerator": 0,
+        "global_maximum_favorable_count": 91979160,
+        "global_maximum_probability": 0.15296613117321764,
+        "disjoint_actual_favorable_count": 91979160,
+        "global_optimum_proved": true,
+        "unique_structural_condition": "五注主號兩兩互斥；號碼標籤與票券順序可任意置換"
+      },
+      "three_main": {
+        "denominator": 13983816,
+        "single_ticket_favorable_count": 260624,
+        "pair_intersection_by_main_overlap": [
+          {
+            "main_overlap": 0,
+            "favorable_count": 400,
+            "probability": 2.8604495368074064e-05
+          },
+          {
+            "main_overlap": 1,
+            "favorable_count": 4100,
+            "probability": 0.00029319607752275917
+          },
+          {
+            "main_overlap": 2,
+            "favorable_count": 16716,
+            "probability": 0.0011953818614318151
+          },
+          {
+            "main_overlap": 3,
+            "favorable_count": 39544,
+            "probability": 0.002827840412087802
+          },
+          {
+            "main_overlap": 4,
+            "favorable_count": 78584,
+            "probability": 0.005619639160011831
+          },
+          {
+            "main_overlap": 5,
+            "favorable_count": 145824,
+            "probability": 0.010428054831385081
+          }
+        ],
+        "pair_intersection_strictly_increasing": true,
+        "three_ticket_profiles_total": 256,
+        "three_ticket_profiles_valid_distinct": 237,
+        "three_ticket_profiles_excluded_duplicate": 19,
+        "triple_charge_violations": 0,
+        "minimum_charge_slack_numerator": 0,
+        "minimum_non_disjoint_charge_slack_numerator": 3700,
+        "maximum_triple_intersection_numerator": 137624,
+        "disjoint_triple_intersection_numerator": 0,
+        "global_maximum_favorable_count": 1299120,
+        "global_maximum_probability": 0.09290168005643094,
+        "disjoint_actual_favorable_count": 1299120,
+        "global_optimum_proved": true,
+        "unique_structural_condition": "五注主號兩兩互斥；號碼標籤與票券順序可任意置換"
+      }
+    }
+  },
+  "conclusion": {
+    "global_optimum_proved": true,
+    "super": "五注主號兩兩互斥且五個第二區互異，完整任一獎級機率全域最大。",
+    "lotto649": "五注主號兩兩互斥，完整任一獎級機率全域最大。",
+    "three_main_guardrail": "兩款遊戲的至少一注命中三主號機率亦由主號完全互斥結構全域最大化。",
+    "label_invariance": "Agent 只在同一最優結構內排序號碼標籤；公平獨立開獎下，標籤不改變上述機率。"
+  },
+  "limitations": [
+    "證明依賴現行獎級定義、公平且各期獨立的官方開獎模型。",
+    "證明最大化五注聯集事件，不提高單注或頭獎組合機率。",
+    "歷史命中差仍須由開獎前凍結的 forward shadow 驗證。",
+    "純模擬，不構成購買或下注建議。"
+  ],
+  "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23",
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  }
+}

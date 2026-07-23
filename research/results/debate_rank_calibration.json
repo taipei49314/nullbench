@@ -1,0 +1,337 @@
+{
+  "schema_version": "1",
+  "experiment_id": "debate-main-rank-calibration-audit-v1",
+  "generated_at": "2026-07-17T23:59:59+08:00",
+  "question": "AI 辯論支持排名的前 10／20／30 名，是否在封存 holdout 穩定偏離公平標籤零模型，足以支持高 multiplicity 映射？",
+  "protocol": {
+    "file": "DEBATE_RANK_CALIBRATION_PROTOCOL.md",
+    "sha256": "efaabf09a410672f91699ca9a2027fbeb21da2da4fec02ac39b0939c18b27990",
+    "cutoffs": [
+      10,
+      20,
+      30
+    ],
+    "holm_family": [
+      "super:top_10_hits",
+      "super:top_20_hits",
+      "super:top_30_hits",
+      "lotto649:top_10_hits",
+      "lotto649:top_20_hits",
+      "lotto649:top_30_hits"
+    ],
+    "statistical_unit": "one_draw",
+    "historical_reuse": "完整歷史已被其他研究使用；任何新方向只能建立未來不可回填 shadow。"
+  },
+  "methodology": {
+    "warmup_draws": 60,
+    "development_fraction": 0.7,
+    "bootstrap_samples": 2000,
+    "bootstrap_block_draws": 13,
+    "exact_null": "每期 Hypergeometric(pool, cutoff, 6)，跨期完整 convolution；六項雙尾 p 使用 Holm 校正。",
+    "no_lookahead": "_support_rows 只接收開獎前 decision；actual numbers 只在完整排名重建後用於評分。"
+  },
+  "games": {
+    "super": {
+      "game_name": "威力彩",
+      "data_quality": {
+        "status": "pass",
+        "profile": {
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "duplicate_dates": 0,
+          "duplicate_periods": 0,
+          "ordered_chronologically": true,
+          "legal_draws": true,
+          "regular_schedule_draws": 1929,
+          "off_schedule_draws": 0,
+          "off_schedule_treatment": "weekday candidate 使用全訓練期 fallback；大樂透春節加開屬合法資料，不視為品質失敗。",
+          "dataset_sha256": "5aa5449a20c0da2fc7a17d530014150be20b9a24534add57a825f3bc77786bce",
+          "quality_status": "pass",
+          "quality_failures": []
+        },
+        "ledger_verification": {
+          "lines": 1929,
+          "last_event_hash": "932ed0c837e16fbb744311f1f60b1694e4bdacf7da86a78374921d8ee5ff76eb",
+          "ledger_sha256": "713ad28e1623364cccee5c088b446777fe4f30eac21dbd80ad63a4dbd9ac014d"
+        },
+        "split_profile": {
+          "total_draws": 1929,
+          "warmup_draws": 60,
+          "eligible_draws": 1869,
+          "development_draws": 1308,
+          "holdout_draws": 561
+        },
+        "ranking_rows": 1869,
+        "ranking_size_min": 38,
+        "ranking_size_max": 38,
+        "unique_numbers_min": 38,
+        "proposal_appearances_total_min": 90,
+        "proposal_appearances_total_max": 90,
+        "mean_zero_support_numbers": 3.0583199571963617,
+        "mean_distinct_support_scores": 33.8908507223114
+      },
+      "development": {
+        "top_10_hits": {
+          "draws": 1308,
+          "observed_total_hits": 2042,
+          "observed_mean_hits": 1.5611620795107033,
+          "exact_null_mean_hits": 1.5789473684210527,
+          "mean_delta_vs_exact_null": -0.01778528891034929,
+          "delta_ci_low": -0.0705566956381781,
+          "delta_ci_high": 0.03343795267986473,
+          "first_half_mean_delta": -0.026959600836954794,
+          "second_half_mean_delta": -0.008610976983743787
+        },
+        "top_20_hits": {
+          "draws": 1308,
+          "observed_total_hits": 4128,
+          "observed_mean_hits": 3.1559633027522938,
+          "exact_null_mean_hits": 3.1578947368421053,
+          "mean_delta_vs_exact_null": -0.001931434089811732,
+          "delta_ci_low": -0.05852547078705951,
+          "delta_ci_high": 0.04931092065024929,
+          "first_half_mean_delta": -0.02028005794302274,
+          "second_half_mean_delta": 0.016417189763399277
+        },
+        "top_30_hits": {
+          "draws": 1308,
+          "observed_total_hits": 6199,
+          "observed_mean_hits": 4.739296636085627,
+          "exact_null_mean_hits": 4.7368421052631575,
+          "mean_delta_vs_exact_null": 0.0024545308224693907,
+          "delta_ci_low": -0.04953323676162843,
+          "delta_ci_high": 0.05293235956864682,
+          "first_half_mean_delta": 0.007806212779655935,
+          "second_half_mean_delta": -0.002897151134717154
+        },
+        "top_10_minus_next_10_hits": {
+          "draws": 1308,
+          "mean_delta": -0.03363914373088685,
+          "delta_ci_low": -0.11085626911314984,
+          "delta_ci_high": 0.04438073394495392,
+          "first_half_mean_delta": -0.03363914373088685,
+          "second_half_mean_delta": -0.03363914373088685
+        }
+      },
+      "holdout": {
+        "top_10_hits": {
+          "draws": 561,
+          "observed_total_hits": 871,
+          "observed_mean_hits": 1.552584670231729,
+          "exact_null_mean_hits": 1.5789473684210527,
+          "mean_delta_vs_exact_null": -0.0263626981893236,
+          "delta_ci_low": -0.09944647715545554,
+          "delta_ci_high": 0.05741626794258368,
+          "first_half_mean_delta": -0.1218045112781955,
+          "second_half_mean_delta": 0.06873946431916088,
+          "lower_tail_p_value": 0.2742840781055427,
+          "upper_tail_p_value": 0.7396035858291192,
+          "two_sided_p_value": 0.5485681562110853,
+          "holm_adjusted_two_sided_p_value": 1.0,
+          "calibration": "not_calibrated"
+        },
+        "top_20_hits": {
+          "draws": 561,
+          "observed_total_hits": 1763,
+          "observed_mean_hits": 3.142602495543672,
+          "exact_null_mean_hits": 3.1578947368421053,
+          "mean_delta_vs_exact_null": -0.015292241298433297,
+          "delta_ci_low": -0.12580917534477914,
+          "delta_ci_high": 0.08809456797072887,
+          "first_half_mean_delta": -0.018609022556391023,
+          "second_half_mean_delta": -0.011987263532496769,
+          "lower_tail_p_value": 0.3820500609925981,
+          "upper_tail_p_value": 0.6320226374280943,
+          "two_sided_p_value": 0.7641001219851962,
+          "holm_adjusted_two_sided_p_value": 1.0,
+          "calibration": "not_calibrated"
+        },
+        "top_30_hits": {
+          "draws": 561,
+          "observed_total_hits": 2652,
+          "observed_mean_hits": 4.7272727272727275,
+          "exact_null_mean_hits": 4.7368421052631575,
+          "mean_delta_vs_exact_null": -0.009569377990430249,
+          "delta_ci_low": -0.07908809456797035,
+          "delta_ci_high": 0.05821137067267111,
+          "first_half_mean_delta": -0.06541353383458609,
+          "second_half_mean_delta": 0.04607604420303465,
+          "lower_tail_p_value": 0.4112472898490016,
+          "upper_tail_p_value": 0.6063155642409187,
+          "two_sided_p_value": 0.8224945796980032,
+          "holm_adjusted_two_sided_p_value": 1.0,
+          "calibration": "not_calibrated"
+        },
+        "top_10_minus_next_10_hits": {
+          "draws": 561,
+          "mean_delta": -0.0374331550802139,
+          "delta_ci_low": -0.18542780748663104,
+          "delta_ci_high": 0.10338680926916222,
+          "first_half_mean_delta": -0.225,
+          "second_half_mean_delta": 0.1494661921708185
+        }
+      }
+    },
+    "lotto649": {
+      "game_name": "大樂透",
+      "data_quality": {
+        "status": "pass",
+        "profile": {
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "duplicate_dates": 0,
+          "duplicate_periods": 0,
+          "ordered_chronologically": true,
+          "legal_draws": true,
+          "regular_schedule_draws": 2040,
+          "off_schedule_draws": 113,
+          "off_schedule_treatment": "weekday candidate 使用全訓練期 fallback；大樂透春節加開屬合法資料，不視為品質失敗。",
+          "dataset_sha256": "96715d44fe934631219b1989e39b7f5dfd18cd20be6395b37c32152cf82e20ef",
+          "quality_status": "pass",
+          "quality_failures": []
+        },
+        "ledger_verification": {
+          "lines": 2153,
+          "last_event_hash": "9f45bb027d965daace1ca0233871c969959c763f941b86940bbb334731342609",
+          "ledger_sha256": "6d1436281e3363c26e04210d194eba35328aaf86cc25dab7418f26047bc88289"
+        },
+        "split_profile": {
+          "total_draws": 2153,
+          "warmup_draws": 60,
+          "eligible_draws": 2093,
+          "development_draws": 1465,
+          "holdout_draws": 628
+        },
+        "ranking_rows": 2093,
+        "ranking_size_min": 49,
+        "ranking_size_max": 49,
+        "unique_numbers_min": 49,
+        "proposal_appearances_total_min": 90,
+        "proposal_appearances_total_max": 90,
+        "mean_zero_support_numbers": 7.110845676063067,
+        "mean_distinct_support_scores": 37.559006211180126
+      },
+      "development": {
+        "top_10_hits": {
+          "draws": 1465,
+          "observed_total_hits": 1764,
+          "observed_mean_hits": 1.2040955631399317,
+          "exact_null_mean_hits": 1.2244897959183674,
+          "mean_delta_vs_exact_null": -0.020394232778435634,
+          "delta_ci_low": -0.06544542731768489,
+          "delta_ci_high": 0.023991432750574516,
+          "first_half_mean_delta": -0.03459908553585371,
+          "second_half_mean_delta": -0.006208759083442409
+        },
+        "top_20_hits": {
+          "draws": 1465,
+          "observed_total_hits": 3530,
+          "observed_mean_hits": 2.409556313993174,
+          "exact_null_mean_hits": 2.4489795918367347,
+          "mean_delta_vs_exact_null": -0.039423277843560686,
+          "delta_ci_low": -0.09744375565926008,
+          "delta_ci_high": 0.015866824545517768,
+          "first_half_mean_delta": -0.04050964648154349,
+          "second_half_mean_delta": -0.038338391291032156
+        },
+        "top_30_hits": {
+          "draws": 1465,
+          "observed_total_hits": 5379,
+          "observed_mean_hits": 3.6716723549488055,
+          "exact_null_mean_hits": 3.673469387755102,
+          "mean_delta_vs_exact_null": -0.0017970328062966617,
+          "delta_ci_low": -0.060517169325067864,
+          "delta_ci_high": 0.0562234450094031,
+          "first_half_mean_delta": -0.021830043492807042,
+          "second_half_mean_delta": 0.018208647715566365
+        },
+        "top_10_minus_next_10_hits": {
+          "draws": 1465,
+          "mean_delta": -0.0013651877133105802,
+          "delta_ci_low": -0.07645051194539249,
+          "delta_ci_high": 0.07168941979522174,
+          "first_half_mean_delta": -0.028688524590163935,
+          "second_half_mean_delta": 0.02592087312414734
+        }
+      },
+      "holdout": {
+        "top_10_hits": {
+          "draws": 628,
+          "observed_total_hits": 803,
+          "observed_mean_hits": 1.2786624203821657,
+          "exact_null_mean_hits": 1.2244897959183674,
+          "mean_delta_vs_exact_null": 0.05417262446379823,
+          "delta_ci_low": -0.012706356427921551,
+          "delta_ci_high": 0.12423631873131413,
+          "first_half_mean_delta": 0.08442740153386193,
+          "second_half_mean_delta": 0.023917847393734537,
+          "lower_tail_p_value": 0.9292849346014707,
+          "upper_tail_p_value": 0.07662021394567485,
+          "two_sided_p_value": 0.1532404278913497,
+          "holm_adjusted_two_sided_p_value": 0.7941357046343199,
+          "calibration": "not_calibrated"
+        },
+        "top_20_hits": {
+          "draws": 628,
+          "observed_total_hits": 1570,
+          "observed_mean_hits": 2.5,
+          "exact_null_mean_hits": 2.4489795918367347,
+          "mean_delta_vs_exact_null": 0.051020408163265245,
+          "delta_ci_low": -0.02541271285584305,
+          "delta_ci_high": 0.12745352918237357,
+          "first_half_mean_delta": 0.09560639542441174,
+          "second_half_mean_delta": 0.006434420902118755,
+          "lower_tail_p_value": 0.8727199676312796,
+          "upper_tail_p_value": 0.13471258995532356,
+          "two_sided_p_value": 0.26942517991064713,
+          "holm_adjusted_two_sided_p_value": 1.0,
+          "calibration": "not_calibrated"
+        },
+        "top_30_hits": {
+          "draws": 628,
+          "observed_total_hits": 2350,
+          "observed_mean_hits": 3.7420382165605095,
+          "exact_null_mean_hits": 3.673469387755102,
+          "mean_delta_vs_exact_null": 0.06856882880540743,
+          "delta_ci_low": -0.015826075653191263,
+          "delta_ci_high": 0.15455608995190437,
+          "first_half_mean_delta": 0.11315481606655392,
+          "second_half_mean_delta": 0.023982841544260936,
+          "lower_tail_p_value": 0.9382586270392889,
+          "upper_tail_p_value": 0.06617797538619333,
+          "two_sided_p_value": 0.13235595077238665,
+          "holm_adjusted_two_sided_p_value": 0.7941357046343199,
+          "calibration": "not_calibrated"
+        },
+        "top_10_minus_next_10_hits": {
+          "draws": 628,
+          "mean_delta": 0.05732484076433121,
+          "delta_ci_low": -0.0589171974522293,
+          "delta_ci_high": 0.17038216560509553,
+          "first_half_mean_delta": 0.0732484076433121,
+          "second_half_mean_delta": 0.041401273885350316
+        }
+      }
+    }
+  },
+  "mapping_decision": {
+    "guarded_profit_high_support_mapping_supported": false,
+    "unconstrained_profit_high_support_mapping_supported": false,
+    "negative_calibration_shadow_candidate": false,
+    "decision": "retain_mapping_as_deterministic_tie_break_only",
+    "honesty_note": "未通過校準時，現行映射不改變公平模型的精確結構機率，但不得宣稱高支持標籤較可能開出。"
+  },
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  },
+  "limitations": [
+    "完整歷史已被先前研究查看，不是全新的確認性資料。",
+    "辯論 support 是決策分數，不是物理開獎機率。",
+    "所有合法號碼標籤在公平模型下理論機率相同。",
+    "純模擬，不構成購買或下注建議。"
+  ]
+}

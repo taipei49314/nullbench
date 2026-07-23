@@ -1,0 +1,586 @@
+{
+  "schema_version": "1",
+  "experiment_id": "physical-draw-metadata-availability-audit-v1",
+  "generated_at": "2026-07-19T15:30:00+08:00",
+  "question": "Can public physical draw metadata be known before the registration cutoff and legally improve next-draw subset probabilities?",
+  "protocol": {
+    "games": [
+      "super",
+      "lotto649"
+    ],
+    "raw_sources": [
+      "data/raw/super/*.json",
+      "data/raw/lotto649/*.json"
+    ],
+    "physical_field_terms": {
+      "machine": [
+        "machine",
+        "machine_id",
+        "draw_machine",
+        "開獎機"
+      ],
+      "ball_set": [
+        "ball_set",
+        "ballset",
+        "球組"
+      ],
+      "equipment": [
+        "equipment",
+        "device",
+        "設備"
+      ],
+      "location": [
+        "studio"
+      ],
+      "loading_order": [
+        "loading_order",
+        "drop_order",
+        "落球"
+      ],
+      "anomaly": [
+        "anomaly",
+        "異常"
+      ]
+    },
+    "observation_fields": [
+      "schema_version",
+      "game",
+      "period",
+      "draw_date",
+      "registration_cutoff_at",
+      "public_observed_at",
+      "video_id",
+      "archive_url",
+      "evidence_frame_timestamp",
+      "machine_id",
+      "ball_set_id",
+      "loading_order",
+      "anomaly_flags",
+      "source_scope",
+      "extraction_method",
+      "extraction_confidence",
+      "human_verified",
+      "eligible_for_forecast",
+      "eligibility_reason"
+    ],
+    "cutoff_rule": "public_observed_at_must_be_at_or_before_registration_cutoff_at",
+    "missing_or_naive_timestamp_policy": "fail_closed",
+    "cross_game_or_special_scope_policy": "excluded",
+    "future_model_minimum_periods_per_game": 104,
+    "future_model_minimum_machine_and_ball_set_completeness": 0.95,
+    "future_model_requires_pre_cutoff_assignment": true,
+    "historical_use": "availability_and_causality_audit_only",
+    "number_probability_model": "not_fitted_in_this_experiment",
+    "protocol_hash": "d180c6299a4186bb5b5103c3529590802ab16051ef6314ed43b9196d9088af2a",
+    "protocol_file": "PHYSICAL_METADATA_PROTOCOL.md",
+    "protocol_file_sha256": "73460f6bab690fde261b0a88f671c3a733d161c3ace945a875b8cb089c05665a"
+  },
+  "source_evidence": {
+    "retrieved_on": "2026-07-19",
+    "official_draw_process": {
+      "url": "https://www.taiwanlottery.com/run_lottery/info/",
+      "facts": [
+        "computerized lottery draws occur after betting closes",
+        "a draw guest selects the draw machine, ball set, and ball-loading order",
+        "the live draw recording starts after those selections"
+      ]
+    },
+    "official_faq": {
+      "url": "https://www.taiwanlottery.com/customer_service/faq/",
+      "facts": [
+        "betting cutoff is 20:00 Asia/Taipei",
+        "formal drawing starts at 20:30 Asia/Taipei",
+        "the 30-minute gap is reserved for central sales aggregation",
+        "broadcast coverage is selective rather than end-to-end"
+      ]
+    },
+    "official_result_download": {
+      "url": "https://www.taiwanlottery.com/lotto/history/result_download/",
+      "documented_lotto649_fields": [
+        "game_name",
+        "period",
+        "draw_date",
+        "sales_amount",
+        "sales_count",
+        "total_prize",
+        "number_1",
+        "number_2",
+        "number_3",
+        "number_4",
+        "number_5",
+        "number_6",
+        "bonus_number"
+      ],
+      "documented_physical_fields": []
+    },
+    "broadcast_sample": {
+      "archive_url": "https://d25vj0wbzayc6h.cloudfront.net/Live/3763/24003",
+      "youtube_url": "https://www.youtube.com/watch?v=pRQn_EG-AEY",
+      "video_id": "pRQn_EG-AEY",
+      "title": "【20260717】彩券開獎｜三立新聞網 SETN.com",
+      "duration_seconds": 3665,
+      "subtitle_tracks": 0,
+      "automatic_caption_tracks": 0,
+      "scope_note": "manual visual sample only; not a historical coverage claim"
+    },
+    "evidence_hash": "9b45f30dbaae464c8ca241eeb68f2c9acd91172b6a2e43bd71ec71fb2f3c0e42"
+  },
+  "raw_schema_audit": {
+    "status": "pass",
+    "games": {
+      "super": {
+        "status": "pass",
+        "game": "super",
+        "game_name": "威力彩",
+        "files": 223,
+        "nonempty_files": 223,
+        "empty_files": 0,
+        "rows": 1929,
+        "unique_periods": 1929,
+        "unique_dates": 1929,
+        "duplicate_periods": 0,
+        "duplicate_dates": 0,
+        "date_range": [
+          "2008-01-24",
+          "2026-07-16"
+        ],
+        "root_schema_profile": [
+          {
+            "rows": 223,
+            "key_count": 3,
+            "keys": [
+              "content",
+              "rtCode",
+              "rtMsg"
+            ]
+          }
+        ],
+        "content_schema_profile": [
+          {
+            "rows": 223,
+            "key_count": 2,
+            "keys": [
+              "superLotto638Res",
+              "totalSize"
+            ]
+          }
+        ],
+        "row_schema_profile": [
+          {
+            "rows": 1929,
+            "key_count": 17,
+            "keys": [
+              "drawNumberAppear",
+              "drawNumberSize",
+              "lotteryDate",
+              "period",
+              "redeemableDate",
+              "sellAmount",
+              "super638EighthAssign",
+              "super638FifthAssign",
+              "super638FourthAssign",
+              "super638JackpotAssign",
+              "super638NinthAssign",
+              "super638NormalAssign",
+              "super638SecondAssign",
+              "super638SeventhAssign",
+              "super638SixthAssign",
+              "super638ThirdAssign",
+              "totalAmount"
+            ]
+          }
+        ],
+        "top_level_row_keys": [
+          "drawNumberAppear",
+          "drawNumberSize",
+          "lotteryDate",
+          "period",
+          "redeemableDate",
+          "sellAmount",
+          "super638EighthAssign",
+          "super638FifthAssign",
+          "super638FourthAssign",
+          "super638JackpotAssign",
+          "super638NinthAssign",
+          "super638NormalAssign",
+          "super638SecondAssign",
+          "super638SeventhAssign",
+          "super638SixthAssign",
+          "super638ThirdAssign",
+          "totalAmount"
+        ],
+        "nested_key_paths": [
+          "drawNumberAppear",
+          "drawNumberAppear[]",
+          "drawNumberSize",
+          "drawNumberSize[]",
+          "lotteryDate",
+          "period",
+          "redeemableDate",
+          "sellAmount",
+          "super638EighthAssign",
+          "super638EighthAssign.lastPrize",
+          "super638EighthAssign.perPrize",
+          "super638EighthAssign.prize",
+          "super638EighthAssign.winnerCount",
+          "super638FifthAssign",
+          "super638FifthAssign.lastPrize",
+          "super638FifthAssign.perPrize",
+          "super638FifthAssign.prize",
+          "super638FifthAssign.winnerCount",
+          "super638FourthAssign",
+          "super638FourthAssign.lastPrize",
+          "super638FourthAssign.perPrize",
+          "super638FourthAssign.prize",
+          "super638FourthAssign.winnerCount",
+          "super638JackpotAssign",
+          "super638JackpotAssign.lastPrize",
+          "super638JackpotAssign.perPrize",
+          "super638JackpotAssign.prize",
+          "super638JackpotAssign.winnerCount",
+          "super638NinthAssign",
+          "super638NinthAssign.lastPrize",
+          "super638NinthAssign.perPrize",
+          "super638NinthAssign.prize",
+          "super638NinthAssign.winnerCount",
+          "super638NormalAssign",
+          "super638NormalAssign.lastPrize",
+          "super638NormalAssign.perPrize",
+          "super638NormalAssign.prize",
+          "super638NormalAssign.winnerCount",
+          "super638SecondAssign",
+          "super638SecondAssign.lastPrize",
+          "super638SecondAssign.perPrize",
+          "super638SecondAssign.prize",
+          "super638SecondAssign.winnerCount",
+          "super638SeventhAssign",
+          "super638SeventhAssign.lastPrize",
+          "super638SeventhAssign.perPrize",
+          "super638SeventhAssign.prize",
+          "super638SeventhAssign.winnerCount",
+          "super638SixthAssign",
+          "super638SixthAssign.lastPrize",
+          "super638SixthAssign.perPrize",
+          "super638SixthAssign.prize",
+          "super638SixthAssign.winnerCount",
+          "super638ThirdAssign",
+          "super638ThirdAssign.lastPrize",
+          "super638ThirdAssign.perPrize",
+          "super638ThirdAssign.prize",
+          "super638ThirdAssign.winnerCount",
+          "totalAmount"
+        ],
+        "physical_field_matches": {
+          "machine": [],
+          "ball_set": [],
+          "equipment": [],
+          "location": [],
+          "loading_order": [],
+          "anomaly": []
+        },
+        "physical_field_match_count": 0,
+        "physical_metadata_rows": 0,
+        "physical_metadata_coverage_rate": 0.0,
+        "physical_group_rows": {
+          "machine": 0,
+          "ball_set": 0,
+          "equipment": 0,
+          "location": 0,
+          "loading_order": 0,
+          "anomaly": 0
+        },
+        "raw_tree_sha256": "23c0a88a78c131d0975f38a82a2e971975a314d737c62207df197b94f6fb9e9d"
+      },
+      "lotto649": {
+        "status": "pass",
+        "game": "lotto649",
+        "game_name": "大樂透",
+        "files": 271,
+        "nonempty_files": 235,
+        "empty_files": 36,
+        "rows": 2153,
+        "unique_periods": 2153,
+        "unique_dates": 2153,
+        "duplicate_periods": 0,
+        "duplicate_dates": 0,
+        "date_range": [
+          "2007-01-02",
+          "2026-07-17"
+        ],
+        "root_schema_profile": [
+          {
+            "rows": 271,
+            "key_count": 3,
+            "keys": [
+              "content",
+              "rtCode",
+              "rtMsg"
+            ]
+          }
+        ],
+        "content_schema_profile": [
+          {
+            "rows": 271,
+            "key_count": 2,
+            "keys": [
+              "lotto649Res",
+              "totalSize"
+            ]
+          }
+        ],
+        "row_schema_profile": [
+          {
+            "rows": 2153,
+            "key_count": 15,
+            "keys": [
+              "drawNumberAppear",
+              "drawNumberSize",
+              "fifthAssign",
+              "fourthAssign",
+              "jackpotAssign",
+              "lotteryDate",
+              "normalAssign",
+              "period",
+              "redeemableDate",
+              "secondAssign",
+              "sellAmount",
+              "seventhAssign",
+              "sixthAssign",
+              "thirdAssign",
+              "totalAmount"
+            ]
+          }
+        ],
+        "top_level_row_keys": [
+          "drawNumberAppear",
+          "drawNumberSize",
+          "fifthAssign",
+          "fourthAssign",
+          "jackpotAssign",
+          "lotteryDate",
+          "normalAssign",
+          "period",
+          "redeemableDate",
+          "secondAssign",
+          "sellAmount",
+          "seventhAssign",
+          "sixthAssign",
+          "thirdAssign",
+          "totalAmount"
+        ],
+        "nested_key_paths": [
+          "drawNumberAppear",
+          "drawNumberAppear[]",
+          "drawNumberSize",
+          "drawNumberSize[]",
+          "fifthAssign",
+          "fifthAssign.lastPrize",
+          "fifthAssign.perPrize",
+          "fifthAssign.prize",
+          "fifthAssign.winnerCount",
+          "fourthAssign",
+          "fourthAssign.lastPrize",
+          "fourthAssign.perPrize",
+          "fourthAssign.prize",
+          "fourthAssign.winnerCount",
+          "jackpotAssign",
+          "jackpotAssign.lastPrize",
+          "jackpotAssign.perPrize",
+          "jackpotAssign.prize",
+          "jackpotAssign.winnerCount",
+          "lotteryDate",
+          "normalAssign",
+          "normalAssign.lastPrize",
+          "normalAssign.perPrize",
+          "normalAssign.prize",
+          "normalAssign.winnerCount",
+          "period",
+          "redeemableDate",
+          "secondAssign",
+          "secondAssign.lastPrize",
+          "secondAssign.perPrize",
+          "secondAssign.prize",
+          "secondAssign.winnerCount",
+          "sellAmount",
+          "seventhAssign",
+          "seventhAssign.lastPrize",
+          "seventhAssign.perPrize",
+          "seventhAssign.prize",
+          "seventhAssign.winnerCount",
+          "sixthAssign",
+          "sixthAssign.lastPrize",
+          "sixthAssign.perPrize",
+          "sixthAssign.prize",
+          "sixthAssign.winnerCount",
+          "thirdAssign",
+          "thirdAssign.lastPrize",
+          "thirdAssign.perPrize",
+          "thirdAssign.prize",
+          "thirdAssign.winnerCount",
+          "totalAmount"
+        ],
+        "physical_field_matches": {
+          "machine": [],
+          "ball_set": [],
+          "equipment": [],
+          "location": [],
+          "loading_order": [],
+          "anomaly": []
+        },
+        "physical_field_match_count": 0,
+        "physical_metadata_rows": 0,
+        "physical_metadata_coverage_rate": 0.0,
+        "physical_group_rows": {
+          "machine": 0,
+          "ball_set": 0,
+          "equipment": 0,
+          "location": 0,
+          "loading_order": 0,
+          "anomaly": 0
+        },
+        "raw_tree_sha256": "bceb0b408b1041c60a42a6a37c5e045a6ab1ea130043bd3cd05c2eb2a197ff02"
+      }
+    },
+    "files_total": 494,
+    "nonempty_files_total": 458,
+    "empty_files_total": 36,
+    "rows_total": 4082,
+    "physical_metadata_rows_total": 0,
+    "physical_metadata_coverage_rate": 0.0,
+    "raw_snapshot_hashes": {
+      "super": "23c0a88a78c131d0975f38a82a2e971975a314d737c62207df197b94f6fb9e9d",
+      "lotto649": "bceb0b408b1041c60a42a6a37c5e045a6ab1ea130043bd3cd05c2eb2a197ff02"
+    },
+    "combined_raw_snapshot_hash": "19d8f8a8838fc3b822e093c4c3d7ab696171fd713784d71ed62862cb792d3c66"
+  },
+  "observation_audit": {
+    "status": "pass",
+    "observations": [
+      {
+        "schema_version": "1",
+        "game": "lotto649",
+        "period": 115000071,
+        "draw_date": "2026-07-17",
+        "registration_cutoff_at": "2026-07-17T20:00:00+08:00",
+        "public_observed_at": "2026-07-17T20:32:39+08:00",
+        "video_id": "pRQn_EG-AEY",
+        "archive_url": "https://d25vj0wbzayc6h.cloudfront.net/Live/3763/24003",
+        "evidence_frame_timestamp": "00:35:00",
+        "machine_id": "2",
+        "ball_set_id": null,
+        "loading_order": [],
+        "anomaly_flags": [],
+        "source_scope": "target_main_draw",
+        "extraction_method": "manual_visual_verification",
+        "extraction_confidence": 1.0,
+        "human_verified": true,
+        "eligible_for_forecast": false,
+        "eligibility_reason": "published_after_registration_cutoff"
+      }
+    ],
+    "observation_hash": "919c74d61ccacab869f3952f1c3628f59fea1b89561512b2060199386cbca49f",
+    "total_observations": 1,
+    "unique_game_periods": 1,
+    "duplicate_game_periods": 0,
+    "excluded_scope_observations": 0,
+    "machine_id_observations": 1,
+    "ball_set_id_observations": 0,
+    "pre_cutoff_eligible_observations": 0,
+    "games": {
+      "super": {
+        "game": "super",
+        "historical_periods": 1929,
+        "observations": 0,
+        "unique_periods": 0,
+        "period_coverage_rate": 0.0,
+        "machine_id_observations": 0,
+        "machine_id_completeness": 0.0,
+        "ball_set_id_observations": 0,
+        "ball_set_id_completeness": 0.0,
+        "pre_cutoff_eligible_observations": 0,
+        "pre_cutoff_eligibility_rate": 0.0
+      },
+      "lotto649": {
+        "game": "lotto649",
+        "historical_periods": 2153,
+        "observations": 1,
+        "unique_periods": 1,
+        "period_coverage_rate": 0.000464468183929401,
+        "machine_id_observations": 1,
+        "machine_id_completeness": 1.0,
+        "ball_set_id_observations": 0,
+        "ball_set_id_completeness": 0.0,
+        "pre_cutoff_eligible_observations": 0,
+        "pre_cutoff_eligibility_rate": 0.0
+      }
+    }
+  },
+  "future_collection_schema": {
+    "fields": [
+      "schema_version",
+      "game",
+      "period",
+      "draw_date",
+      "registration_cutoff_at",
+      "public_observed_at",
+      "video_id",
+      "archive_url",
+      "evidence_frame_timestamp",
+      "machine_id",
+      "ball_set_id",
+      "loading_order",
+      "anomaly_flags",
+      "source_scope",
+      "extraction_method",
+      "extraction_confidence",
+      "human_verified",
+      "eligible_for_forecast",
+      "eligibility_reason"
+    ],
+    "eligibility_is_derived": true,
+    "eligibility_function": "public_observed_at <= registration_cutoff_at AND target_main_draw AND human_verified AND machine_id_present AND ball_set_id_present",
+    "missing_value_policy": "fail_closed"
+  },
+  "conclusion": {
+    "status": "physical_metadata_unavailable_pre_cutoff",
+    "official_raw_physical_fields_absent": true,
+    "pre_cutoff_assignment_absent": true,
+    "future_model_thresholds": {
+      "super": {
+        "minimum_periods_met": false,
+        "machine_completeness_met": false,
+        "ball_set_completeness_met": false
+      },
+      "lotto649": {
+        "minimum_periods_met": false,
+        "machine_completeness_met": true,
+        "ball_set_completeness_met": false
+      }
+    },
+    "future_model_ready": false,
+    "number_probability_model_allowed": false,
+    "historical_promotion_eligible": false,
+    "watcher_integration_allowed": false,
+    "number_changes_allowed": false,
+    "future_diagnostic_collection_allowed": true,
+    "selected_probability_protocol": "uniform_null_safe",
+    "decision_basis": [
+      "official historical result data contains no machine, ball-set, loading-order, or anomaly field",
+      "the audited main-draw machine label became public after the registration cutoff",
+      "the one visual sample has no reliable main-draw ball-set identifier"
+    ]
+  },
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  },
+  "limitations": [
+    "Only one broadcast period was manually verified; it is evidence of availability timing, not history coverage.",
+    "External source pages are cited and protocol-frozen, but their HTML and video are not copied into the repo.",
+    "An internal recording timestamp does not prove public pre-cutoff availability.",
+    "Post-cutoff equipment observations may support mechanism diagnostics but cannot select tickets for that draw.",
+    "This is a simulation and not purchase or betting advice."
+  ],
+  "audit_hash": "2824c55f71137b85800ac48093175d45e7aa60307b49e21671e99bdf05c43d29"
+}

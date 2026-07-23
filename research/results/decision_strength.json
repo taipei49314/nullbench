@@ -1,0 +1,509 @@
+{
+  "schema_version": "1",
+  "experiment_id": "probability-label-decision-strength-audit-v1",
+  "generated_at": "2026-07-17T23:59:59+08:00",
+  "question": "接近均勻的 stacking 機率差，是否大到足以支持 top-30 硬性號碼決策？",
+  "metric_definition": {
+    "soft_signal": "mixture probability 相對 uniform 的 top-k mass lift",
+    "decision_effect": "draws_per_event × top-k mass lift，作為模型隱含的每期聯集主號命中提升",
+    "uncertainty_baseline": "公平開獎下固定 k 號聯集命中的超幾何變異",
+    "detectability": "one-sided alpha=0.005、power=0.80 的常態近似",
+    "checkpoints": [
+      52,
+      104,
+      208,
+      416,
+      832
+    ],
+    "historical_use": "descriptive_diagnostic_only"
+  },
+  "source": {
+    "stacking_artifact": "research\\results\\probability_stacking.json",
+    "stacking_artifact_sha256": "36b99caf8fdf11cf87913b04d30c2530835a19280c9bc59e06a1c3958172d805",
+    "stacking_protocol_hash": "fbe7eac82cac7a79e08b4aeb75d7e5a840fed092102744adb4afc52b9280df85",
+    "manifest": "simulation\\results\\manifest.json",
+    "manifest_sha256": "28debc0fcb55b7550436403b58382a424886fed43fc8e3d718d2ae30d517e097",
+    "manifest_hash": "066216c4bf342a3bd0784c41d8104b847a1cc7e791ec8b9c4ccf22cc16bef7fe",
+    "fitted_through": {
+      "super": "2026-07-16",
+      "lotto649": "2026-07-17"
+    }
+  },
+  "games": {
+    "super": {
+      "game": "super",
+      "target": {
+        "date": "2026-07-20",
+        "period": 115000058
+      },
+      "source_decision_hash": "26c1fc4d568ddb5ce1fdcdc5559e2364286e1f19d912a1e7ac7e0a20dabdddd3",
+      "candidate_hash": "57885004b35a01f79df8cce3883e6238891e5e2312906cbd2cff65eae133f563",
+      "selection_hash": "d7885bd5ce47ce6470600f87cdc573689a92e65437ecd6f97db95b68cccf268b",
+      "tickets": [
+        {
+          "slot": 1,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:1",
+          "numbers": [
+            4,
+            5,
+            11,
+            12,
+            19,
+            23
+          ],
+          "special": 3
+        },
+        {
+          "slot": 2,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:2",
+          "numbers": [
+            6,
+            8,
+            10,
+            24,
+            28,
+            32
+          ],
+          "special": 1
+        },
+        {
+          "slot": 3,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:3",
+          "numbers": [
+            1,
+            13,
+            15,
+            16,
+            21,
+            33
+          ],
+          "special": 8
+        },
+        {
+          "slot": 4,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:4",
+          "numbers": [
+            2,
+            18,
+            25,
+            26,
+            27,
+            38
+          ],
+          "special": 6
+        },
+        {
+          "slot": 5,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:5",
+          "numbers": [
+            9,
+            14,
+            20,
+            22,
+            31,
+            35
+          ],
+          "special": 7
+        }
+      ],
+      "main": {
+        "domain_size": 38,
+        "selected_count": 30,
+        "draws_per_event": 6,
+        "selected_numbers": [
+          4,
+          10,
+          13,
+          25,
+          20,
+          5,
+          32,
+          16,
+          27,
+          31,
+          12,
+          24,
+          1,
+          18,
+          9,
+          19,
+          8,
+          33,
+          2,
+          22,
+          11,
+          28,
+          15,
+          38,
+          14,
+          23,
+          6,
+          21,
+          26,
+          35
+        ],
+        "uniform_probability": 0.02631578947368421,
+        "minimum_probability": 0.026315752116183627,
+        "maximum_probability": 0.026315833715627884,
+        "absolute_probability_spread": 8.159944425711885e-08,
+        "relative_spread_vs_uniform": 3.100778881770516e-06,
+        "total_variation_from_uniform": 3.7270186287012563e-07,
+        "kl_divergence_from_uniform": 3.6770586575585185e-13,
+        "selected_probability_mass": 0.7894739036908331,
+        "uniform_selected_mass": 0.7894736842105263,
+        "selected_mass_lift": 2.1948030681784303e-07,
+        "model_implied_expected_hit_lift": 1.3168818409070582e-06,
+        "uniform_event_variance": 0.8624691173167627,
+        "boundary_probability_gap": 6.204493863126714e-11,
+        "boundary_tied_numbers": [
+          35
+        ],
+        "boundary_tie_count": 1,
+        "checkpoint_detection": {
+          "52": {
+            "standard_error_under_uniform": 0.1287864300451872,
+            "approx_minimum_detectable_mean_lift": 0.4401212545319259,
+            "model_lift_to_detectable_floor_ratio": 2.9920887195224812e-06
+          },
+          "104": {
+            "standard_error_under_uniform": 0.0910657580097588,
+            "approx_minimum_detectable_mean_lift": 0.3112127236238554,
+            "model_lift_to_detectable_floor_ratio": 4.231452446972239e-06
+          },
+          "208": {
+            "standard_error_under_uniform": 0.0643932150225936,
+            "approx_minimum_detectable_mean_lift": 0.22006062726596295,
+            "model_lift_to_detectable_floor_ratio": 5.9841774390449624e-06
+          },
+          "416": {
+            "standard_error_under_uniform": 0.0455328790048794,
+            "approx_minimum_detectable_mean_lift": 0.1556063618119277,
+            "model_lift_to_detectable_floor_ratio": 8.462904893944479e-06
+          },
+          "832": {
+            "standard_error_under_uniform": 0.0321966075112968,
+            "approx_minimum_detectable_mean_lift": 0.11003031363298148,
+            "model_lift_to_detectable_floor_ratio": 1.1968354878089925e-05
+          }
+        },
+        "approx_pairs_for_80pct_power": 5808371823916
+      },
+      "special": {
+        "domain_size": 8,
+        "selected_count": 5,
+        "draws_per_event": 1,
+        "selected_numbers": [
+          3,
+          1,
+          8,
+          6,
+          7
+        ],
+        "uniform_probability": 0.125,
+        "minimum_probability": 0.12499987891036272,
+        "maximum_probability": 0.12500018516535194,
+        "absolute_probability_spread": 3.0625498921577066e-07,
+        "relative_spread_vs_uniform": 2.4500399137261653e-06,
+        "total_variation_from_uniform": 4.238000673312259e-07,
+        "kl_divergence_from_uniform": 4.2099657093785936e-13,
+        "selected_probability_mass": 0.625000315799413,
+        "uniform_selected_mass": 0.625,
+        "selected_mass_lift": 3.1579941295323266e-07,
+        "model_implied_expected_hit_lift": 3.1579941295323266e-07,
+        "uniform_event_variance": 0.234375,
+        "boundary_probability_gap": 9.160211478231872e-11,
+        "boundary_tied_numbers": [
+          7
+        ],
+        "boundary_tie_count": 1,
+        "checkpoint_detection": {
+          "52": {
+            "standard_error_under_uniform": 0.06713576944119683,
+            "approx_minimum_detectable_mean_lift": 0.22943317133690438,
+            "model_lift_to_detectable_floor_ratio": 1.376433107353541e-06
+          },
+          "104": {
+            "standard_error_under_uniform": 0.04747215783204687,
+            "approx_minimum_detectable_mean_lift": 0.16223375128146011,
+            "model_lift_to_detectable_floor_ratio": 1.94657036811872e-06
+          },
+          "208": {
+            "standard_error_under_uniform": 0.033567884720598413,
+            "approx_minimum_detectable_mean_lift": 0.11471658566845219,
+            "model_lift_to_detectable_floor_ratio": 2.752866214707082e-06
+          },
+          "416": {
+            "standard_error_under_uniform": 0.023736078916023435,
+            "approx_minimum_detectable_mean_lift": 0.08111687564073006,
+            "model_lift_to_detectable_floor_ratio": 3.89314073623744e-06
+          },
+          "832": {
+            "standard_error_under_uniform": 0.016783942360299207,
+            "approx_minimum_detectable_mean_lift": 0.057358292834226096,
+            "model_lift_to_detectable_floor_ratio": 5.505732429414164e-06
+          }
+        },
+        "approx_pairs_for_80pct_power": 27446888832831
+      },
+      "final_main_weights": {
+        "independent_null": 3.3674969255413834e-08,
+        "overfit_guard": 4.215087155244032e-08,
+        "regime_shift": 1.1216142974625705e-07,
+        "structural_bias": 6.138786496033196e-08,
+        "temporal_dependency": 1.091302452860902e-07,
+        "debate_consensus": 1.5344648657608929e-06,
+        "uniform": 0.9999981070297534
+      },
+      "final_special_weights": {
+        "independent_null": 7.411462808685027e-08,
+        "overfit_guard": 1.5081585120922189e-06,
+        "regime_shift": 2.9159020144783423e-07,
+        "structural_bias": 1.8516010253609882e-07,
+        "temporal_dependency": 1.1281687811277879e-07,
+        "debate_consensus": 4.90590549630935e-08,
+        "uniform": 0.9999977791006228
+      },
+      "nonuniform_main_weight": 1.892970246553105e-06,
+      "loss_diagnostics": {
+        "uniform_is_best_main_expert": true,
+        "main_expert_loss_minus_uniform": {
+          "independent_null": 0.193966497780651,
+          "overfit_guard": 0.18578530468656762,
+          "regime_shift": 0.18958178419030558,
+          "structural_bias": 0.18565262220794398,
+          "temporal_dependency": 0.18860250092787645,
+          "debate_consensus": 0.1490869504137402
+        },
+        "uniform_is_best_special_expert": true,
+        "special_expert_loss_minus_uniform": {
+          "independent_null": 0.184783655215484,
+          "overfit_guard": 0.16623260860070133,
+          "regime_shift": 0.1734263479693543,
+          "structural_bias": 0.1796176634855522,
+          "temporal_dependency": 0.18684070805703756,
+          "debate_consensus": 0.19045649176703572
+        }
+      },
+      "material_at_maximum_checkpoint": false
+    },
+    "lotto649": {
+      "game": "lotto649",
+      "target": {
+        "date": "2026-07-21",
+        "period": 115000072
+      },
+      "source_decision_hash": "e815598005db423fef7f0b32fbfde20c6f4f187e3d24176509ad7cf1d63e07fe",
+      "candidate_hash": "57885004b35a01f79df8cce3883e6238891e5e2312906cbd2cff65eae133f563",
+      "selection_hash": "126818ffeb711e2d39f86cf48a4379239d29446269799286436fb645c13017de",
+      "tickets": [
+        {
+          "slot": 1,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:1",
+          "numbers": [
+            4,
+            5,
+            37,
+            40,
+            46,
+            49
+          ],
+          "special": null
+        },
+        {
+          "slot": 2,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:2",
+          "numbers": [
+            2,
+            18,
+            20,
+            24,
+            31,
+            35
+          ],
+          "special": null
+        },
+        {
+          "slot": 3,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:3",
+          "numbers": [
+            11,
+            12,
+            14,
+            27,
+            28,
+            41
+          ],
+          "special": null
+        },
+        {
+          "slot": 4,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:4",
+          "numbers": [
+            3,
+            19,
+            23,
+            33,
+            34,
+            48
+          ],
+          "special": null
+        },
+        {
+          "slot": 5,
+          "source_agent": "probability_stacking_synthesizer",
+          "source_proposal": "probability-stacking:5",
+          "numbers": [
+            1,
+            13,
+            30,
+            32,
+            38,
+            39
+          ],
+          "special": null
+        }
+      ],
+      "main": {
+        "domain_size": 49,
+        "selected_count": 30,
+        "draws_per_event": 6,
+        "selected_numbers": [
+          4,
+          2,
+          12,
+          19,
+          39,
+          40,
+          20,
+          14,
+          48,
+          1,
+          46,
+          18,
+          41,
+          34,
+          38,
+          5,
+          24,
+          11,
+          3,
+          13,
+          37,
+          31,
+          27,
+          33,
+          30,
+          49,
+          35,
+          28,
+          23,
+          32
+        ],
+        "uniform_probability": 0.02040816326530612,
+        "minimum_probability": 0.02040815327493574,
+        "maximum_probability": 0.02040818029271891,
+        "absolute_probability_spread": 2.701778317043546e-08,
+        "relative_spread_vs_uniform": 1.3238713753513376e-06,
+        "total_variation_from_uniform": 1.639417154860462e-07,
+        "kl_divergence_from_uniform": 7.149836278586008e-14,
+        "selected_probability_mass": 0.6122450392281644,
+        "uniform_selected_mass": 0.6122448979591837,
+        "selected_mass_lift": 1.4126898073563154e-07,
+        "model_implied_expected_hit_lift": 8.476138844137893e-07,
+        "uniform_event_variance": 1.2760308204914617,
+        "boundary_probability_gap": 6.328632409791091e-11,
+        "boundary_tied_numbers": [
+          23,
+          32
+        ],
+        "boundary_tie_count": 2,
+        "checkpoint_detection": {
+          "52": {
+            "standard_error_under_uniform": 0.15664946294264917,
+            "approx_minimum_detectable_mean_lift": 0.5353417912732001,
+            "model_lift_to_detectable_floor_ratio": 1.583313498462196e-06
+          },
+          "104": {
+            "standard_error_under_uniform": 0.11076789751597801,
+            "approx_minimum_detectable_mean_lift": 0.37854381086183314,
+            "model_lift_to_detectable_floor_ratio": 2.2391434230136304e-06
+          },
+          "208": {
+            "standard_error_under_uniform": 0.07832473147132459,
+            "approx_minimum_detectable_mean_lift": 0.26767089563660007,
+            "model_lift_to_detectable_floor_ratio": 3.166626996924392e-06
+          },
+          "416": {
+            "standard_error_under_uniform": 0.05538394875798901,
+            "approx_minimum_detectable_mean_lift": 0.18927190543091657,
+            "model_lift_to_detectable_floor_ratio": 4.478286846027261e-06
+          },
+          "832": {
+            "standard_error_under_uniform": 0.03916236573566229,
+            "approx_minimum_detectable_mean_lift": 0.13383544781830004,
+            "model_lift_to_detectable_floor_ratio": 6.333253993848784e-06
+          }
+        },
+        "approx_pairs_for_80pct_power": 20742901972787
+      },
+      "special": null,
+      "final_main_weights": {
+        "independent_null": 1.1522908763193236e-07,
+        "overfit_guard": 1.6815531938642242e-07,
+        "regime_shift": 2.0865910990772404e-07,
+        "structural_bias": 1.5492120037104127e-07,
+        "temporal_dependency": 2.0116153579598015e-07,
+        "debate_consensus": 1.7117416801189795e-07,
+        "uniform": 0.9999989806995788
+      },
+      "final_special_weights": null,
+      "nonuniform_main_weight": 1.0193004211789258e-06,
+      "loss_diagnostics": {
+        "uniform_is_best_main_expert": true,
+        "main_expert_loss_minus_uniform": {
+          "independent_null": 0.16930732158070239,
+          "overfit_guard": 0.16630501910792983,
+          "regime_shift": 0.17616213033104344,
+          "structural_bias": 0.16604291351271616,
+          "temporal_dependency": 0.17356717087527596,
+          "debate_consensus": 0.16823870897333215
+        }
+      },
+      "material_at_maximum_checkpoint": false
+    }
+  },
+  "diagnosis": {
+    "uniform_is_best_in_all_scored_dimensions": true,
+    "model_lift_below_max_checkpoint_detectability": true,
+    "top_k_amplification_present": true,
+    "interpretation": "top-k 仍會輸出 30 個確定標籤，但目前軟機率差遠小於固定 832 期設計可辨識的效果；號碼清單不得被解讀為30 個有實質較高開出率的標籤。"
+  },
+  "decision": {
+    "status": "retain_existing_future_shadow_only",
+    "launch_additional_label_variant": false,
+    "change_existing_frozen_numbers": false,
+    "reason": "現有 v5 已可用未來資料檢驗 residual ranking；在首個共同 checkpoint 前增加另一套標籤會擴大比較 family，卻沒有可偵測的模型效果支撐。",
+    "next_action": "維持 v5 不回填；未來同時監看 proper-score 與實際coverage 配對，只有預註冊 checkpoint 可改證據狀態。"
+  },
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  },
+  "limitations": [
+    "可偵測下限是常態近似的規劃尺度，不是新的歷史顯著性檢定。",
+    "完整歷史已被多項研究使用，本稽核不重開 holdout。",
+    "公平開獎下任意固定 30 個標籤的理論聯集分布相同。",
+    "純模擬，不構成購買或下注建議。"
+  ],
+  "audit_hash": "71d9dedf02f16d171e4b5f6175fbd60a0483fdafa1635eca1f1b50c35a5667df"
+}

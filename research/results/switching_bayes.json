@@ -1,0 +1,398 @@
+{
+  "data_quality": {
+    "chronology": "strictly_increasing",
+    "ledger_verification": {
+      "lotto649": {
+        "last_event_hash": "e5c637e43566b0c522392f41a8697c8c7983ee3e435af3ea1945ba3106941fcb",
+        "ledger_sha256": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302",
+        "lines": 2153
+      },
+      "super": {
+        "last_event_hash": "dd73e41b44d72161be95e0747e9ddfa16dae92c3ae62e16d96110e2a5d8643c1",
+        "ledger_sha256": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3",
+        "lines": 1929
+      }
+    },
+    "lookahead_control": "draw_t_uses_pre_reveal_t_weights;reveal_t_only_updates_draw_t_plus_1",
+    "source_first_dates": {
+      "lotto649": "2007-01-02",
+      "super": "2008-01-24"
+    },
+    "source_last_dates": {
+      "lotto649": "2026-07-17",
+      "super": "2026-07-16"
+    },
+    "status": "pass"
+  },
+  "decision": {
+    "belief_layer_promoted": false,
+    "label_signal_proven": false,
+    "production_number_policy": "consensus_max_coverage",
+    "reason": "兩款遊戲的 holdout 共識 top-30 命中超額 95% block-bootstrap CI 尚未同時高於 0；因此保留可切換信念層作未來 shadow，正式出號仍採 30 主號完全互斥的共識覆蓋。",
+    "status": "future_shadow_only"
+  },
+  "experiment_id": "switching-bayes-unknown-generator-shadow-v2",
+  "final_models": {
+    "lotto649": {
+      "main_prior_weights": {
+        "debate_consensus": 0.004851925889088139,
+        "overfit_guard": 0.026836672963749187,
+        "regime_shift": 0.0030787540565892285,
+        "structural_bias": 0.05029980057493656,
+        "temporal_dependency": 0.017392599401320562,
+        "uniform": 0.8975402471143162
+      },
+      "special_prior_weights": null
+    },
+    "super": {
+      "main_prior_weights": {
+        "debate_consensus": 0.0009568118027419374,
+        "overfit_guard": 0.31731093402933225,
+        "regime_shift": 0.012205412550740058,
+        "structural_bias": 0.09378081662371081,
+        "temporal_dependency": 0.04737419193324875,
+        "uniform": 0.5283718330602261
+      },
+      "special_prior_weights": {
+        "debate_consensus": 0.002454784795152963,
+        "overfit_guard": 0.07768203030045533,
+        "regime_shift": 0.012892733033997364,
+        "structural_bias": 0.5804694204432902,
+        "temporal_dependency": 0.017115029197215387,
+        "uniform": 0.3093860022298887
+      }
+    }
+  },
+  "future_forward_shadow_candidate": {
+    "candidate_hash": "4a01f9f14dd18b67f471c92112f55615e17788578fb84378378ead43fb0b3857",
+    "experiment_id": "switching-bayes-unknown-generator-forward-shadow-v2",
+    "fitted_through": {
+      "lotto649": "2026-07-17",
+      "super": "2026-07-16"
+    },
+    "historical_backfill_allowed": false,
+    "models": {
+      "lotto649": {
+        "main_prior_weights": {
+          "debate_consensus": 0.004851925889088139,
+          "overfit_guard": 0.026836672963749187,
+          "regime_shift": 0.0030787540565892285,
+          "structural_bias": 0.05029980057493656,
+          "temporal_dependency": 0.017392599401320562,
+          "uniform": 0.8975402471143162
+        },
+        "special_prior_weights": null
+      },
+      "super": {
+        "main_prior_weights": {
+          "debate_consensus": 0.0009568118027419374,
+          "overfit_guard": 0.31731093402933225,
+          "regime_shift": 0.012205412550740058,
+          "structural_bias": 0.09378081662371081,
+          "temporal_dependency": 0.04737419193324875,
+          "uniform": 0.5283718330602261
+        },
+        "special_prior_weights": {
+          "debate_consensus": 0.002454784795152963,
+          "overfit_guard": 0.07768203030045533,
+          "regime_shift": 0.012892733033997364,
+          "structural_bias": 0.5804694204432902,
+          "temporal_dependency": 0.017115029197215387,
+          "uniform": 0.3093860022298887
+        }
+      }
+    },
+    "protocol_hash": "fc6d8f53eb85e65077be8f81cc557a164070380b32b7c88a4ae7559ea011d7b0",
+    "schema_version": "1",
+    "source_experiment_id": "switching-bayes-unknown-generator-shadow-v2",
+    "use": "future_forward_shadow_only"
+  },
+  "generated_at": "2026-07-17T23:59:59+08:00",
+  "methodology": {
+    "belief_action_separation": true,
+    "belief_portfolio": "top_30_from_prior_weighted_label_mass_then_five_disjoint_tickets",
+    "bootstrap_block_draws": 13,
+    "bootstrap_samples": 2000,
+    "debate_input": "all_15_proposals_and_60_cross_agent_critiques",
+    "development_fraction": 0.7,
+    "experts": [
+      "overfit_guard",
+      "regime_shift",
+      "structural_bias",
+      "temporal_dependency",
+      "debate_consensus",
+      "uniform"
+    ],
+    "fixed_share": 0.004807692307692308,
+    "h0_representation": "uniform",
+    "historical_use": "prequential_description_only",
+    "hypothesis_input": "complete_pre_reveal_probability_snapshots_for_h1_to_h4",
+    "main_outcome_model": "product_weighted_unordered_six_number_subset",
+    "minimum_next_prior_weight": 0.0008012820512820514,
+    "production_action_while_unproven": "consensus_ranked_30_unique_main_numbers_in_five_disjoint_tickets",
+    "promotion_evidence": "future_preregistered_pairs_only",
+    "protocol_hash": "fc6d8f53eb85e65077be8f81cc557a164070380b32b7c88a4ae7559ea011d7b0",
+    "special_outcome_model": "categorical_probability_mass",
+    "structural_optimum_proof": {
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23",
+      "experiment_id": "five-ticket-structural-optimum-proof-v1"
+    },
+    "update": "bayesian_posterior_then_fixed_share",
+    "warmup_draws": 60
+  },
+  "prequential_summary": {
+    "lotto649": {
+      "belief_minus_consensus_action": {
+        "any_prize": {
+          "all_mean": 0.007895959126799815,
+          "all_sum": 17.0,
+          "holdout_ci_high": 0.09394904458598727,
+          "holdout_ci_low": 0.012738853503184714,
+          "holdout_draws": 628,
+          "holdout_mean": 0.052547770700636945,
+          "recent_208_mean": 0.02403846153846154
+        },
+        "any_three_plus": {
+          "all_mean": 0.0037157454714352067,
+          "all_sum": 8.0,
+          "holdout_ci_high": 0.054140127388535034,
+          "holdout_ci_low": -0.0031847133757961785,
+          "holdout_draws": 628,
+          "holdout_mean": 0.025477707006369428,
+          "recent_208_mean": 0.019230769230769232
+        },
+        "best_main_hits": {
+          "all_mean": 0.024152345564328843,
+          "all_sum": 52.0,
+          "holdout_ci_high": 0.10987261146496816,
+          "holdout_ci_low": -0.014331210191082803,
+          "holdout_draws": 628,
+          "holdout_mean": 0.050955414012738856,
+          "recent_208_mean": 0.052884615384615384
+        },
+        "union_main_hits": {
+          "all_mean": -0.043195541105434276,
+          "all_sum": -93.0,
+          "holdout_ci_high": 0.012738853503184714,
+          "holdout_ci_low": -0.20382165605095542,
+          "holdout_draws": 628,
+          "holdout_mean": -0.09713375796178345,
+          "recent_208_mean": -0.07211538461538461
+        }
+      },
+      "best_static_main_expert": "uniform",
+      "draws": 2153,
+      "first_date": "2007-01-02",
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "holdout_start_sequence": 1526,
+      "last_date": "2026-07-17",
+      "main_bound_pass": true,
+      "main_exact_subset_regret_vs_uniform": {
+        "all_mean": 0.004087833787053953,
+        "all_sum": 8.80110614352716,
+        "holdout_ci_high": 0.008984622924693795,
+        "holdout_ci_low": -0.0021438310136952517,
+        "holdout_draws": 628,
+        "holdout_mean": 0.0037249781493799094,
+        "recent_208_mean": 0.00544854571826509
+      },
+      "main_regret_to_best_static_expert": 8.801106143524521,
+      "main_static_expert_regret_bound": 10.43087183418835,
+      "minimum_observed_next_prior_weight": 0.0008023507063579335,
+      "top_30_hit_excess_vs_label_symmetry": {
+        "debate_consensus": {
+          "all_mean": 0.039953742760457565,
+          "all_sum": 86.02040816326513,
+          "holdout_ci_high": 0.14659430651241392,
+          "holdout_ci_low": -0.03015728584427405,
+          "holdout_draws": 628,
+          "holdout_mean": 0.0590146886780189,
+          "recent_208_mean": 0.06691522762951327
+        },
+        "overfit_guard": {
+          "all_mean": -0.013460098391423534,
+          "all_sum": -28.97959183673487,
+          "holdout_ci_high": 0.07016118549330556,
+          "holdout_ci_low": -0.09862862342389181,
+          "holdout_draws": 628,
+          "holdout_mean": -0.019010789028987472,
+          "recent_208_mean": 0.057299843014128646
+        },
+        "regime_shift": {
+          "all_mean": -0.021356057518223347,
+          "all_sum": -45.97959183673487,
+          "holdout_ci_high": 0.060607045365917024,
+          "holdout_ci_low": -0.13529263616274537,
+          "holdout_draws": 628,
+          "holdout_mean": -0.03493435590796836,
+          "recent_208_mean": -0.06289246467817905
+        },
+        "structural_bias": {
+          "all_mean": -0.03668350758789358,
+          "all_sum": -78.97959183673487,
+          "holdout_ci_high": 0.004914370206681165,
+          "holdout_ci_low": -0.15595346418822303,
+          "holdout_draws": 628,
+          "holdout_mean": -0.07474327310542059,
+          "recent_208_mean": -0.10616169544740982
+        },
+        "temporal_dependency": {
+          "all_mean": -0.012066693839635332,
+          "all_sum": -25.97959183673487,
+          "holdout_ci_high": 0.08134749122578948,
+          "holdout_ci_low": -0.07474327310542052,
+          "holdout_draws": 628,
+          "holdout_mean": 0.0016898479136876865,
+          "recent_208_mean": 0.00922291993720557
+        },
+        "uniform": {
+          "all_mean": 0.0,
+          "all_sum": 0.0,
+          "holdout_ci_high": 0.0,
+          "holdout_ci_low": 0.0,
+          "holdout_draws": 628,
+          "holdout_mean": 0.0,
+          "recent_208_mean": 0.0
+        }
+      }
+    },
+    "super": {
+      "belief_minus_consensus_action": {
+        "any_prize": {
+          "all_mean": -0.01088646967340591,
+          "all_sum": -21.0,
+          "holdout_ci_high": 0.040998217468805706,
+          "holdout_ci_low": -0.06951871657754011,
+          "holdout_draws": 561,
+          "holdout_mean": -0.016042780748663103,
+          "recent_208_mean": 0.0625
+        },
+        "any_three_plus": {
+          "all_mean": -0.007257646448937273,
+          "all_sum": -14.0,
+          "holdout_ci_high": 0.05525846702317291,
+          "holdout_ci_low": -0.0285204991087344,
+          "holdout_draws": 561,
+          "holdout_mean": 0.0142602495543672,
+          "recent_208_mean": 0.019230769230769232
+        },
+        "best_main_hits": {
+          "all_mean": -0.0010368066355624676,
+          "all_sum": -2.0,
+          "holdout_ci_high": 0.08377896613190731,
+          "holdout_ci_low": -0.040998217468805706,
+          "holdout_draws": 561,
+          "holdout_mean": 0.0213903743315508,
+          "recent_208_mean": 0.04326923076923077
+        },
+        "union_main_hits": {
+          "all_mean": -0.007776049766718507,
+          "all_sum": -15.0,
+          "holdout_ci_high": 0.058823529411764705,
+          "holdout_ci_low": -0.09982174688057041,
+          "holdout_draws": 561,
+          "holdout_mean": -0.0196078431372549,
+          "recent_208_mean": 0.03365384615384615
+        }
+      },
+      "best_static_main_expert": "uniform",
+      "best_static_special_expert": "uniform",
+      "draws": 1929,
+      "first_date": "2008-01-24",
+      "game": "super",
+      "game_name": "威力彩",
+      "holdout_start_sequence": 1369,
+      "last_date": "2026-07-16",
+      "main_bound_pass": true,
+      "main_exact_subset_regret_vs_uniform": {
+        "all_mean": 0.004266763716912487,
+        "all_sum": 8.230587209924186,
+        "holdout_ci_high": 0.005971775155557442,
+        "holdout_ci_low": -6.107942163650776e-05,
+        "holdout_draws": 561,
+        "holdout_mean": 0.0030159284529592207,
+        "recent_208_mean": 0.0017175216671953925
+      },
+      "main_regret_to_best_static_expert": 8.230587209924124,
+      "main_static_expert_regret_bound": 9.531633372408097,
+      "minimum_observed_next_prior_weight": 0.0008046620718785993,
+      "special_bound_pass": true,
+      "special_regret_to_best_static_expert": 4.03411488262509,
+      "special_regret_vs_uniform": {
+        "all_mean": 0.00209129853946343,
+        "all_sum": 4.034114882624957,
+        "holdout_ci_high": 0.0043355191697842365,
+        "holdout_ci_low": 9.771464933116382e-05,
+        "holdout_draws": 561,
+        "holdout_mean": 0.0021321670022199173,
+        "recent_208_mean": 0.0007423327571187538
+      },
+      "special_static_expert_regret_bound": 9.531633372408097,
+      "top_30_hit_excess_vs_label_symmetry": {
+        "debate_consensus": {
+          "all_mean": 0.010695478977381618,
+          "all_sum": 20.631578947369142,
+          "holdout_ci_high": 0.1276855239703541,
+          "holdout_ci_low": -0.01669950276761385,
+          "holdout_draws": 561,
+          "holdout_mean": 0.05638427619851806,
+          "recent_208_mean": 0.027580971659919403
+        },
+        "overfit_guard": {
+          "all_mean": 0.019508335379662595,
+          "all_sum": 37.63157894736914,
+          "holdout_ci_high": 0.07777465053006886,
+          "holdout_ci_low": -0.06308987709916465,
+          "holdout_draws": 561,
+          "holdout_mean": 0.006473402758232854,
+          "recent_208_mean": 0.05161943319838094
+        },
+        "regime_shift": {
+          "all_mean": 0.014842705519631488,
+          "all_sum": 28.631578947369142,
+          "holdout_ci_high": 0.07420958814147706,
+          "holdout_ci_low": -0.06661037620789906,
+          "holdout_draws": 561,
+          "holdout_mean": 0.004690871563936954,
+          "recent_208_mean": 0.08527327935222709
+        },
+        "structural_bias": {
+          "all_mean": 0.02987640173528727,
+          "all_sum": 57.63157894736914,
+          "holdout_ci_high": 0.10094755605591556,
+          "holdout_ci_low": -0.03991697157331795,
+          "holdout_draws": 561,
+          "holdout_mean": 0.034993901866967256,
+          "recent_208_mean": 0.03238866396761171
+        },
+        "temporal_dependency": {
+          "all_mean": -0.0038198139204929276,
+          "all_sum": -7.368421052630858,
+          "holdout_ci_high": 0.09559996247302786,
+          "holdout_ci_low": -0.045264565156205645,
+          "holdout_draws": 561,
+          "holdout_mean": 0.022516183506895954,
+          "recent_208_mean": 0.0900809716599194
+        },
+        "uniform": {
+          "all_mean": 0.0,
+          "all_sum": 0.0,
+          "holdout_ci_high": 0.0,
+          "holdout_ci_low": 0.0,
+          "holdout_draws": 561,
+          "holdout_mean": 0.0,
+          "recent_208_mean": 0.0
+        }
+      }
+    }
+  },
+  "question": "若開獎生成器可能非固定亂數，完整假設機率與可切換 Bayes 是否能在不偷看未來的條件下提高下一期號碼品質？",
+  "records_integrity": {
+    "after": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "before": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  },
+  "schema_version": "1",
+  "source_experiment_id": "agent-loop-v3-unknown-generator"
+}

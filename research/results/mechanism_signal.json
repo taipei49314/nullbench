@@ -1,0 +1,682 @@
+{
+  "schema_version": "1",
+  "experiment_id": "draw-mechanism-signal-audit-v1",
+  "source_experiment_id": "agent-loop-v3-unknown-generator",
+  "generated_at": "2026-07-17T23:59:59+08:00",
+  "question": "歷史開獎是否存在跨時間可重現的主號標籤、星期、序列或第二區偏差，足以在完全分散結構內改變號碼排序？",
+  "methodology": {
+    "warmup_draws": 60,
+    "development_fraction": 0.7,
+    "inner_training_fraction": 0.7,
+    "bootstrap_samples": 2000,
+    "bootstrap_block_draws": 13,
+    "main_candidates": {
+      "super": [
+        "main_frequency",
+        "weekday_main_frequency"
+      ],
+      "lotto649": [
+        "main_frequency",
+        "weekday_main_frequency",
+        "total_ball_frequency"
+      ]
+    },
+    "nested_selection": "inner train 擬合、inner validation 選唯一候選；外層 holdout 不得改選。",
+    "multiple_testing": "五個主號候選、威力彩前五第二區與共同第二區各一項，共七項，使用 Holm family-wise correction；四類機制診斷跨兩款遊戲另成八項 Holm family。",
+    "promotion_gate": "inner validation 正向、Holm p<0.05、holdout 13 期區塊 bootstrap 下界>0、前後半皆正向；前五第二區另要求配對任一獎差區間下界>0；共同第二區另要求兩個獲利結構的配對嚴格獲利區間下界皆>0且平均壓力淨額不下降。",
+    "historical_reuse": "完整歷史先前已被其他研究檢視；外層 holdout 僅為嚴格探索證據，任何新候選仍需未來 forward 確認。",
+    "structural_optimum_proof": {
+      "experiment_id": "five-ticket-structural-optimum-proof-v1",
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
+    }
+  },
+  "data_quality": {
+    "status": "pass",
+    "profiles": {
+      "super": {
+        "draws": 1929,
+        "first_date": "2008-01-24",
+        "last_date": "2026-07-16",
+        "duplicate_dates": 0,
+        "duplicate_periods": 0,
+        "ordered_chronologically": true,
+        "legal_draws": true,
+        "regular_schedule_draws": 1929,
+        "off_schedule_draws": 0,
+        "off_schedule_treatment": "weekday candidate 使用全訓練期 fallback；大樂透春節加開屬合法資料，不視為品質失敗。",
+        "dataset_sha256": "5aa5449a20c0da2fc7a17d530014150be20b9a24534add57a825f3bc77786bce",
+        "quality_status": "pass",
+        "quality_failures": []
+      },
+      "lotto649": {
+        "draws": 2153,
+        "first_date": "2007-01-02",
+        "last_date": "2026-07-17",
+        "duplicate_dates": 0,
+        "duplicate_periods": 0,
+        "ordered_chronologically": true,
+        "legal_draws": true,
+        "regular_schedule_draws": 2040,
+        "off_schedule_draws": 113,
+        "off_schedule_treatment": "weekday candidate 使用全訓練期 fallback；大樂透春節加開屬合法資料，不視為品質失敗。",
+        "dataset_sha256": "96715d44fe934631219b1989e39b7f5dfd18cd20be6395b37c32152cf82e20ef",
+        "quality_status": "pass",
+        "quality_failures": []
+      }
+    },
+    "ledger_verification": {
+      "super": {
+        "lines": 1929,
+        "last_event_hash": "dd73e41b44d72161be95e0747e9ddfa16dae92c3ae62e16d96110e2a5d8643c1",
+        "ledger_sha256": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3"
+      },
+      "lotto649": {
+        "lines": 2153,
+        "last_event_hash": "e5c637e43566b0c522392f41a8697c8c7983ee3e435af3ea1945ba3106941fcb",
+        "ledger_sha256": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+      }
+    },
+    "split_profiles": {
+      "super": {
+        "total_draws": 1929,
+        "warmup_draws": 60,
+        "eligible_draws": 1869,
+        "development_draws": 1308,
+        "inner_training_draws": 915,
+        "inner_validation_draws": 393,
+        "holdout_draws": 561
+      },
+      "lotto649": {
+        "total_draws": 2153,
+        "warmup_draws": 60,
+        "eligible_draws": 2093,
+        "development_draws": 1465,
+        "inner_training_draws": 1025,
+        "inner_validation_draws": 440,
+        "holdout_draws": 628
+      }
+    },
+    "source_last_dates": {
+      "super": "2026-07-16",
+      "lotto649": "2026-07-17"
+    }
+  },
+  "mechanism_diagnostics": {
+    "super": {
+      "development": {
+        "main_label_uniformity": {
+          "statistic": 42.03104294087666,
+          "degrees_of_freedom": 37,
+          "raw_p_value": 0.2620560579016856,
+          "minimum_count": 173,
+          "maximum_count": 242,
+          "expected_count": 206.52631578947367
+        },
+        "extra_number_uniformity": {
+          "statistic": 3.388379204892966,
+          "degrees_of_freedom": 7,
+          "raw_p_value": 0.8469029661797973,
+          "counts": [
+            160,
+            179,
+            163,
+            162,
+            175,
+            154,
+            156,
+            159
+          ],
+          "expected_count": 163.5
+        },
+        "weekday_main_difference": {
+          "statistic": 25.854150739041803,
+          "degrees_of_freedom": 37,
+          "raw_p_value": 0.9154564556746747,
+          "weekday_draws": {
+            "0": 654,
+            "3": 654
+          }
+        },
+        "serial_main_overlap": {
+          "pairs": 1307,
+          "observed_mean_overlap": 0.9204284621270085,
+          "exact_null_mean_overlap": 0.9473684210526315,
+          "z_score": -1.172513773241524,
+          "raw_p_value": 0.24099084563977516
+        }
+      },
+      "holdout": {
+        "main_label_uniformity": {
+          "statistic": 30.952874331550802,
+          "degrees_of_freedom": 37,
+          "raw_p_value": 0.7475127090871005,
+          "minimum_count": 76,
+          "maximum_count": 107,
+          "expected_count": 88.57894736842105,
+          "holm_adjusted_p_value": 1.0
+        },
+        "extra_number_uniformity": {
+          "statistic": 8.169340463458111,
+          "degrees_of_freedom": 7,
+          "raw_p_value": 0.31789887093167135,
+          "counts": [
+            67,
+            83,
+            70,
+            81,
+            76,
+            59,
+            61,
+            64
+          ],
+          "expected_count": 70.125,
+          "holm_adjusted_p_value": 1.0
+        },
+        "weekday_main_difference": {
+          "statistic": 20.563353585327693,
+          "degrees_of_freedom": 37,
+          "raw_p_value": 0.9868134513402479,
+          "weekday_draws": {
+            "0": 280,
+            "3": 281
+          },
+          "holm_adjusted_p_value": 1.0
+        },
+        "serial_main_overlap": {
+          "pairs": 560,
+          "observed_mean_overlap": 0.9571428571428572,
+          "exact_null_mean_overlap": 0.9473684210526315,
+          "z_score": 0.278463934286676,
+          "raw_p_value": 0.7806562468398428,
+          "holm_adjusted_p_value": 1.0
+        }
+      },
+      "development_holdout_main_residual_correlation": {
+        "correlation": -0.0382955215302238,
+        "fisher_z": -0.22667021157998202,
+        "raw_p_value": 0.820680191948978
+      },
+      "development_selected_main_candidate": "uniform_null"
+    },
+    "lotto649": {
+      "development": {
+        "main_label_uniformity": {
+          "statistic": 49.567870465909984,
+          "degrees_of_freedom": 48,
+          "raw_p_value": 0.41050891955898716,
+          "minimum_count": 151,
+          "maximum_count": 211,
+          "expected_count": 179.3877551020408
+        },
+        "extra_number_uniformity": {
+          "statistic": 62.830034129692834,
+          "degrees_of_freedom": 48,
+          "raw_p_value": 0.07389071405149394,
+          "counts": [
+            21,
+            31,
+            28,
+            31,
+            26,
+            38,
+            34,
+            35,
+            43,
+            31,
+            32,
+            27,
+            32,
+            32,
+            30,
+            22,
+            19,
+            32,
+            29,
+            29,
+            36,
+            27,
+            18,
+            40,
+            23,
+            31,
+            23,
+            29,
+            34,
+            33,
+            40,
+            27,
+            35,
+            22,
+            24,
+            30,
+            32,
+            26,
+            35,
+            33,
+            42,
+            38,
+            30,
+            19,
+            34,
+            19,
+            23,
+            24,
+            36
+          ],
+          "expected_count": 29.897959183673468
+        },
+        "weekday_main_difference": {
+          "statistic": 41.26790172119303,
+          "degrees_of_freedom": 48,
+          "raw_p_value": 0.7431839285042303,
+          "weekday_draws": {
+            "1": 708,
+            "4": 708
+          }
+        },
+        "serial_main_overlap": {
+          "pairs": 1464,
+          "observed_mean_overlap": 0.7390710382513661,
+          "exact_null_mean_overlap": 0.7346938775510204,
+          "z_score": 0.2203738314523294,
+          "raw_p_value": 0.8255800239368234
+        }
+      },
+      "holdout": {
+        "main_label_uniformity": {
+          "statistic": 34.00444378610577,
+          "degrees_of_freedom": 48,
+          "raw_p_value": 0.9366329106719543,
+          "minimum_count": 62,
+          "maximum_count": 93,
+          "expected_count": 76.89795918367346,
+          "holm_adjusted_p_value": 1.0
+        },
+        "extra_number_uniformity": {
+          "statistic": 66.73885350318471,
+          "degrees_of_freedom": 48,
+          "raw_p_value": 0.037985631711101114,
+          "counts": [
+            9,
+            17,
+            18,
+            10,
+            12,
+            9,
+            10,
+            15,
+            7,
+            17,
+            10,
+            10,
+            16,
+            14,
+            10,
+            16,
+            9,
+            7,
+            6,
+            4,
+            9,
+            15,
+            10,
+            22,
+            10,
+            14,
+            18,
+            17,
+            8,
+            18,
+            20,
+            7,
+            9,
+            18,
+            15,
+            10,
+            20,
+            15,
+            13,
+            13,
+            14,
+            16,
+            10,
+            11,
+            13,
+            20,
+            14,
+            12,
+            11
+          ],
+          "expected_count": 12.816326530612244,
+          "holm_adjusted_p_value": 0.3038850536888089
+        },
+        "weekday_main_difference": {
+          "statistic": 62.294573643410864,
+          "degrees_of_freedom": 48,
+          "raw_p_value": 0.08052103730532308,
+          "weekday_draws": {
+            "1": 282,
+            "4": 282
+          },
+          "holm_adjusted_p_value": 0.5636472611372615
+        },
+        "serial_main_overlap": {
+          "pairs": 627,
+          "observed_mean_overlap": 0.7352472089314195,
+          "exact_null_mean_overlap": 0.7346938775510204,
+          "z_score": 0.018231233931353452,
+          "raw_p_value": 0.9854543856996844,
+          "holm_adjusted_p_value": 1.0
+        }
+      },
+      "development_holdout_main_residual_correlation": {
+        "correlation": -0.18382517921508917,
+        "fisher_z": -1.261098225954943,
+        "raw_p_value": 0.20727345971739602
+      },
+      "development_selected_main_candidate": "total_ball_frequency"
+    }
+  },
+  "main_candidate_holdout": [
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "candidate": "main_frequency",
+      "inner_validation_draws": 393,
+      "inner_validation_mean_main_hits": 4.7150127226463106,
+      "inner_validation_delta_vs_exact_null": -0.02182938261684697,
+      "holdout_draws": 561,
+      "holdout_observed_total_main_hits": 2639,
+      "holdout_mean_main_hits": 4.704099821746881,
+      "exact_null_mean_main_hits": 4.7368421052631575,
+      "holdout_delta_vs_exact_null": -0.03274228351627695,
+      "holdout_delta_ci_low": -0.11117365606529656,
+      "holdout_delta_ci_high": 0.05638427619851806,
+      "holdout_first_half_delta": -0.018984962406014664,
+      "holdout_second_half_delta": -0.04645064618842443,
+      "holdout_raw_one_sided_p_value": 0.8047326596238061,
+      "holm_adjusted_one_sided_p_value": 1.0
+    },
+    {
+      "game": "super",
+      "game_name": "威力彩",
+      "candidate": "weekday_main_frequency",
+      "inner_validation_draws": 393,
+      "inner_validation_mean_main_hits": 4.638676844783715,
+      "inner_validation_delta_vs_exact_null": -0.0981652604794423,
+      "holdout_draws": 561,
+      "holdout_observed_total_main_hits": 2682,
+      "holdout_mean_main_hits": 4.780748663101604,
+      "exact_null_mean_main_hits": 4.7368421052631575,
+      "holdout_delta_vs_exact_null": 0.043906557838446755,
+      "holdout_delta_ci_low": -0.02204709635050155,
+      "holdout_delta_ci_high": 0.10986021202739506,
+      "holdout_first_half_delta": 0.05601503759398534,
+      "holdout_second_half_delta": 0.031841168758194795,
+      "holdout_raw_one_sided_p_value": 0.136154754522888,
+      "holm_adjusted_one_sided_p_value": 0.68077377261444
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "candidate": "main_frequency",
+      "inner_validation_draws": 440,
+      "inner_validation_mean_main_hits": 3.709090909090909,
+      "inner_validation_delta_vs_exact_null": 0.03562152133580687,
+      "holdout_draws": 628,
+      "holdout_observed_total_main_hits": 2278,
+      "holdout_mean_main_hits": 3.627388535031847,
+      "exact_null_mean_main_hits": 3.673469387755102,
+      "holdout_delta_vs_exact_null": -0.04608085272325499,
+      "holdout_delta_ci_low": -0.12251397374236314,
+      "holdout_delta_ci_high": 0.03516914727674481,
+      "holdout_first_half_delta": 0.04627583517483418,
+      "holdout_second_half_delta": -0.13843754062134417,
+      "holdout_raw_one_sided_p_value": 0.8508012009588571,
+      "holm_adjusted_one_sided_p_value": 1.0
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "candidate": "weekday_main_frequency",
+      "inner_validation_draws": 440,
+      "inner_validation_mean_main_hits": 3.6772727272727272,
+      "inner_validation_delta_vs_exact_null": 0.003803339517625126,
+      "holdout_draws": 628,
+      "holdout_observed_total_main_hits": 2276,
+      "holdout_mean_main_hits": 3.624203821656051,
+      "exact_null_mean_main_hits": 3.673469387755102,
+      "holdout_delta_vs_exact_null": -0.04926556609905117,
+      "holdout_delta_ci_low": -0.14480696737293636,
+      "holdout_delta_ci_high": 0.04786819186273234,
+      "holdout_first_half_delta": 0.03990640842324183,
+      "holdout_second_half_delta": -0.13843754062134417,
+      "holdout_raw_one_sided_p_value": 0.8665809762287163,
+      "holm_adjusted_one_sided_p_value": 1.0
+    },
+    {
+      "game": "lotto649",
+      "game_name": "大樂透",
+      "candidate": "total_ball_frequency",
+      "inner_validation_draws": 440,
+      "inner_validation_mean_main_hits": 3.7227272727272727,
+      "inner_validation_delta_vs_exact_null": 0.04925788497217054,
+      "holdout_draws": 628,
+      "holdout_observed_total_main_hits": 2292,
+      "holdout_mean_main_hits": 3.6496815286624202,
+      "exact_null_mean_main_hits": 3.673469387755102,
+      "holdout_delta_vs_exact_null": -0.02378785909268174,
+      "holdout_delta_ci_low": -0.101813336799688,
+      "holdout_delta_ci_high": 0.060607045365917,
+      "holdout_first_half_delta": -0.00467957883790467,
+      "holdout_second_half_delta": -0.042896139347458805,
+      "holdout_raw_one_sided_p_value": 0.7075068011255838,
+      "holm_adjusted_one_sided_p_value": 1.0
+    }
+  ],
+  "main_decisions": {
+    "super": {
+      "development_selected_candidate": "uniform_null",
+      "promotion_eligible": false,
+      "decision": "retain_consensus_main_labels"
+    },
+    "lotto649": {
+      "development_selected_candidate": "total_ball_frequency",
+      "promotion_eligible": false,
+      "decision": "retain_consensus_main_labels"
+    }
+  },
+  "super_special_candidate": {
+    "candidate": "development_top_five_specials",
+    "inner_training_ranking": [
+      5,
+      7,
+      2,
+      3,
+      8,
+      4,
+      6,
+      1
+    ],
+    "inner_selected_specials": [
+      5,
+      7,
+      2,
+      3,
+      8
+    ],
+    "inner_validation_draws": 393,
+    "inner_validation_special_coverage": 0.6132315521628499,
+    "inner_validation_delta_vs_exact_null": -0.011768447837150142,
+    "development_ranking": [
+      2,
+      5,
+      3,
+      4,
+      1,
+      8,
+      7,
+      6
+    ],
+    "selected_specials": [
+      2,
+      5,
+      3,
+      4,
+      1
+    ],
+    "holdout_draws": 561,
+    "holdout_special_hits": 377,
+    "holdout_special_coverage": 0.6720142602495544,
+    "exact_null_special_coverage": 0.625,
+    "holdout_special_coverage_raw_one_sided_p_value": 0.011506331525391777,
+    "holdout_first_half_special_coverage": 0.6714285714285714,
+    "holdout_second_half_special_coverage": 0.6725978647686833,
+    "control_any_prize_rate": 0.5454545454545454,
+    "candidate_any_prize_rate": 0.5704099821746881,
+    "paired_any_prize_delta": 0.024955436720142603,
+    "paired_any_prize_ci_low": -0.0196078431372549,
+    "paired_any_prize_ci_high": 0.0677361853832442,
+    "theoretical_structural_probability_unchanged": true,
+    "profit_common_special_candidate": {
+      "candidate": "development_top_one_special",
+      "inner_selected_special": 5,
+      "inner_validation_draws": 393,
+      "inner_validation_special_hits": 46,
+      "inner_validation_special_rate": 0.11704834605597965,
+      "inner_validation_delta_vs_exact_null": -0.007951653944020351,
+      "inner_validation_portfolios": {
+        "guarded_profit": {
+          "draws": 393,
+          "candidate_strict_profit_rate": 0.07124681933842239,
+          "control_strict_profit_rate": 0.05343511450381679,
+          "strict_profit_delta": 0.017811704834605598,
+          "strict_profit_delta_ci_low": -0.002544529262086514,
+          "strict_profit_delta_ci_high": 0.04071246819338423,
+          "first_half_strict_profit_delta": 0.02040816326530612,
+          "second_half_strict_profit_delta": 0.015228426395939087,
+          "candidate_wins": 15,
+          "ties": 370,
+          "control_wins": 8,
+          "mean_net_delta_ntd": 7.862595419847328
+        },
+        "unconstrained_profit": {
+          "draws": 393,
+          "candidate_strict_profit_rate": 0.08396946564885496,
+          "control_strict_profit_rate": 0.06615776081424936,
+          "strict_profit_delta": 0.017811704834605598,
+          "strict_profit_delta_ci_low": -0.01272264631043257,
+          "strict_profit_delta_ci_high": 0.04834605597964377,
+          "first_half_strict_profit_delta": 0.025510204081632654,
+          "second_half_strict_profit_delta": 0.01015228426395939,
+          "candidate_wins": 24,
+          "ties": 352,
+          "control_wins": 17,
+          "mean_net_delta_ntd": 11.763358778625955
+        }
+      },
+      "selected_special": 2,
+      "holdout_draws": 561,
+      "holdout_special_hits": 83,
+      "holdout_special_rate": 0.14795008912655971,
+      "exact_null_special_rate": 0.125,
+      "holdout_raw_one_sided_p_value": 0.05959373461580309,
+      "holdout_first_half_special_rate": 0.14642857142857144,
+      "holdout_second_half_special_rate": 0.1494661921708185,
+      "holdout_portfolios": {
+        "guarded_profit": {
+          "draws": 561,
+          "candidate_strict_profit_rate": 0.053475935828877004,
+          "control_strict_profit_rate": 0.06417112299465241,
+          "strict_profit_delta": -0.0106951871657754,
+          "strict_profit_delta_ci_low": -0.0338680926916221,
+          "strict_profit_delta_ci_high": 0.016042780748663103,
+          "first_half_strict_profit_delta": 0.0035714285714285713,
+          "second_half_strict_profit_delta": -0.02491103202846975,
+          "candidate_wins": 20,
+          "ties": 515,
+          "control_wins": 26,
+          "mean_net_delta_ntd": 7.746880570409982
+        },
+        "unconstrained_profit": {
+          "draws": 561,
+          "candidate_strict_profit_rate": 0.0855614973262032,
+          "control_strict_profit_rate": 0.08199643493761141,
+          "strict_profit_delta": 0.0035650623885918,
+          "strict_profit_delta_ci_low": -0.026737967914438502,
+          "strict_profit_delta_ci_high": 0.0374331550802139,
+          "first_half_strict_profit_delta": 0.02142857142857143,
+          "second_half_strict_profit_delta": -0.014234875444839857,
+          "candidate_wins": 33,
+          "ties": 497,
+          "control_wins": 31,
+          "mean_net_delta_ntd": 4.354723707664884
+        }
+      },
+      "theoretical_structural_probability_unchanged": true,
+      "holm_adjusted_one_sided_p_value": 0.35756240769481856,
+      "promotion_eligible": false,
+      "decision": "retain_consensus_profit_common_special"
+    },
+    "holm_adjusted_special_coverage_p_value": 0.08054432067774243,
+    "promotion_eligible": false,
+    "decision": "retain_consensus_special_ranking"
+  },
+  "future_forward_shadow_candidate": {
+    "experiment_id": "special-frequency-forward-shadow-v1",
+    "source_experiment_id": "draw-mechanism-signal-audit-v1",
+    "game": "super",
+    "fitted_through": "2021-03-01",
+    "selected_specials": [
+      2,
+      5,
+      3,
+      4,
+      1
+    ],
+    "assignment": "依 ticket_debate_support 由高至低配對 development 第二區頻率排序",
+    "promotion_eligible": false,
+    "use": "future_forward_shadow_only",
+    "structural_optimum_proof": {
+      "experiment_id": "five-ticket-structural-optimum-proof-v1",
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
+    },
+    "candidate_hash": "08f424111df2f6c6a759e001d55eaafd31febc4bc58e8d81cacd4178c2a193e1"
+  },
+  "future_profit_common_special_shadow_candidate": {
+    "experiment_id": "profit-common-special-forward-shadow-v1",
+    "source_experiment_id": "draw-mechanism-signal-audit-v1",
+    "game": "super",
+    "fitted_through": "2021-03-01",
+    "selected_special": 2,
+    "source_candidate": "development_top_one_special",
+    "promotion_eligible": false,
+    "use": "future_forward_shadow_only",
+    "guarded_profit_proof": {
+      "experiment_id": "five-ticket-profit-pareto-proof-v1",
+      "certificate_hash": "b91fb1e1f4a4f7ba6478389b05182761472fcdc9784460967b9011a739356ee4"
+    },
+    "unconstrained_profit_proof": {
+      "experiment_id": "five-ticket-unconstrained-profit-optimum-proof-v2",
+      "certificate_hash": "9fa8d7949ce75887af774e664ef913392d723eb58c5bacab1e47e50838216acb"
+    },
+    "candidate_hash": "99a3f01dd841b566e4582aff9699500b07eab140cc101ec000e0463157abf987"
+  },
+  "conclusion": {
+    "status": "retain_current_label_and_special_ranking",
+    "any_historical_promotion_eligible": false,
+    "important_exploratory_result": "威力彩 development 前五第二區在外層 holdout 的覆蓋率高於 5/8；共同第二區在兩個獲利結構的外層 holdout 嚴格獲利差皆為正。但兩者的 inner validation 均未重現，七項 Holm 校正與配對區間也未通過升級門檻。",
+    "forward_action": "前五 coverage 第二區與共同獲利第二區都只凍結為未來 forward shadow 候選；不替換現行 Agent 共識第二區，不改既有登記。"
+  },
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  },
+  "limitations": [
+    "所有歷史期數已被多個研究使用，不是全新的確認性樣本。",
+    "漸近卡方與 Fisher z 只作機制診斷；策略門檻另用精確尾端與區塊 bootstrap。",
+    "候選標籤不改變公平模型下的精確結構機率。",
+    "純模擬，不構成購買或下注建議。"
+  ]
+}

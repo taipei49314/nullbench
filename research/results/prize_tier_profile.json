@@ -1,0 +1,774 @@
+{
+  "schema_version": "1",
+  "experiment_id": "five-ticket-prize-tier-profile-v1",
+  "rules_as_of": "2026-07-19",
+  "official_prize_rules": {
+    "super": "https://www.taiwanlottery.com/lotto/info/super_lotto638",
+    "lotto649": "https://www.taiwanlottery.com/lotto/info/lotto649"
+  },
+  "question": "五注完全分散的任一獎機率由哪些最高獎級組成，可能同時中幾注，第 1 至第 5 注各增加多少聯集機率？",
+  "methodology": {
+    "main_draws": "依票券 Venn membership 群組，以整數動態規劃精確計數每注 0 至 6 個主號的完整命中向量。",
+    "super_special": "逐一枚舉第二區 1 至 8。",
+    "lotto649_bonus": "對每個精確 membership 群組，從群組大小扣除已被六主號抽走的總數，計數剩餘特別號歸屬。",
+    "tier_assignment": "每個完整開獎結果逐注套用現行獎級；另記錄最高獎級、所有獲獎票券與同時中獎注數。",
+    "calculation": "全程整數組合計數；不使用 Monte Carlo",
+    "lookahead": "純規則與結構分析，不讀歷史開獎或目標期 reveal",
+    "structural_optimum_proof": {
+      "experiment_id": "five-ticket-structural-optimum-proof-v1",
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
+    }
+  },
+  "games": {
+    "super": {
+      "game_name": "威力彩",
+      "pool": 38,
+      "pick_n": 6,
+      "ticket_price_ntd": 100,
+      "special_pool": 8,
+      "ticket_count_curve": [
+        {
+          "ticket_count": 1,
+          "simulated_cost_ntd": 100,
+          "any_prize": {
+            "numerator": 2602320,
+            "denominator": 22085448,
+            "probability": 0.11782962247358532
+          },
+          "marginal_any_prize": {
+            "numerator": 2602320,
+            "denominator": 22085448,
+            "probability": 0.11782962247358532
+          },
+          "at_least_three_main": {
+            "numerator": 106833,
+            "denominator": 2760681,
+            "probability": 0.038698060369886995
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 106833,
+            "denominator": 2760681,
+            "probability": 0.038698060369886995
+          }
+        },
+        {
+          "ticket_count": 2,
+          "simulated_cost_ntd": 200,
+          "any_prize": {
+            "numerator": 5102638,
+            "denominator": 22085448,
+            "probability": 0.23104072871874728
+          },
+          "marginal_any_prize": {
+            "numerator": 2500318,
+            "denominator": 22085448,
+            "probability": 0.11321110624516197
+          },
+          "at_least_three_main": {
+            "numerator": 213266,
+            "denominator": 2760681,
+            "probability": 0.07725122895401533
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 106433,
+            "denominator": 2760681,
+            "probability": 0.038553168584128335
+          }
+        },
+        {
+          "ticket_count": 3,
+          "simulated_cost_ntd": 300,
+          "any_prize": {
+            "numerator": 7500954,
+            "denominator": 22085448,
+            "probability": 0.3396333187354859
+          },
+          "marginal_any_prize": {
+            "numerator": 2398316,
+            "denominator": 22085448,
+            "probability": 0.10859259001673863
+          },
+          "at_least_three_main": {
+            "numerator": 319299,
+            "denominator": 2760681,
+            "probability": 0.11565950575238501
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 106033,
+            "denominator": 2760681,
+            "probability": 0.03840827679836968
+          }
+        },
+        {
+          "ticket_count": 4,
+          "simulated_cost_ntd": 400,
+          "any_prize": {
+            "numerator": 9797268,
+            "denominator": 22085448,
+            "probability": 0.4436073925238012
+          },
+          "marginal_any_prize": {
+            "numerator": 2296314,
+            "denominator": 22085448,
+            "probability": 0.10397407378831527
+          },
+          "at_least_three_main": {
+            "numerator": 424932,
+            "denominator": 2760681,
+            "probability": 0.15392289076499602
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 105633,
+            "denominator": 2760681,
+            "probability": 0.03826338501261102
+          }
+        },
+        {
+          "ticket_count": 5,
+          "simulated_cost_ntd": 500,
+          "any_prize": {
+            "numerator": 11991580,
+            "denominator": 22085448,
+            "probability": 0.5429629500836931
+          },
+          "marginal_any_prize": {
+            "numerator": 2194312,
+            "denominator": 22085448,
+            "probability": 0.09935555755989192
+          },
+          "at_least_three_main": {
+            "numerator": 530165,
+            "denominator": 2760681,
+            "probability": 0.1920413839918484
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 105233,
+            "denominator": 2760681,
+            "probability": 0.03811849322685236
+          }
+        }
+      ],
+      "five_ticket_profile": {
+        "game": "super",
+        "ticket_count": 5,
+        "denominator": 22085448,
+        "any_prize": {
+          "numerator": 11991580,
+          "denominator": 22085448,
+          "probability": 0.5429629500836931
+        },
+        "no_prize": {
+          "numerator": 10093868,
+          "denominator": 22085448,
+          "probability": 0.4570370499163069
+        },
+        "best_tier_distribution": [
+          {
+            "rank": 1,
+            "label": "頭獎",
+            "numerator": 5,
+            "denominator": 22085448,
+            "probability": 2.2639341524790442e-07,
+            "best_rank_at_most_probability": 2.2639341524790442e-07
+          },
+          {
+            "rank": 2,
+            "label": "貳獎",
+            "numerator": 35,
+            "denominator": 22085448,
+            "probability": 1.5847539067353308e-06,
+            "best_rank_at_most_probability": 1.8111473219832354e-06
+          },
+          {
+            "rank": 3,
+            "label": "參獎",
+            "numerator": 960,
+            "denominator": 22085448,
+            "probability": 4.346753572759765e-05,
+            "best_rank_at_most_probability": 4.527868304958088e-05
+          },
+          {
+            "rank": 4,
+            "label": "肆獎",
+            "numerator": 6720,
+            "denominator": 22085448,
+            "probability": 0.00030427275009318355,
+            "best_rank_at_most_probability": 0.0003495514331427644
+          },
+          {
+            "rank": 5,
+            "label": "伍獎",
+            "numerator": 37200,
+            "denominator": 22085448,
+            "probability": 0.0016843670094444088,
+            "best_rank_at_most_probability": 0.002033918442587173
+          },
+          {
+            "rank": 6,
+            "label": "陸獎",
+            "numerator": 260400,
+            "denominator": 22085448,
+            "probability": 0.011790569066110862,
+            "best_rank_at_most_probability": 0.013824487508698035
+          },
+          {
+            "rank": 7,
+            "label": "柒獎",
+            "numerator": 496000,
+            "denominator": 22085448,
+            "probability": 0.022458226792592118,
+            "best_rank_at_most_probability": 0.03628271430129015
+          },
+          {
+            "rank": 8,
+            "label": "捌獎",
+            "numerator": 2692500,
+            "denominator": 22085448,
+            "probability": 0.12191285411099653,
+            "best_rank_at_most_probability": 0.15819556841228669
+          },
+          {
+            "rank": 9,
+            "label": "玖獎",
+            "numerator": 3284000,
+            "denominator": 22085448,
+            "probability": 0.14869519513482363,
+            "best_rank_at_most_probability": 0.3068907635471103
+          },
+          {
+            "rank": 10,
+            "label": "普獎",
+            "numerator": 5213760,
+            "denominator": 22085448,
+            "probability": 0.23607218653658282,
+            "best_rank_at_most_probability": 0.5429629500836931
+          }
+        ],
+        "awarded_tier_ticket_expectation": [
+          {
+            "rank": 1,
+            "label": "頭獎",
+            "ticket_outcome_count": 5,
+            "expected_winning_tickets": 2.2639341524790442e-07
+          },
+          {
+            "rank": 2,
+            "label": "貳獎",
+            "ticket_outcome_count": 35,
+            "expected_winning_tickets": 1.5847539067353308e-06
+          },
+          {
+            "rank": 3,
+            "label": "參獎",
+            "ticket_outcome_count": 960,
+            "expected_winning_tickets": 4.346753572759765e-05
+          },
+          {
+            "rank": 4,
+            "label": "肆獎",
+            "ticket_outcome_count": 6720,
+            "expected_winning_tickets": 0.00030427275009318355
+          },
+          {
+            "rank": 5,
+            "label": "伍獎",
+            "ticket_outcome_count": 37200,
+            "expected_winning_tickets": 0.0016843670094444088
+          },
+          {
+            "rank": 6,
+            "label": "陸獎",
+            "ticket_outcome_count": 260400,
+            "expected_winning_tickets": 0.011790569066110862
+          },
+          {
+            "rank": 7,
+            "label": "柒獎",
+            "ticket_outcome_count": 496000,
+            "expected_winning_tickets": 0.022458226792592118
+          },
+          {
+            "rank": 8,
+            "label": "捌獎",
+            "ticket_outcome_count": 2697000,
+            "expected_winning_tickets": 0.12211660818471964
+          },
+          {
+            "rank": 9,
+            "label": "玖獎",
+            "ticket_outcome_count": 3472000,
+            "expected_winning_tickets": 0.15720758754814482
+          },
+          {
+            "rank": 10,
+            "label": "普獎",
+            "ticket_outcome_count": 6041280,
+            "expected_winning_tickets": 0.273541202333772
+          }
+        ],
+        "winning_ticket_count_distribution": [
+          {
+            "winning_tickets": 0,
+            "numerator": 10093868,
+            "denominator": 22085448,
+            "probability": 0.4570370499163069
+          },
+          {
+            "winning_tickets": 1,
+            "numerator": 10971560,
+            "denominator": 22085448,
+            "probability": 0.49677778779945964
+          },
+          {
+            "winning_tickets": 2,
+            "numerator": 1020020,
+            "denominator": 22085448,
+            "probability": 0.04618516228423349
+          },
+          {
+            "winning_tickets": 3,
+            "numerator": 0,
+            "denominator": 22085448,
+            "probability": 0.0
+          },
+          {
+            "winning_tickets": 4,
+            "numerator": 0,
+            "denominator": 22085448,
+            "probability": 0.0
+          },
+          {
+            "winning_tickets": 5,
+            "numerator": 0,
+            "denominator": 22085448,
+            "probability": 0.0
+          }
+        ],
+        "expected_winning_tickets": 0.5891481123679266,
+        "maximum_main_hits_distribution": [
+          {
+            "maximum_main_hits": 0,
+            "numerator": 224,
+            "denominator": 22085448,
+            "probability": 1.0142425003106117e-05
+          },
+          {
+            "maximum_main_hits": 1,
+            "numerator": 3131904,
+            "denominator": 22085448,
+            "probability": 0.14180848855771455
+          },
+          {
+            "maximum_main_hits": 2,
+            "numerator": 14712000,
+            "denominator": 22085448,
+            "probability": 0.6661399850254339
+          },
+          {
+            "maximum_main_hits": 3,
+            "numerator": 3936000,
+            "denominator": 22085448,
+            "probability": 0.17821689648315037
+          },
+          {
+            "maximum_main_hits": 4,
+            "numerator": 297600,
+            "denominator": 22085448,
+            "probability": 0.01347493607555527
+          },
+          {
+            "maximum_main_hits": 5,
+            "numerator": 7680,
+            "denominator": 22085448,
+            "probability": 0.0003477402858207812
+          },
+          {
+            "maximum_main_hits": 6,
+            "numerator": 40,
+            "denominator": 22085448,
+            "probability": 1.8111473219832354e-06
+          }
+        ]
+      },
+      "jackpot_probability_five_tickets": {
+        "rank": 1,
+        "label": "頭獎",
+        "numerator": 5,
+        "denominator": 22085448,
+        "probability": 2.2639341524790442e-07,
+        "best_rank_at_most_probability": 2.2639341524790442e-07
+      },
+      "multi_win_probability": 0.04618516228423349
+    },
+    "lotto649": {
+      "game_name": "大樂透",
+      "pool": 49,
+      "pick_n": 6,
+      "ticket_price_ntd": 50,
+      "special_pool": null,
+      "ticket_count_curve": [
+        {
+          "ticket_count": 1,
+          "simulated_cost_ntd": 50,
+          "any_prize": {
+            "numerator": 18611432,
+            "denominator": 601304088,
+            "probability": 0.030951780257978224
+          },
+          "marginal_any_prize": {
+            "numerator": 18611432,
+            "denominator": 601304088,
+            "probability": 0.030951780257978224
+          },
+          "at_least_three_main": {
+            "numerator": 260624,
+            "denominator": 13983816,
+            "probability": 0.01863754500202234
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 260624,
+            "denominator": 13983816,
+            "probability": 0.01863754500202234
+          }
+        },
+        {
+          "ticket_count": 2,
+          "simulated_cost_ntd": 100,
+          "any_prize": {
+            "numerator": 37115064,
+            "denominator": 601304088,
+            "probability": 0.061724283504289094
+          },
+          "marginal_any_prize": {
+            "numerator": 18503632,
+            "denominator": 601304088,
+            "probability": 0.030772503246310874
+          },
+          "at_least_three_main": {
+            "numerator": 520848,
+            "denominator": 13983816,
+            "probability": 0.037246485508676604
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 260224,
+            "denominator": 13983816,
+            "probability": 0.018608940506654265
+          }
+        },
+        {
+          "ticket_count": 3,
+          "simulated_cost_ntd": 150,
+          "any_prize": {
+            "numerator": 55510896,
+            "denominator": 601304088,
+            "probability": 0.09231750973893263
+          },
+          "marginal_any_prize": {
+            "numerator": 18395832,
+            "denominator": 601304088,
+            "probability": 0.030593226234643528
+          },
+          "at_least_three_main": {
+            "numerator": 780672,
+            "denominator": 13983816,
+            "probability": 0.055826821519962794
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 259824,
+            "denominator": 13983816,
+            "probability": 0.01858033601128619
+          }
+        },
+        {
+          "ticket_count": 4,
+          "simulated_cost_ntd": 200,
+          "any_prize": {
+            "numerator": 73798928,
+            "denominator": 601304088,
+            "probability": 0.1227314589619088
+          },
+          "marginal_any_prize": {
+            "numerator": 18288032,
+            "denominator": 601304088,
+            "probability": 0.03041394922297618
+          },
+          "at_least_three_main": {
+            "numerator": 1040096,
+            "denominator": 13983816,
+            "probability": 0.07437855303588091
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 259424,
+            "denominator": 13983816,
+            "probability": 0.018551731515918116
+          }
+        },
+        {
+          "ticket_count": 5,
+          "simulated_cost_ntd": 250,
+          "any_prize": {
+            "numerator": 91979160,
+            "denominator": 601304088,
+            "probability": 0.15296613117321764
+          },
+          "marginal_any_prize": {
+            "numerator": 18180232,
+            "denominator": 601304088,
+            "probability": 0.030234672211308832
+          },
+          "at_least_three_main": {
+            "numerator": 1299120,
+            "denominator": 13983816,
+            "probability": 0.09290168005643094
+          },
+          "marginal_at_least_three_main": {
+            "numerator": 259024,
+            "denominator": 13983816,
+            "probability": 0.01852312702055004
+          }
+        }
+      ],
+      "five_ticket_profile": {
+        "game": "lotto649",
+        "ticket_count": 5,
+        "denominator": 601304088,
+        "any_prize": {
+          "numerator": 91979160,
+          "denominator": 601304088,
+          "probability": 0.15296613117321764
+        },
+        "no_prize": {
+          "numerator": 509324928,
+          "denominator": 601304088,
+          "probability": 0.8470338688267823
+        },
+        "best_tier_distribution": [
+          {
+            "rank": 1,
+            "label": "頭獎",
+            "numerator": 215,
+            "denominator": 601304088,
+            "probability": 3.575561921009258e-07,
+            "best_rank_at_most_probability": 3.575561921009258e-07
+          },
+          {
+            "rank": 2,
+            "label": "貳獎",
+            "numerator": 1290,
+            "denominator": 601304088,
+            "probability": 2.145337152605555e-06,
+            "best_rank_at_most_probability": 2.5028933447064807e-06
+          },
+          {
+            "rank": 3,
+            "label": "參獎",
+            "numerator": 54180,
+            "denominator": 601304088,
+            "probability": 9.01041604094333e-05,
+            "best_rank_at_most_probability": 9.260705375413979e-05
+          },
+          {
+            "rank": 4,
+            "label": "肆獎",
+            "numerator": 135450,
+            "denominator": 601304088,
+            "probability": 0.00022526040102358326,
+            "best_rank_at_most_probability": 0.0003178674547777231
+          },
+          {
+            "rank": 5,
+            "label": "伍獎",
+            "numerator": 2776725,
+            "denominator": 601304088,
+            "probability": 0.004617838220983457,
+            "best_rank_at_most_probability": 0.00493570567576118
+          },
+          {
+            "rank": 6,
+            "label": "陸獎",
+            "numerator": 3702300,
+            "denominator": 601304088,
+            "probability": 0.006157117627977942,
+            "best_rank_at_most_probability": 0.011092823303739122
+          },
+          {
+            "rank": 7,
+            "label": "柒獎",
+            "numerator": 49192000,
+            "denominator": 601304088,
+            "probability": 0.08180885675269182,
+            "best_rank_at_most_probability": 0.09290168005643094
+          },
+          {
+            "rank": 8,
+            "label": "普獎",
+            "numerator": 36117000,
+            "denominator": 601304088,
+            "probability": 0.06006445111678669,
+            "best_rank_at_most_probability": 0.15296613117321764
+          }
+        ],
+        "awarded_tier_ticket_expectation": [
+          {
+            "rank": 1,
+            "label": "頭獎",
+            "ticket_outcome_count": 215,
+            "expected_winning_tickets": 3.575561921009258e-07
+          },
+          {
+            "rank": 2,
+            "label": "貳獎",
+            "ticket_outcome_count": 1290,
+            "expected_winning_tickets": 2.145337152605555e-06
+          },
+          {
+            "rank": 3,
+            "label": "參獎",
+            "ticket_outcome_count": 54180,
+            "expected_winning_tickets": 9.01041604094333e-05
+          },
+          {
+            "rank": 4,
+            "label": "肆獎",
+            "ticket_outcome_count": 135450,
+            "expected_winning_tickets": 0.00022526040102358326
+          },
+          {
+            "rank": 5,
+            "label": "伍獎",
+            "ticket_outcome_count": 2776725,
+            "expected_winning_tickets": 0.004617838220983457
+          },
+          {
+            "rank": 6,
+            "label": "陸獎",
+            "ticket_outcome_count": 3702300,
+            "expected_winning_tickets": 0.006157117627977942
+          },
+          {
+            "rank": 7,
+            "label": "柒獎",
+            "ticket_outcome_count": 49364000,
+            "expected_winning_tickets": 0.08209490170637257
+          },
+          {
+            "rank": 8,
+            "label": "普獎",
+            "ticket_outcome_count": 37023000,
+            "expected_winning_tickets": 0.06157117627977943
+          }
+        ],
+        "winning_ticket_count_distribution": [
+          {
+            "winning_tickets": 0,
+            "numerator": 509324928,
+            "denominator": 601304088,
+            "probability": 0.8470338688267823
+          },
+          {
+            "winning_tickets": 1,
+            "numerator": 90901160,
+            "denominator": 601304088,
+            "probability": 0.15117336105654416
+          },
+          {
+            "winning_tickets": 2,
+            "numerator": 1078000,
+            "denominator": 601304088,
+            "probability": 0.0017927701166734792
+          },
+          {
+            "winning_tickets": 3,
+            "numerator": 0,
+            "denominator": 601304088,
+            "probability": 0.0
+          },
+          {
+            "winning_tickets": 4,
+            "numerator": 0,
+            "denominator": 601304088,
+            "probability": 0.0
+          },
+          {
+            "winning_tickets": 5,
+            "numerator": 0,
+            "denominator": 601304088,
+            "probability": 0.0
+          }
+        ],
+        "expected_winning_tickets": 0.15475890128989112,
+        "maximum_main_hits_distribution": [
+          {
+            "maximum_main_hits": 0,
+            "numerator": 1166676,
+            "denominator": 601304088,
+            "probability": 0.0019402429208164639
+          },
+          {
+            "maximum_main_hits": 1,
+            "numerator": 219001752,
+            "denominator": 601304088,
+            "probability": 0.3642113139932619
+          },
+          {
+            "maximum_main_hits": 2,
+            "numerator": 325273500,
+            "denominator": 601304088,
+            "probability": 0.5409467630294906
+          },
+          {
+            "maximum_main_hits": 3,
+            "numerator": 52894300,
+            "denominator": 601304088,
+            "probability": 0.08796597438066976
+          },
+          {
+            "maximum_main_hits": 4,
+            "numerator": 2912175,
+            "denominator": 601304088,
+            "probability": 0.00484309862200704
+          },
+          {
+            "maximum_main_hits": 5,
+            "numerator": 55470,
+            "denominator": 601304088,
+            "probability": 9.224949756203886e-05
+          },
+          {
+            "maximum_main_hits": 6,
+            "numerator": 215,
+            "denominator": 601304088,
+            "probability": 3.575561921009258e-07
+          }
+        ]
+      },
+      "jackpot_probability_five_tickets": {
+        "rank": 1,
+        "label": "頭獎",
+        "numerator": 215,
+        "denominator": 601304088,
+        "probability": 3.575561921009258e-07,
+        "best_rank_at_most_probability": 3.575561921009258e-07
+      },
+      "multi_win_probability": 0.0017927701166734792
+    }
+  },
+  "conclusion": {
+    "scope": "54.2963% 與 15.2966% 是五注至少一注落入任一獎級的聯集機率，不是頭獎機率。",
+    "jackpot": "五注完全分散只把五個不同頭獎組合相加；每注的頭獎機率不變，五注頭獎機率仍極低。",
+    "marginal": "第 1 至第 5 注的聯集增益逐注列示；重疊事件會使新增一注的任一獎增益低於單注任一獎機率。",
+    "strategy": "本分析釐清風險與獎級構成，不提供新的歷史標籤預測訊號，也不改動已凍結號碼。"
+  },
+  "limitations": [
+    "依賴現行獎級定義、公平且各期獨立的官方開獎模型。",
+    "只分析命中機率；浮動獎金、多人均分與期望報酬另需模型。",
+    "任一獎機率主要受低獎級影響，不能代表獲利機率。",
+    "純模擬，不構成購買或下注建議。"
+  ],
+  "certificate_hash": "14dd499c98342c18f8ba51f88482913bc1a25826596e89f699c2263b931fa429",
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  }
+}

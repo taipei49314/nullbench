@@ -4,8 +4,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from engine.analysts import NAMES
+from engine.analysts import NAMES as LEGACY_NAMES
 from engine.games import GAME_NAMES, LOTTO649, SUPER
+from engine.mechanism_agents import NAMES as MECHANISM_NAMES
+
+
+NAMES = {**LEGACY_NAMES, **MECHANISM_NAMES}
 
 
 def _signed(value: float, digits: int = 3) -> str:

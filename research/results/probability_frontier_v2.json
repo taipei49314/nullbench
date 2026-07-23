@@ -1,0 +1,669 @@
+{
+  "schema_version": "1",
+  "experiment_id": "main-subset-probability-frontier-v2",
+  "generated_at": "2026-07-17T23:59:59+08:00",
+  "question": "加入預先指定 lag-overlap 模型後，12 個完整六主號 proper-score 方法的 minimax champion 是否改變？",
+  "protocol": {
+    "games": [
+      "super",
+      "lotto649"
+    ],
+    "target": "complete_unordered_six_main_number_subset",
+    "score": "candidate_negative_log_probability_minus_exact_uniform_negative_log_probability",
+    "unit": "nats_per_draw",
+    "source_ids": [
+      "probability_frontier_v1",
+      "lag_overlap_signal"
+    ],
+    "method_ids": [
+      "uniform_null_safe",
+      "current_cumulative_marginal",
+      "subset_cumulative",
+      "subset_rolling_52",
+      "subset_rolling_104",
+      "subset_rolling_208",
+      "subset_ewma_52",
+      "subset_ewma_104",
+      "subset_ewma_208",
+      "position_dirichlet_1",
+      "persistent_dirichlet_1",
+      "lag_overlap_dirichlet_null_1"
+    ],
+    "ranking": [
+      "minimax_regret_ascending",
+      "mean_regret_across_games_ascending",
+      "method_id_ascending"
+    ],
+    "v1_policy": "immutable_source_rows",
+    "lag_overlap_policy": "unconditional_raw_model_inclusion",
+    "historical_use": "descriptive_frontier_only",
+    "promotion_evidence": "new_future_preregistered_scores_only",
+    "excluded_metric_families": [
+      "marginal_mass_log_loss",
+      "top_k_or_ticket_hits",
+      "prize_or_profit_event_probability",
+      "second_zone_or_bonus_probability",
+      "duplicate_null_safe_lag_overlap"
+    ],
+    "protocol_hash": "dcfa5fcf89fcc0dddcafab7a3f040a00dd75ba118510f4147b7b48e189a09978",
+    "protocol_file": "PROBABILITY_FRONTIER_V2_PROTOCOL.md",
+    "protocol_file_sha256": "ce5f0f31d9285a0a25e01dfca1c1e1ad2fa5fd8c6c9c53e225033c1611480357"
+  },
+  "source_artifacts": {
+    "probability_frontier_v1": {
+      "path": "research/results/probability_frontier.json",
+      "file_sha256": "ed30b4d643baf53d53ee401bcdbbbabe1f80f57450be2ab09edf1fda4a29dd07",
+      "canonical_payload_hash": "9f6e4b1225a3a881d98e01271b69077875b4a55aa71c01004fa186441b8b4c74",
+      "experiment_id": "main-subset-probability-frontier-v1",
+      "audit_hash": "8610eb568e9cf52ac7fb86c2848999eb5a2db217490867653c72a62ecf07ee61"
+    },
+    "lag_overlap_signal": {
+      "path": "research/results/lag_overlap_signal.json",
+      "file_sha256": "96bbb0e5ecfb96879ced91637632202971bdaa584bb3c32891e7b60d22931a5c",
+      "canonical_payload_hash": "25a21d56014d562d3b5505f2d101c635b50456405320ccaf5786f2ae28110b3c",
+      "experiment_id": "lag-overlap-subset-probability-audit-v1",
+      "audit_hash": "9df45341990c3b7b36fd7304183760c955755cd811a39fcff47fbb5ceb4d3278"
+    }
+  },
+  "data_quality": {
+    "status": "pass",
+    "comparability": "same_complete_main_subset_proper_score",
+    "games": {
+      "super": {
+        "game": "super",
+        "game_name": "威力彩",
+        "draws": 1929,
+        "first_date": "2008-01-24",
+        "last_date": "2026-07-16",
+        "ledger_verification": {
+          "lines": 1929,
+          "last_event_hash": "dd73e41b44d72161be95e0747e9ddfa16dae92c3ae62e16d96110e2a5d8643c1",
+          "ledger_sha256": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3"
+        }
+      },
+      "lotto649": {
+        "game": "lotto649",
+        "game_name": "大樂透",
+        "draws": 2153,
+        "first_date": "2007-01-02",
+        "last_date": "2026-07-17",
+        "ledger_verification": {
+          "lines": 2153,
+          "last_event_hash": "e5c637e43566b0c522392f41a8697c8c7983ee3e435af3ea1945ba3106941fcb",
+          "ledger_sha256": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+        }
+      }
+    },
+    "included_method_count": 12,
+    "excluded_metric_families": [
+      "marginal_mass_log_loss",
+      "top_k_or_ticket_hits",
+      "prize_or_profit_event_probability",
+      "second_zone_or_bonus_probability",
+      "duplicate_null_safe_lag_overlap"
+    ],
+    "source_records_hashes": {
+      "probability_frontier_v1": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+      "lag_overlap_signal": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509"
+    },
+    "v1_method_count": 11,
+    "new_method_count": 1
+  },
+  "frontier_rows": [
+    {
+      "rank": 1,
+      "method_id": "uniform_null_safe",
+      "method_name": "精確均勻／null-safe",
+      "family": "safe_baseline",
+      "non_uniform": false,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.0,
+          "bootstrap_95_low": 0.0,
+          "bootstrap_95_high": 0.0,
+          "geometric_probability_ratio_vs_uniform": 1.0,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.0,
+          "bootstrap_95_low": 0.0,
+          "bootstrap_95_high": 0.0,
+          "geometric_probability_ratio_vs_uniform": 1.0,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.0,
+      "minimax_regret": 0.0,
+      "worst_game_probability_ratio_vs_uniform": 1.0,
+      "strictly_dominated_by_uniform": false,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 2,
+      "method_id": "subset_rolling_208",
+      "method_name": "完整 subset rolling 208",
+      "family": "probability_stacking",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.00139764487962378,
+          "bootstrap_95_low": -5.80174221946637e-06,
+          "bootstrap_95_high": 0.00409496692636327,
+          "geometric_probability_ratio_vs_uniform": 0.998603331371111,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.00137045032610308,
+          "bootstrap_95_low": -0.000283676602294675,
+          "bootstrap_95_high": 0.00425977296366684,
+          "geometric_probability_ratio_vs_uniform": 0.99863048831211,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.00138404760286343,
+      "minimax_regret": 0.00139764487962378,
+      "worst_game_probability_ratio_vs_uniform": 0.998603331371111,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 3,
+      "method_id": "subset_rolling_104",
+      "method_name": "完整 subset rolling 104",
+      "family": "probability_stacking",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.00140387912043462,
+          "bootstrap_95_low": -2.87895378084123e-05,
+          "bootstrap_95_high": 0.00430542658819094,
+          "geometric_probability_ratio_vs_uniform": 0.998597105856874,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.00133658216142646,
+          "bootstrap_95_low": -0.000346293105235585,
+          "bootstrap_95_high": 0.00431151860150082,
+          "geometric_probability_ratio_vs_uniform": 0.998664310666687,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.00137023064093054,
+      "minimax_regret": 0.00140387912043462,
+      "worst_game_probability_ratio_vs_uniform": 0.998597105856874,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 4,
+      "method_id": "subset_cumulative",
+      "method_name": "完整 subset 累積 stacking",
+      "family": "probability_stacking",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.00118474815375684,
+          "bootstrap_95_low": -6.09431325030673e-05,
+          "bootstrap_95_high": 0.00359102158104396,
+          "geometric_probability_ratio_vs_uniform": 0.998815953383261,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.00140663037689721,
+          "bootstrap_95_low": -5.47282646112151e-05,
+          "bootstrap_95_high": 0.00472505878419364,
+          "geometric_probability_ratio_vs_uniform": 0.998594358463913,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.00129568926532703,
+      "minimax_regret": 0.00140663037689721,
+      "worst_game_probability_ratio_vs_uniform": 0.998594358463913,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 5,
+      "method_id": "subset_ewma_208",
+      "method_name": "完整 subset EWMA 208",
+      "family": "probability_stacking",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.00141656725939504,
+          "bootstrap_95_low": -5.50868526523825e-06,
+          "bootstrap_95_high": 0.00410619056690137,
+          "geometric_probability_ratio_vs_uniform": 0.998584435598411,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.00137974889233468,
+          "bootstrap_95_low": -0.000274173756698498,
+          "bootstrap_95_high": 0.00436745396665629,
+          "geometric_probability_ratio_vs_uniform": 0.998621202523546,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.00139815807586486,
+      "minimax_regret": 0.00141656725939504,
+      "worst_game_probability_ratio_vs_uniform": 0.998584435598411,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 6,
+      "method_id": "subset_ewma_104",
+      "method_name": "完整 subset EWMA 104",
+      "family": "probability_stacking",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.00143821364544546,
+          "bootstrap_95_low": -1.65939195325554e-06,
+          "bootstrap_95_high": 0.0043079647081571,
+          "geometric_probability_ratio_vs_uniform": 0.998562820088164,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.00138833500164823,
+          "bootstrap_95_low": -0.000307089500217971,
+          "bootstrap_95_high": 0.00447798394299946,
+          "geometric_probability_ratio_vs_uniform": 0.998612628289548,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.00141327432354685,
+      "minimax_regret": 0.00143821364544546,
+      "worst_game_probability_ratio_vs_uniform": 0.998562820088164,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 7,
+      "method_id": "subset_ewma_52",
+      "method_name": "完整 subset EWMA 52",
+      "family": "probability_stacking",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.00149637272195408,
+          "bootstrap_95_low": -4.19375040916366e-05,
+          "bootstrap_95_high": 0.00439265686826802,
+          "geometric_probability_ratio_vs_uniform": 0.998504746285487,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.00127667732873362,
+          "bootstrap_95_low": -0.000480889054045425,
+          "bootstrap_95_high": 0.00458967474688118,
+          "geometric_probability_ratio_vs_uniform": 0.998724137277067,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.00138652502534385,
+      "minimax_regret": 0.00149637272195408,
+      "worst_game_probability_ratio_vs_uniform": 0.998504746285487,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 8,
+      "method_id": "subset_rolling_52",
+      "method_name": "完整 subset rolling 52",
+      "family": "probability_stacking",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.00203770154668819,
+          "bootstrap_95_low": -0.00031290590726803,
+          "bootstrap_95_high": 0.00510161872409628,
+          "geometric_probability_ratio_vs_uniform": 0.99796437315766,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.000412705863691251,
+          "bootstrap_95_low": -0.00370991765152028,
+          "bootstrap_95_high": 0.00466961166717242,
+          "geometric_probability_ratio_vs_uniform": 0.999587379287659,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.00122520370518972,
+      "minimax_regret": 0.00203770154668819,
+      "worst_game_probability_ratio_vs_uniform": 0.99796437315766,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 9,
+      "method_id": "current_cumulative_marginal",
+      "method_name": "現行累積 marginal stacking",
+      "family": "probability_stacking",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.00444583960331602,
+          "bootstrap_95_low": 0.000623515403314809,
+          "bootstrap_95_high": 0.00939451934850928,
+          "geometric_probability_ratio_vs_uniform": 0.995564028512137,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.00380255986244634,
+          "bootstrap_95_low": -6.31355742873629e-06,
+          "bootstrap_95_high": 0.00899141701880118,
+          "geometric_probability_ratio_vs_uniform": 0.996204660713184,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.00412419973288118,
+      "minimax_regret": 0.00444583960331602,
+      "worst_game_probability_ratio_vs_uniform": 0.995564028512137,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 10,
+      "method_id": "lag_overlap_dirichlet_null_1",
+      "method_name": "相鄰期重複數 Dirichlet null 1",
+      "family": "lag_overlap",
+      "non_uniform": true,
+      "source_ids": [
+        "lag_overlap_signal"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.00907701500604251,
+          "bootstrap_95_low": 0.0022368890129512,
+          "bootstrap_95_high": 0.0163148612133754,
+          "geometric_probability_ratio_vs_uniform": 0.990964056731133,
+          "source_id": "lag_overlap_signal"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.00786768507628998,
+          "bootstrap_95_low": 0.00149151907606209,
+          "bootstrap_95_high": 0.0158567497986333,
+          "geometric_probability_ratio_vs_uniform": 0.992163184148443,
+          "source_id": "lag_overlap_signal"
+        }
+      },
+      "mean_regret_across_games": 0.00847235004116624,
+      "minimax_regret": 0.00907701500604251,
+      "worst_game_probability_ratio_vs_uniform": 0.990964056731133,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 11,
+      "method_id": "position_dirichlet_1",
+      "method_name": "六位置 Dirichlet 1",
+      "family": "draw_order",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.024461981484985,
+          "bootstrap_95_low": 0.0134437996348278,
+          "bootstrap_95_high": 0.0354005183504131,
+          "geometric_probability_ratio_vs_uniform": 0.975834788002717,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.030719204217656,
+          "bootstrap_95_low": 0.0201867178973399,
+          "bootstrap_95_high": 0.0417296554837092,
+          "geometric_probability_ratio_vs_uniform": 0.969747835951376,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.0275905928513205,
+      "minimax_regret": 0.030719204217656,
+      "worst_game_probability_ratio_vs_uniform": 0.969747835951376,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    },
+    {
+      "rank": 12,
+      "method_id": "persistent_dirichlet_1",
+      "method_name": "持續球號 Dirichlet 1",
+      "family": "persistent_label_bias",
+      "non_uniform": true,
+      "source_ids": [
+        "probability_frontier_v1"
+      ],
+      "game_results": {
+        "super": {
+          "game": "super",
+          "game_name": "威力彩",
+          "draws": 1929,
+          "first_date": "2008-01-24",
+          "last_date": "2026-07-16",
+          "mean_regret_nats": 0.0396384518678502,
+          "bootstrap_95_low": 0.0240006267798521,
+          "bootstrap_95_high": 0.0570694348198447,
+          "geometric_probability_ratio_vs_uniform": 0.961136873582788,
+          "source_id": "probability_frontier_v1"
+        },
+        "lotto649": {
+          "game": "lotto649",
+          "game_name": "大樂透",
+          "draws": 2153,
+          "first_date": "2007-01-02",
+          "last_date": "2026-07-17",
+          "mean_regret_nats": 0.0492289596848271,
+          "bootstrap_95_low": 0.0315862571915886,
+          "bootstrap_95_high": 0.0703317323004132,
+          "geometric_probability_ratio_vs_uniform": 0.951963143563122,
+          "source_id": "probability_frontier_v1"
+        }
+      },
+      "mean_regret_across_games": 0.0444337057763387,
+      "minimax_regret": 0.0492289596848271,
+      "worst_game_probability_ratio_vs_uniform": 0.951963143563122,
+      "strictly_dominated_by_uniform": true,
+      "both_games_mean_negative": false,
+      "both_games_bootstrap_upper_negative": false,
+      "historical_promotion_eligible": false
+    }
+  ],
+  "conclusion": {
+    "status": "retain_uniform_null_safe_champion",
+    "champion_method_id": "uniform_null_safe",
+    "best_non_uniform_method_id": "subset_rolling_208",
+    "historically_supported_non_uniform_methods": [],
+    "strictly_uniform_dominated_non_uniform_methods": [
+      "subset_rolling_208",
+      "subset_rolling_104",
+      "subset_cumulative",
+      "subset_ewma_208",
+      "subset_ewma_104",
+      "subset_ewma_52",
+      "subset_rolling_52",
+      "current_cumulative_marginal",
+      "lag_overlap_dirichlet_null_1",
+      "position_dirichlet_1",
+      "persistent_dirichlet_1"
+    ],
+    "non_uniform_method_count": 11,
+    "historical_promotion_eligible": false,
+    "watcher_integration_allowed": false,
+    "stop_historical_parameter_search": true,
+    "v1_immutable": true,
+    "reason": "新增 lag-overlap 後，所有可比較非均勻方法在兩款遊戲平均完整 subset regret 仍大於 0；精確均勻 null-safe 維持 minimax champion。",
+    "next_evidence": "只接受開獎前封存、不可回填的 v7 未來完整 subset proper score；不同量尺不得替代。"
+  },
+  "records_integrity": {
+    "before_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "after_sha256": "d9ae1a5d3deb3128262c1217f3852db4e091c519e87c674a2e225507dae71509",
+    "unchanged": true
+  },
+  "limitations": [
+    "完整歷史已被多項研究使用，前緣只有描述性決策地位。",
+    "lag-overlap 是預先指定的單一低維候選，不代表已搜尋所有機制。",
+    "零 regret 是公平基準，不是已證明存在可預測號碼。",
+    "只有新的開獎前 proper score 能支持未來非均勻模型。",
+    "純模擬，不構成購買或下注建議。"
+  ],
+  "audit_hash": "e9713c6908c8da15de645cbf1b64fc20841144a609cbc1b166731bbb2ee50a58"
+}

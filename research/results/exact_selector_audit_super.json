@@ -1,0 +1,100 @@
+{
+  "schema_version": "1",
+  "experiment_id": "exact-selector-audit-v1",
+  "game": "super",
+  "source_decision_hash": "8c0c6253edaa56c549bc971799faa6a3047801a94a865ce7aeb555d7643e10c5",
+  "target": {
+    "date": "2026-07-20",
+    "period": 115000058
+  },
+  "proposals": 15,
+  "combinations_expected": 3003,
+  "combinations_evaluated": 3003,
+  "complete_enumeration": true,
+  "elapsed_seconds": 121.94620000000577,
+  "baseline": {
+    "main_union_size": 24,
+    "mean_pairwise_main_overlap": 0.6,
+    "maximum_pairwise_main_overlap": 2,
+    "pairwise_intersection_count": 23588,
+    "bonferroni_lower_bound": 0.18494603324324688,
+    "any_prize_bonferroni_lower_bound": 0.47230325597198664,
+    "exact_at_least_three_main": 0.1849750116003986,
+    "exact_any_prize": 0.4782096337823892,
+    "special_coverage_probability": 0.5
+  },
+  "heuristic_selected": {
+    "proposal_ids": [
+      "balance_engineer:1",
+      "balance_engineer:3",
+      "cold_keeper:2",
+      "hot_hunter:3",
+      "random_monk:1"
+    ],
+    "exact_any_prize": 0.5343129104739012,
+    "exact_at_least_three_main": 0.18921599416955454,
+    "main_union_size": 27,
+    "special_values": [
+      2,
+      3,
+      6,
+      7,
+      8
+    ],
+    "fallback_to_current": false
+  },
+  "exact_best_unconstrained": {
+    "proposal_ids": [
+      "balance_engineer:1",
+      "balance_engineer:3",
+      "cold_keeper:2",
+      "hot_hunter:3",
+      "random_monk:1"
+    ],
+    "exact_any_prize": 0.5343129104739012,
+    "exact_at_least_three_main": 0.18921599416955454,
+    "main_union_size": 27,
+    "special_values": [
+      2,
+      3,
+      6,
+      7,
+      8
+    ]
+  },
+  "exact_best_safe": {
+    "proposal_ids": [
+      "balance_engineer:1",
+      "balance_engineer:3",
+      "cold_keeper:2",
+      "hot_hunter:3",
+      "random_monk:1"
+    ],
+    "exact_any_prize": 0.5343129104739012,
+    "exact_at_least_three_main": 0.18921599416955454,
+    "main_union_size": 27,
+    "special_values": [
+      2,
+      3,
+      6,
+      7,
+      8
+    ]
+  },
+  "safe_candidates_better_than_heuristic": 0,
+  "heuristic_any_prize_regret": 0.0,
+  "disjoint_reference": {
+    "main_union_size": 30,
+    "mean_pairwise_main_overlap": 0.0,
+    "maximum_pairwise_main_overlap": 0,
+    "pairwise_intersection_count": 4000,
+    "bonferroni_lower_bound": 0.1920413839918484,
+    "any_prize_bonferroni_lower_bound": 0.5429629500836931,
+    "exact_at_least_three_main": 0.1920413839918484,
+    "exact_any_prize": 0.5429629500836931,
+    "special_coverage_probability": 0.625
+  },
+  "candidate_pool_gap_to_disjoint_reference": 0.008650039609791937,
+  "lookahead_control": "audit_exact_candidate_pool 不接受 reveal；所有排序只使用開獎前封存提案與可精確計算的組合結構。",
+  "special_pool": 8
+}
