@@ -27,45 +27,55 @@ export default function DecisionArena({
   onSelectTicket,
   onStep,
   phase,
+  probabilityPortfolio,
   selectedSlot,
   totalCritiques,
 }) {
   const decision = gameData.next_decision;
-  const revealed = phase === "revealed";
   const judge = decision.adjudication.judge;
   const qwenAccepted = judge?.source === "ollama";
-  const focusedTicket = revealed
-    ? decision.selected_tickets[activeSlot - 1]
+  const probabilityFirst = !probabilityPortfolio.fallback_to_qwen;
+  const displayedTickets = probabilityPortfolio.tickets;
+  const revealRequested = phase === "revealed";
+  const focusedTicket = revealRequested
+    ? displayedTickets[activeSlot - 1]
     : null;
+  const revealed =
+    revealRequested &&
+    displayedTickets.length === 5 &&
+    Boolean(focusedTicket);
+  const renderPhase = revealRequested && !revealed ? "error" : phase;
   const focusedRanking = focusedTicket
     ? decision.adjudication.ranking.find(
         (ranking) => ranking.proposal_id === focusedTicket.source_proposal,
       )
     : null;
   const debateProgress =
-    phase === "revealed" || phase === "adjudicating"
+    renderPhase === "revealed" || renderPhase === "adjudicating"
       ? "100%"
       : `${(debateStep / totalCritiques) * 100}%`;
   const controlLabel =
-    phase === "ready"
+    renderPhase === "ready"
       ? "開始辯論"
-      : phase === "revealed"
+      : renderPhase === "revealed"
         ? "重新播放"
-        : phase === "error"
+        : renderPhase === "error"
           ? "重新嘗試"
         : isPlaying
           ? "暫停辯論"
           : "繼續辯論";
   const statusLabel =
-    phase === "ready"
+    renderPhase === "ready"
       ? "等待辯論開始"
-      : phase === "error"
+      : renderPhase === "error"
         ? "裁決讀取失敗"
-      : phase === "adjudicating"
+      : renderPhase === "adjudicating"
         ? "Qwen3:8b 終局裁決中"
-        : phase === "revealed"
+        : renderPhase === "revealed"
           ? qwenAccepted
-            ? "Qwen3:8b 裁決完成"
+            ? probabilityFirst
+              ? "Qwen3:8b 裁決 + 機率約束完成"
+              : "Qwen3:8b 裁決完成"
             : "規則降級裁決完成"
           : isPlaying
             ? "議會正在辯論"
@@ -73,7 +83,7 @@ export default function DecisionArena({
 
   return (
     <section className="decision-arena">
-      <ArenaRadar pulse={isPlaying || phase === "adjudicating"} />
+      <ArenaRadar pulse={isPlaying || renderPhase === "adjudicating"} />
       <div className="decision-toolbar">
         <div className="game-switch" aria-label="遊戲切換">
           {[
@@ -94,11 +104,11 @@ export default function DecisionArena({
           <button
             aria-pressed={isPlaying}
             className={`primary-control ${isPlaying ? "is-playing" : ""}`}
-            disabled={phase === "adjudicating"}
+            disabled={renderPhase === "adjudicating"}
             type="button"
             onClick={onPlayToggle}
           >
-            {phase === "revealed" ? (
+            {renderPhase === "revealed" ? (
               <RefreshCw size={17} />
             ) : isPlaying ? (
               <Pause size={17} />
@@ -111,7 +121,7 @@ export default function DecisionArena({
           <button
             aria-label="下一段評議"
             className="icon-control"
-            disabled={phase === "adjudicating" || revealed}
+            disabled={renderPhase === "adjudicating" || revealed}
             type="button"
             onClick={onStep}
           >
@@ -131,8 +141,8 @@ export default function DecisionArena({
       <div
         aria-live="polite"
         className={`playback-status ${
-          isPlaying || phase === "adjudicating" ? "is-live" : ""
-        } is-${phase}`}
+          isPlaying || renderPhase === "adjudicating" ? "is-live" : ""
+        } is-${renderPhase}`}
       >
         <span>
           <Radio size={15} />
@@ -161,15 +171,33 @@ export default function DecisionArena({
               )}
             </i>
             <span>
-              <small>終局裁判</small>
+              <small>
+                {probabilityFirst ? "終局裁判 + 結構約束" : "終局裁判"}
+              </small>
               <strong>
-                {qwenAccepted ? judge.model : "可重現規則降級"}
+                {qwenAccepted
+                  ? probabilityFirst
+                    ? `${judge.model} → Coverage`
+                    : judge.model
+                  : "可重現規則降級"}
               </strong>
             </span>
-            <p>{judge.summary}</p>
+            <p>
+              {judge.summary}
+              {probabilityFirst
+                ? " 最終五注已套用30個互斥主號的全域最優機率結構。"
+                : ""}
+            </p>
           </section>
-          <div className="ticket-stack" aria-label="裁決出的五注號碼">
-            {decision.selected_tickets.map((ticket) => {
+          <div
+            className="ticket-stack"
+            aria-label={
+              probabilityFirst
+                ? "機率最優的五注號碼"
+                : "裁決出的五注號碼"
+            }
+          >
+            {displayedTickets.map((ticket) => {
               const active = ticket.slot === activeSlot;
               const selected = ticket.slot === selectedSlot;
               return (
@@ -185,7 +213,10 @@ export default function DecisionArena({
                 >
                   <span className="ticket-slot">{ticket.slot}</span>
                   <span className="ticket-agent">
-                    {AGENTS[ticket.source_agent].name}
+                    {probabilityFirst
+                      ? "機率最優"
+                      : AGENTS[ticket.source_agent]?.name ??
+                        ticket.source_agent}
                   </span>
                   <span className="ticket-numbers">
                     {ticket.numbers.map((number) => (
@@ -218,13 +249,26 @@ export default function DecisionArena({
 
           <div className="ticket-readout" key={activeSlot}>
             <span>FOCUS {String(activeSlot).padStart(2, "0")}</span>
-            <strong>{AGENTS[focusedTicket.source_agent].name}</strong>
+            <strong>
+              {probabilityFirst
+                ? "Coverage 約束"
+                : AGENTS[focusedTicket.source_agent]?.name ??
+                  focusedTicket.source_agent}
+            </strong>
             <small>{focusedTicket.source_proposal}</small>
-            <b>裁決分數 {focusedRanking?.final_score.toFixed(8) ?? "—"}</b>
+            <b>
+              {probabilityFirst
+                ? `辯論支持 ${focusedTicket.debate_support.toFixed(8)}`
+                : `裁決分數 ${
+                    focusedRanking?.final_score.toFixed(8) ?? "—"
+                  }`}
+            </b>
             <code>{decision.decision_hash.slice(0, 16)}</code>
             <em>
-              {focusedRanking?.judge_reason ||
-                "模型輸出未通過驗證，本注沿用規則裁決。"}
+              {probabilityFirst
+                ? probabilityPortfolio.construction
+                : focusedRanking?.judge_reason ||
+                  "模型輸出未通過驗證，本注沿用規則裁決。"}
             </em>
           </div>
         </>
@@ -234,7 +278,7 @@ export default function DecisionArena({
             debateStep={debateStep}
             decision={decision}
             error={error}
-            phase={phase}
+            phase={renderPhase}
             totalCritiques={totalCritiques}
           />
       )}

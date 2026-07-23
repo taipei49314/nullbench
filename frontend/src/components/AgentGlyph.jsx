@@ -1,12 +1,22 @@
 import {
+  CircleDot,
   Dices,
   Flame,
+  Network,
   Orbit,
   Scale,
+  ShieldCheck,
   Snowflake,
+  Waves,
+  Waypoints,
 } from "lucide-react";
 
 const ICONS = {
+  independent_null: CircleDot,
+  temporal_dependency: Waves,
+  regime_shift: Waypoints,
+  structural_bias: Network,
+  overfit_guard: ShieldCheck,
   hot_hunter: Flame,
   cold_keeper: Snowflake,
   balance_engineer: Scale,

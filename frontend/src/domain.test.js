@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildProbabilityFirstPortfolio,
   formatDate,
   formatNumbers,
   getAgentSeries,
   getDebateSequence,
+  getProbabilityFirstPortfolio,
   hasRevealedDecision,
   getOrderedAgents,
   getProposalMap,
   getRankingMap,
 } from "./domain";
+import fs from "node:fs";
 
 const sampleGame = {
   final_state: {
@@ -124,5 +127,78 @@ describe("domain indexing helpers", () => {
     expect(hasRevealedDecision(true, publicDecision)).toBe(false);
     expect(hasRevealedDecision(true, fullDecision)).toBe(true);
     expect(hasRevealedDecision(false, fullDecision)).toBe(false);
+  });
+});
+
+describe("probability-first portfolio", () => {
+  const manifest = JSON.parse(
+    fs.readFileSync(
+      new URL("../../simulation/results/manifest.json", import.meta.url),
+      "utf8",
+    ),
+  );
+
+  it.each(["super", "lotto649"])(
+    "keeps the rolling coverage contract deterministic for %s",
+    (game) => {
+    const portfolio = buildProbabilityFirstPortfolio(
+      manifest.games[game].next_decision,
+      game,
+    );
+    const replayed = buildProbabilityFirstPortfolio(
+      manifest.games[game].next_decision,
+      game,
+    );
+
+    expect(portfolio).toEqual(replayed);
+    expect(portfolio.tickets).toHaveLength(5);
+    expect(
+      portfolio.tickets.every(
+        (ticket) =>
+          ticket.numbers.length === 6 &&
+          ticket.numbers.every(
+            (number) =>
+              Number.isInteger(number) &&
+              number >= 1 &&
+              number <= (game === "super" ? 38 : 49),
+          ),
+      ),
+    ).toBe(true);
+    expect(portfolio.main_union_size).toBe(30);
+    expect(portfolio.maximum_pairwise_main_overlap).toBe(0);
+    expect(new Set(portfolio.tickets.flatMap((ticket) => ticket.numbers)).size)
+      .toBe(30);
+    if (game === "super") {
+      expect(new Set(portfolio.selected_specials).size).toBe(5);
+    }
+    },
+  );
+
+  it("fails closed to the redacted Qwen payload before debate reveal", () => {
+    const publicDecision = {
+      ...manifest.games.super.next_decision,
+      selected_tickets: [],
+      adjudication: {
+        ...manifest.games.super.next_decision.adjudication,
+        candidate_scores: [],
+      },
+    };
+
+    const portfolio = getProbabilityFirstPortfolio(publicDecision, "super");
+
+    expect(portfolio.fallback_to_qwen).toBe(true);
+    expect(portfolio.tickets).toEqual([]);
+    expect(portfolio.fallback_reason).toContain("完整15組提案");
+  });
+
+  it("rejects scores outside the backend eight-decimal reproducibility contract", () => {
+    const decision = structuredClone(
+      manifest.games.super.next_decision,
+    );
+    decision.adjudication.candidate_scores[0].debate_score += 0.000000001;
+
+    expect(() =>
+      buildProbabilityFirstPortfolio(decision, "super"),
+    ).toThrow("8位小數契約");
   });
 });

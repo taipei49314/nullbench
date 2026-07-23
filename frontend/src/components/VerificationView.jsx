@@ -19,10 +19,31 @@ const CHECKS = [
   ["正式帳本隔離", "records tree hash 前後一致"],
 ];
 
-export default function VerificationView({ gameData, manifest }) {
+const GOAL_GAMES = ["super", "lotto649"];
+
+const GOAL_GAME_NAMES = {
+  super: "威力彩",
+  lotto649: "大樂透",
+};
+
+const shortHash = (value) =>
+  value ? `${value.slice(0, 12)}…${value.slice(-8)}` : "尚無雜湊";
+
+export default function VerificationView({
+  gameData,
+  goalAudit,
+  manifest,
+}) {
   const [feedbackHashCopied, setFeedbackHashCopied] = useState(false);
   const forward = manifest.forward_experiment;
   const forwardGame = forward?.games?.[gameData.game];
+  const qwenMonitor = forwardGame?.qwen_vs_rule?.sequential_monitor;
+  const qwenJointMonitor = forward?.qwen_joint_sequential_monitor;
+  const qwenMonitorTarget =
+    qwenJointMonitor?.next_checkpoint ??
+    qwenJointMonitor?.evaluated_pairs_per_game ??
+    forward?.methodology?.minimum_paired_draws_per_game ??
+    52;
   const pending = forwardGame?.pending?.at(-1);
   const operations = forward?.operations;
   const operationsGame = operations?.games?.[gameData.game];
@@ -51,6 +72,10 @@ export default function VerificationView({ gameData, manifest }) {
     automation?.watcher_state === "online";
   const displayTime = (value) =>
     value ? value.replace("T", " ").slice(0, 19) : "尚未執行";
+  const goalComplete = goalAudit?.status === "complete";
+  const goalBlocked =
+    goalAudit?.audit_state === "blocked" ||
+    goalAudit?.status === "invalid";
   return (
     <div className="workspace-view verification-view">
       <header className="workspace-heading">
@@ -109,6 +134,108 @@ export default function VerificationView({ gameData, manifest }) {
         </section>
       </div>
 
+      <section
+        className={`goal-loop-panel ${
+          goalComplete ? "is-complete" : goalBlocked ? "is-invalid" : ""
+        }`}
+      >
+        <header>
+          <div>
+            <ShieldCheck size={22} />
+            <span>
+              <strong>FIRST FORWARD LOOP</strong>
+              <small>原登記 → 真實結算 → 受限回饋 → 下一期凍結</small>
+            </span>
+          </div>
+          <b>
+            {goalComplete
+              ? "CLOSED LOOP VERIFIED"
+              : goalBlocked
+                ? "AUDIT BLOCKED"
+                : "WAITING FOR OFFICIAL DRAWS"}
+          </b>
+        </header>
+        <div className="goal-loop-games">
+          {GOAL_GAMES.map((game) => {
+            const evidence = goalAudit?.games?.[game];
+            const registrationLocked =
+              evidence?.initial_registration_present === true;
+            const settled = evidence?.settlement_present === true;
+            const feedbackVerified =
+              evidence?.feedback_status === "verified";
+            const nextPending = evidence?.next_pending_target;
+            const loopClosed =
+              registrationLocked &&
+              settled &&
+              feedbackVerified &&
+              Boolean(nextPending);
+            return (
+              <article key={game}>
+                <header>
+                  <span>
+                    <small>{game.toUpperCase()}</small>
+                    <strong>{GOAL_GAME_NAMES[game]}</strong>
+                  </span>
+                  <b className={loopClosed ? "is-done" : "is-waiting"}>
+                    {loopClosed
+                      ? "LOOP CLOSED"
+                      : registrationLocked
+                        ? "REGISTRATION LOCKED"
+                        : "LOCK MISSING"}
+                  </b>
+                </header>
+                <div className="goal-loop-steps" aria-label={`${GOAL_GAME_NAMES[game]}閉環進度`}>
+                  <span className={registrationLocked ? "is-done" : ""}>
+                    <i>01</i>
+                    <small>原始登記</small>
+                    <strong>
+                      {evidence?.initial_target
+                        ? `${evidence.initial_target.date} · ${evidence.initial_target.period}`
+                        : "驗收資料缺失"}
+                    </strong>
+                  </span>
+                  <span className={settled ? "is-done" : ""}>
+                    <i>02</i>
+                    <small>真實結算</small>
+                    <strong>{settled ? "QUALIFIED" : "等待官方開獎"}</strong>
+                  </span>
+                  <span
+                    className={
+                      feedbackVerified && nextPending ? "is-done" : ""
+                    }
+                  >
+                    <i>03</i>
+                    <small>Qwen 回饋／新登記</small>
+                    <strong>
+                      {nextPending
+                        ? `${nextPending.date} · ${nextPending.period}`
+                        : "尚未產生"}
+                    </strong>
+                  </span>
+                </div>
+                <footer>
+                  <code>
+                    lock / {shortHash(evidence?.initial_registration_hash)}
+                  </code>
+                  <code>
+                    feedback / {shortHash(evidence?.feedback_hash)}
+                  </code>
+                </footer>
+              </article>
+            );
+          })}
+        </div>
+        <p>
+          這是 Goal 的唯讀關門檢查。只有兩款遊戲的原登記雜湊仍一致、真實
+          settlement 合格、qwen3:8b 已讀取 verified feedback、coverage_five
+          已在辯論後合成 30 個互不重疊主號，且五注完整任一獎級／三主號精確
+          機率都不下降，各自又已有下一期 pending registration，狀態才會轉為
+          CLOSED LOOP VERIFIED。完全分散五注的完整任一獎級機率為：威力彩
+          54.2963%、大樂透 15.2966%；有限整數證書已證明這是固定五注的
+          全域最大聯集覆蓋率，不是單注或頭獎機率。
+        </p>
+      </section>
+
       <section className="forward-proof-panel">
         <header>
           <div>
@@ -130,10 +257,12 @@ export default function VerificationView({ gameData, manifest }) {
         </header>
         <div className="forward-proof-metrics">
           <div>
-            <small>有效配對</small>
+            <small>本遊戲有效／共同開封</small>
             <strong>
-              {forwardGame?.eligible_qwen_rule_pairs ?? 0}
-              <i> / {forward?.methodology?.minimum_paired_draws_per_game ?? 52}</i>
+              {qwenMonitor?.observed_pairs ??
+                forwardGame?.eligible_qwen_rule_pairs ??
+                0}
+              <i> / {qwenMonitorTarget}</i>
             </strong>
           </div>
           <div>
@@ -161,7 +290,10 @@ export default function VerificationView({ gameData, manifest }) {
         </div>
         <p>
           只有 Qwen 與規則裁判都在截止前成功凍結的期數才會進入比較；
-          均勻隨機五注同時保存為零假設。這裡不顯示事後補算的「預測」。
+          均勻隨機五注同時保存為零假設。正式判定只在預先固定的兩遊戲共同
+          checkpoint 開封，並以 alpha spending 控制重複檢定；
+          不會拼接兩款遊戲在不同 checkpoint 的結果，也不顯示事後補算的
+          「預測」。
         </p>
       </section>
 

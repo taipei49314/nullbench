@@ -23,6 +23,78 @@ const forwardStatusFile = path.join(
 );
 const automationDir = path.join(repoDir, "simulation", "automation");
 const automationStatusFile = path.join(automationDir, "status.json");
+const switchingBayesForwardStatusFile = path.join(
+  repoDir,
+  "simulation",
+  "forward",
+  "switching_bayes_status.json",
+);
+
+function pythonExecutable() {
+  return (
+    process.env.PYTHON ||
+    (process.platform === "win32" ? "python" : "python3")
+  );
+}
+
+function readGoalAudit() {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      pythonExecutable(),
+      ["-B", "-X", "utf8", "goal_verify.py", "--json"],
+      {
+        cwd: repoDir,
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    let output = "";
+    let errorOutput = "";
+    let finished = false;
+    let timeoutId = null;
+    const finish = (callback) => {
+      if (finished) return;
+      finished = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      callback();
+    };
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      errorOutput += chunk;
+    });
+    child.on("error", (error) => finish(() => reject(error)));
+    child.on("close", (code) => {
+      finish(() => {
+        if (code !== 0 && code !== 2) {
+          reject(
+            new Error(
+              errorOutput.trim() ||
+                `Goal audit process failed with exit code ${code}`,
+            ),
+          );
+          return;
+        }
+        try {
+          resolve(JSON.parse(output));
+        } catch (error) {
+          reject(
+            new Error(`Goal audit returned invalid JSON: ${error.message}`),
+          );
+        }
+      });
+    });
+    timeoutId = setTimeout(() => {
+      child.kill();
+      finish(() =>
+        reject(new Error("Goal audit timed out after 10 seconds")),
+      );
+    }, 10_000);
+  });
+}
 
 function readRecentEvents(game, limit) {
   const file = path.join(resultsDir, `${game}.jsonl`);
@@ -226,6 +298,18 @@ function simulationApi(supervisor) {
       }
       return;
     }
+    if (url.pathname === "/api/goal") {
+      readGoalAudit()
+        .then((audit) => jsonResponse(response, 200, audit))
+        .catch((error) =>
+          jsonResponse(response, 503, {
+            status: "invalid",
+            error: "無法執行第一個真實前向閉環驗收。",
+            detail: error.message,
+          }),
+        );
+      return;
+    }
     if (url.pathname === "/api/research/council-quality") {
       try {
         const study = JSON.parse(
@@ -238,6 +322,33 @@ function simulationApi(supervisor) {
       } catch (error) {
         jsonResponse(response, 503, {
           error: "Agent 品質影子研究尚未產生。",
+          detail: error.message,
+        });
+      }
+      return;
+    }
+    if (url.pathname === "/api/research/switching-bayes") {
+      try {
+        const study = JSON.parse(
+          fs.readFileSync(
+            path.join(researchResultsDir, "switching_bayes.json"),
+            "utf8",
+          ),
+        );
+        study.forward_loop = fs.existsSync(
+          switchingBayesForwardStatusFile,
+        )
+          ? JSON.parse(
+              fs.readFileSync(
+                switchingBayesForwardStatusFile,
+                "utf8",
+              ),
+            )
+          : null;
+        jsonResponse(response, 200, study);
+      } catch (error) {
+        jsonResponse(response, 503, {
+          error: "未知生成器 switching-Bayes 研究尚未產生。",
           detail: error.message,
         });
       }

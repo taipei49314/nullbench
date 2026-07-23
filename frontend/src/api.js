@@ -28,18 +28,59 @@ export function revealDecision(game) {
   return fetchJson(`/api/reveal/${game}`, { method: "POST" });
 }
 
+async function loadGoalAudit() {
+  try {
+    return await fetchJson("/api/goal");
+  } catch (reason) {
+    return {
+      status: "invalid",
+      failures: ["goal_audit_unavailable"],
+      games: {},
+      error: reason.message,
+    };
+  }
+}
+
+async function loadSwitchingBayes() {
+  try {
+    return await fetchJson("/api/research/switching-bayes");
+  } catch (reason) {
+    return {
+      decision: {
+        status: "unavailable",
+        label_signal_proven: false,
+        belief_layer_promoted: false,
+      },
+      prequential_summary: {},
+      final_models: {},
+      error: reason.message,
+    };
+  }
+}
+
 export async function loadDashboard() {
-  const [manifest, superReplay, lottoReplay, councilQuality] =
+  const [
+    manifest,
+    superReplay,
+    lottoReplay,
+    councilQuality,
+    goalAudit,
+    switchingBayes,
+  ] =
     await Promise.all([
-    fetchJson("/api/manifest"),
-    fetchJson("/api/replay/super?limit=18"),
-    fetchJson("/api/replay/lotto649?limit=18"),
-    fetchJson("/api/research/council-quality"),
-  ]);
+      fetchJson("/api/manifest"),
+      fetchJson("/api/replay/super?limit=18"),
+      fetchJson("/api/replay/lotto649?limit=18"),
+      fetchJson("/api/research/council-quality"),
+      loadGoalAudit(),
+      loadSwitchingBayes(),
+    ]);
   return {
     manifest,
+    goalAudit,
     research: {
       councilQuality,
+      switchingBayes,
     },
     recent: {
       super: superReplay.events,

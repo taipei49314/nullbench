@@ -105,6 +105,7 @@ export default function App() {
     activeContent = (
       <VerificationView
         gameData={gameData}
+        goalAudit={dashboard.goalAudit}
         manifest={dashboard.manifest}
       />
     );
@@ -129,6 +130,7 @@ export default function App() {
         onInspectAgent={setSelectedAgent}
         onOpenHistory={() => setActiveView("history")}
         onDecisionReveal={handleDecisionReveal}
+        switchingBayes={dashboard.research.switchingBayes}
       />
     );
   }
