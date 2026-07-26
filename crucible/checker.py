@@ -49,17 +49,25 @@ class Trace:
 class Violation:
     """一個不變量被違反的證據。"""
 
-    __slots__ = ("invariant", "trace")
+    __slots__ = ("invariant", "trace", "error")
 
-    def __init__(self, invariant: str, trace: Trace) -> None:
+    def __init__(
+        self, invariant: str, trace: Trace, error: Exception | None = None
+    ) -> None:
         self.invariant = invariant
         self.trace = trace
+        self.error = error
 
     def __repr__(self) -> str:
         return f"Violation({self.invariant!r}, depth={len(self.trace)})"
 
     def format(self) -> str:
-        return f"invariant {self.invariant!r} violated:\n{self.trace.format()}"
+        detail = f"invariant {self.invariant!r} violated"
+        if self.error is not None:
+            detail += (
+                f" (predicate error: {type(self.error).__name__}: {self.error})"
+            )
+        return f"{detail}:\n{self.trace.format()}"
 
 
 class Result:
@@ -72,6 +80,7 @@ class Result:
         "complete",
         "deadlocks",
         "search",
+        "violations",
     )
 
     def __init__(
@@ -82,13 +91,20 @@ class Result:
         complete: bool = True,
         deadlocks: Sequence[State] = (),
         search: str = "bfs",
+        violations: Sequence[Violation] = (),
     ) -> None:
+        collected = tuple(violations)
+        if violation is not None and not collected:
+            collected = (violation,)
+        elif violation is None and collected:
+            violation = collected[0]
         self.violation = violation
         self.states_explored = states_explored
         self.max_depth_reached = max_depth_reached
         self.complete = bool(complete)
         self.deadlocks: tuple[State, ...] = tuple(deadlocks)
         self.search = search
+        self.violations: tuple[Violation, ...] = collected
 
     @property
     def ok(self) -> bool:
@@ -112,12 +128,14 @@ class Checker:
         max_depth: int | None = None,
         max_states: int | None = None,
         search: str = "bfs",
+        stop_on_first: bool = True,
     ) -> None:
         self.model = model
         self.invariants: tuple[Invariant, ...] = tuple(invariants)
         self.max_depth = max_depth
         self.max_states = max_states
         self.search = search
+        self.stop_on_first = bool(stop_on_first)
         if max_depth is not None and max_depth < 0:
             raise ValueError("max_depth must be non-negative")
         if max_states is not None and max_states < 1:
@@ -142,6 +160,7 @@ class Checker:
         parent: dict[State, tuple[State | None, str | None, State]] = {}
         queue: deque[tuple[State, int]] = deque()
         deadlocks: list[State] = []
+        violations: list[Violation] = []
         max_depth = 0
         truncated = False
 
@@ -153,9 +172,13 @@ class Checker:
                 break
             parent[state] = (None, None, state)
             max_depth = max(max_depth, 0)
-            violation = self._first_violation(state, parent)
-            if violation is not None:
-                return self._result(violation, parent, max_depth, truncated)
+            found = self._violations_at(state, parent)
+            if found:
+                if self.stop_on_first:
+                    return self._result(
+                        found[0], parent, max_depth, truncated, violations=found[:1]
+                    )
+                violations.extend(found)
             queue.append((state, 0))
 
         while queue:
@@ -182,21 +205,34 @@ class Checker:
                     if self.max_states is not None and len(parent) >= self.max_states:
                         truncated = True
                         return self._result(
-                            None, parent, max_depth, truncated, deadlocks
+                            None,
+                            parent,
+                            max_depth,
+                            truncated,
+                            deadlocks,
+                            violations=violations,
                         )
                     parent[succ] = (state, action.name, parent[state][2])
                     max_depth = max(max_depth, depth + 1)
-                    violation = self._first_violation(succ, parent)
-                    if violation is not None:
-                        return self._result(
-                            violation, parent, max_depth, truncated
-                        )
+                    found = self._violations_at(succ, parent)
+                    if found:
+                        if self.stop_on_first:
+                            return self._result(
+                                found[0],
+                                parent,
+                                max_depth,
+                                truncated,
+                                violations=found[:1],
+                            )
+                        violations.extend(found)
                     queue.append((succ, depth + 1))
 
             if not has_successor:
                 deadlocks.append(state)
 
-        return self._result(None, parent, max_depth, truncated, deadlocks)
+        return self._result(
+            None, parent, max_depth, truncated, deadlocks, violations=violations
+        )
 
     def _check_dfs(
         self, initials: tuple[State, ...], actions: tuple[Action, ...]
@@ -206,6 +242,7 @@ class Checker:
         parent: dict[State, tuple[State | None, str | None, State]] = {}
         stack: list[tuple[State, int]] = []
         deadlocks: list[State] = []
+        violations: list[Violation] = []
         max_depth = 0
         truncated = False
 
@@ -225,9 +262,13 @@ class Checker:
             state, depth = stack.pop()
             max_depth = max(max_depth, depth)
 
-            violation = self._first_violation(state, parent)
-            if violation is not None:
-                return self._result(violation, parent, max_depth, truncated)
+            found = self._violations_at(state, parent)
+            if found:
+                if self.stop_on_first:
+                    return self._result(
+                        found[0], parent, max_depth, truncated, violations=found[:1]
+                    )
+                violations.extend(found)
 
             if self.max_depth is not None and depth >= self.max_depth:
                 has_successor = self._has_successor(state, actions)
@@ -250,7 +291,12 @@ class Checker:
                     if self.max_states is not None and len(parent) >= self.max_states:
                         truncated = True
                         return self._result(
-                            None, parent, max_depth, truncated, deadlocks
+                            None,
+                            parent,
+                            max_depth,
+                            truncated,
+                            deadlocks,
+                            violations=violations,
                         )
                     parent[succ] = (state, action.name, parent[state][2])
                     max_depth = max(max_depth, depth + 1)
@@ -262,7 +308,9 @@ class Checker:
             # Keep the model's deterministic action/successor order.
             stack.extend(reversed(children))
 
-        return self._result(None, parent, max_depth, truncated, deadlocks)
+        return self._result(
+            None, parent, max_depth, truncated, deadlocks, violations=violations
+        )
 
     def _result(
         self,
@@ -271,6 +319,7 @@ class Checker:
         max_depth: int,
         truncated: bool,
         deadlocks: Sequence[State] = (),
+        violations: Sequence[Violation] = (),
     ) -> Result:
         # Deadlocks are meaningful only after every reachable state was checked.
         ordered_deadlocks = tuple(sorted(deadlocks, key=repr)) if not truncated else ()
@@ -281,6 +330,7 @@ class Checker:
             complete=not truncated,
             deadlocks=ordered_deadlocks,
             search=self.search,
+            violations=violations,
         )
 
     @staticmethod
@@ -293,16 +343,24 @@ class Checker:
 
     # -- 內部 ---------------------------------------------------------------
 
-    def _first_violation(
+    def _violations_at(
         self,
         state: State,
         parent: dict[State, tuple[State | None, str | None, State]],
-    ) -> Violation | None:
+    ) -> tuple[Violation, ...]:
         """依宣告順序回報第一個不成立的不變量。"""
+        violations: list[Violation] = []
         for invariant in self.invariants:
-            if not invariant.holds(state):
-                return Violation(invariant.name, self._trace_to(state, parent))
-        return None
+            holds, error = invariant.evaluate(state)
+            if not holds:
+                violations.append(
+                    Violation(
+                        invariant.name,
+                        self._trace_to(state, parent),
+                        error,
+                    )
+                )
+        return tuple(violations)
 
     @staticmethod
     def _trace_to(

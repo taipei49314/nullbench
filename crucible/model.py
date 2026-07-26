@@ -106,10 +106,15 @@ class Invariant:
         self._predicate = predicate
 
     def holds(self, state: State) -> bool:
+        result, _ = self.evaluate(state)
+        return result
+
+    def evaluate(self, state: State) -> tuple[bool, Exception | None]:
+        """Evaluate the predicate while retaining an exception for callers."""
         try:
-            return bool(self._predicate(state))
-        except Exception:
-            return False
+            return bool(self._predicate(state)), None
+        except Exception as exc:
+            return False, exc
 
     def __repr__(self) -> str:
         return f"Invariant({self.name!r})"
