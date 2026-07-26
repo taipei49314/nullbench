@@ -27,6 +27,14 @@
 
 驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `60/123`、score `60`（前一輪 `42`）。
 
+## 人類裁決事項（優先於下方建議）
+
+**`Result.complete` 在 `stop_on_first` 命中違反時謊報 `True`。**
+實測 `Checker(Counter(限1000), [under_2])` 只探索 3 個狀態（可達 1001 個）卻回報 `complete=True`。
+`complete` 的語意是「看遍所有可達狀態」，提前收工不算看完。**請修**，並在 `tests/test_extra.py`
+補一條守住它。前線測試沒涵蓋這個情境，所以裁判不會變紅 —— 但它仍然是錯的。
+詳見 `SPEC.md` L1 段落。
+
 ## 下一輪建議
 
 優先處理 **L4 反例最小化**，實作 `crucible.minimize.shrink`；以可重播、不長於輸入、可重跑的最小化規則為主線，每完成一組就跑 scoreboard，維持 core 全綠。

@@ -134,7 +134,14 @@ Checker(model, invariants=(), max_depth=None, max_states=None, search="bfs")
 ```
 
 - `search` 為 `"bfs"`（預設）或 `"dfs"`，其他值拋 `ValueError`；`max_depth < 0`、`max_states < 1` 亦然。
-- `Result.complete` —— 被 `max_depth` / `max_states` 截斷時為 `False`。**未跑完就不准宣稱跑完。**
+- `Result.complete` —— **語意是「這次搜尋是否看遍了所有可達狀態」**，只有佇列真正見底才是 `True`。
+  被 `max_depth` / `max_states` 截斷要為 `False`；**因為找到違反而提前收工（`stop_on_first`）
+  也要為 `False`** —— 提前停下來同樣沒看完。
+
+  > **人類裁決（2026-07-26）**：目前的實作在 `stop_on_first` 命中違反時回報 `complete=True`。
+  > 實測 `Checker(Counter(限1000), [under_2])` 只探索了 1001 個可達狀態中的 3 個，卻宣稱窮舉完畢。
+  > 這正是本專案要防的那類缺陷。**這是缺陷，請修。** 前線測試沒有涵蓋這個情境
+  > （裁判不會因此變紅，但它仍然是錯的），修好後請在 `tests/test_extra.py` 補一條守住它。
 - `Result.deadlocks` —— 無任何啟用動作的狀態，決定性排序。**搜尋被截斷時一律回傳空 tuple**
   （沒看完的地方不能宣稱那裡沒有死結）。
 - `Result.search` —— 實際採用的策略名稱。
