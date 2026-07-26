@@ -971,6 +971,26 @@ def _relay_model():
     return Relay()
 
 
+def _no_silent_loss():
+    """訊息不得憑空消失:送出後若尚未收到,它必須還在網路裡。
+
+    **人類裁決（2026-07-26）**：這三條原本用的是
+    `Invariant("eventually_done", lambda s: not s["sent"] or s["done"])`，
+    那是把 liveness 誤當成 safety —— 它在**完全沒有故障注入**的模型上就會被違反，
+    因為「送出後、收到前」那個 `sent=True / done=False` 的中間狀態必然存在。
+    於是 `test_zero_budget_disables_the_fault` 斷言 `ok=True` 永遠不可能成立，
+    而 `test_message_loss_breaks_delivery` 雖然過了卻是為了錯的理由過的。
+
+    codex 在第 9 輪正確診斷出這件事並依 `MISSION.md` 交付人類裁決，沒有加特判。
+    這是裁判本身的缺陷，由我修正。改成真正的安全性質後，三條才各自驗到該驗的東西。
+    """
+    net = submodule("crucible.net")
+    return Invariant(
+        "no_silent_loss",
+        lambda s: (not s["sent"]) or s["done"] or ("hello",) in net.pending(s, "net"),
+    )
+
+
 class TestL7Faults(unittest.TestCase):
     def test_faults_module_exists(self):
         submodule("crucible.faults")
@@ -985,7 +1005,7 @@ class TestL7Faults(unittest.TestCase):
         Checker = api("Checker")
         faults = submodule("crucible.faults")
         model = faults.with_faults(_relay_model(), [faults.MessageLoss(budget=1)])
-        inv = [Invariant("eventually_done", lambda s: not s["sent"] or s["done"])]
+        inv = [_no_silent_loss()]
         self.assertFalse(Checker(model, inv).check().ok)
 
     def test_without_faults_delivery_is_reliable(self):
@@ -1007,7 +1027,7 @@ class TestL7Faults(unittest.TestCase):
         Checker = api("Checker")
         faults = submodule("crucible.faults")
         model = faults.with_faults(_relay_model(), [faults.MessageLoss(budget=0)])
-        inv = [Invariant("eventually_done", lambda s: not s["sent"] or s["done"])]
+        inv = [_no_silent_loss()]
         self.assertTrue(Checker(model, inv).check().ok)
 
     def test_duplication_can_deliver_twice(self):
@@ -1026,7 +1046,7 @@ class TestL7Faults(unittest.TestCase):
         Checker = api("Checker")
         faults = submodule("crucible.faults")
         model = faults.with_faults(_relay_model(), [faults.MessageLoss(budget=1)])
-        invs = [Invariant("eventually_done", lambda s: not s["sent"] or s["done"])]
+        invs = [_no_silent_loss()]
         _confirm_violation(self, model, invs, Checker(model, invs).check().violation)
 
     def test_negative_budget_is_rejected(self):
