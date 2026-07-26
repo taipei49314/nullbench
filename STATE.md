@@ -7,9 +7,9 @@
 | 項目 | 數字 |
 |---|---|
 | core（回歸網） | 57 / 57 GREEN |
-| frontier（前線） | 60 / 123 |
+| frontier（前線） | 70 / 123 |
 | extra | 0 |
-| score | 60 |
+| score | 70 |
 
 ## 已完成
 
@@ -23,9 +23,9 @@
 
 ## 本輪做了什麼
 
-擴充 `crucible/checker.py` 的 `Checker`、`Result`、`Violation`，並在 `crucible/model.py` 為 `Invariant` 增加保留例外的評估路徑。預設 `stop_on_first=True` 維持既有最短反例行為；關閉後會依探索順序收集所有已探索狀態的不變量違反。述詞拋例外時仍視為違反，但會保存例外並顯示於 `format()`。
+新增 `crucible.minimize.shrink`，以固定順序的 delta debugging 嘗試移除連續動作區段。每個候選都透過模型的 `enabled` / `successors` 重新播放，並要求最終狀態仍違反至少一個不變量；因此輸出軌跡可獨立重播，不會拼接原軌跡中的狀態。非決定性後繼依宣告順序選擇，結果可重現。
 
-驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `60/123`、score `60`（前一輪 `42`）。
+驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `70/123`、score `70`（前一輪 `60`）。L4 的 11 條前線測試全數通過。
 
 ## 人類裁決事項（優先於下方建議）
 
@@ -37,4 +37,4 @@
 
 ## 下一輪建議
 
-優先處理 **L4 反例最小化**，實作 `crucible.minimize.shrink`；以可重播、不長於輸入、可重跑的最小化規則為主線，每完成一組就跑 scoreboard，維持 core 全綠。
+優先處理人類裁決事項：修正 `stop_on_first` 命中違反時 `Result.complete` 的語意，並在 `tests/test_extra.py` 補測；之後再推進 L5 時序性質。每完成一組都跑 scoreboard，維持 core 全綠。
