@@ -32,11 +32,21 @@ invariant 'under_two' violated:
 
 ## 現況
 
-L0 地基已完成：`State` / `Action` / `Model` / `Invariant` / `Checker`、
-廣度優先窮舉、狀態去重、不變量檢查、反例軌跡重建。
+**L0–L8 全部完成**（2026-07-26），前線驗收 123/123、回歸網 57/57。
 
-L1–L8（邊界與死結、反例品質、建模語言、軌跡最小化、時序性質、狀態爆炸歸約、
-故障注入、協定庫）見 [SPEC.md](SPEC.md)。
+| 層 | 能力 |
+|---|---|
+| L0 | `State` / `Action` / `Model` / `Invariant` / `Checker`、BFS 窮舉、狀態去重、反例軌跡 |
+| L1 | `max_depth` / `max_states` 邊界、`complete`、死結偵測、BFS/DFS |
+| L2 | 多不變量收集、BFS 最短反例保證、述詞例外 fail-closed |
+| L3 | `crucible.dsl` 宣告式建模、`crucible.net` 不可變訊息多重集 |
+| L4 | `crucible.minimize` 軌跡最小化（delta debugging） |
+| L5 | `crucible.temporal` 時序性質、弱公平性、lasso 反例 |
+| L6 | `crucible.reduce` 對稱性與偏序歸約 |
+| L7 | `crucible.faults` 訊息遺失／重複、崩潰、網路分割 |
+| L8 | `crucible.protocols` Peterson、Dekker、兩階段提交、Raft 選舉、銀行轉帳，各配一個故意有 bug 的變體 |
+
+規格與 API 見 [SPEC.md](SPEC.md)。
 
 ## 執行測試
 
@@ -44,15 +54,20 @@ L1–L8（邊界與死結、反例品質、建模語言、軌跡最小化、時�
 python -m unittest discover -s tests -t .
 ```
 
-## 計分板
+## 驗收
 
 ```bash
-python scoreboard.py --pretty
+python scoreboard.py --pretty     # 計分板
+python audit.py                   # 外部稽核
 ```
 
-`scoreboard.py` 是這個專案的驗收基準，直接讀 `unittest` 的結果物件計分，
-不解析任何文字輸出。它與 `tests/test_core.py`、`tests/test_frontier.py`
-共同構成不可變的裁判 —— 開發流程中不得修改。
+`scoreboard.py` 直接讀 `unittest` 的結果物件計分，不解析任何文字輸出。
+它與 `audit.py`、`tests/test_core.py`、`tests/test_frontier.py` 共同構成
+不可變的裁判 —— 開發流程中不得修改。
+
+`audit.py` 專門查凍結的裁判查不到的事：裁判自身完整性、純標準函式庫、
+**跨程序**雜湊種子穩定性、`complete` 是否名副其實、協定反例能否獨立重播。
+它把「尚未實作」報成 SKIP 而不是 PASS —— 把還沒做算成做對了，正是本專案要防的病灶。
 
 ## 為什麼反例可以信
 

@@ -11,11 +11,15 @@ on:
       - main
 
 jobs:
-  # 回歸網跨平台、跨版本跑。這個帳號的專案反覆栽在「同一段程式碼在 Linux 上
+  # 全套測試跨平台、跨版本跑。這個帳號的專案反覆栽在「同一段程式碼在 Linux 上
   # 行為不同」上（pathlib 絕對路徑判斷、libm 浮點、CPython 版本差異），
-  # 所以矩陣不是排場,是針對已知病灶的檢查。
-  core:
-    name: core ${{ matrix.os }} py${{ matrix.python }}
+  # 所以矩陣不是排場，是針對已知病灶的檢查。
+  #
+  # 前線在 2026-07-26 清空（123/123）之前，這裡刻意只跑 test_core 並把前線分數
+  # 當紀錄印出來 —— 那時把前線做成關卡，整條 CI 會在專案完成前永遠是紅的。
+  # 現在它全綠了，就必須擋住回歸，否則等於沒有關卡。
+  tests:
+    name: tests ${{ matrix.os }} py${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -32,26 +36,32 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Run the regression net
-        run: python -m unittest tests.test_core -v
+      - name: Run the whole suite
+        run: python -m unittest discover -s tests -t . -v
 
       - name: Judge must agree the regression net is green
         run: python scoreboard.py --require-core --pretty
 
-  # 前線刻意是紅的 —— 這一步只把分數印出來當紀錄,不做成關卡。
-  # 若把它變成必過關卡,整條 CI 就會在專案完成前永遠是紅的。
-  frontier:
-    name: frontier score
+  # 外部稽核：查凍結的裁判查不到的事 —— 裁判完整性、純標準函式庫、
+  # 跨程序雜湊種子穩定性、`complete` 是否名副其實、協定反例能否獨立重播。
+  #
+  # 刻意不加 continue-on-error：那會變成永遠不會失敗的假檢查。
+  audit:
+    name: external audit
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          # 稽核要比對裁判檔案與凍結提交的內容，淺層 clone 取不到那個物件。
+          # 取不到時 audit.py 會 fail-closed 報 FAIL，所以這裡必須拿完整歷史。
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Report the score
-        run: python scoreboard.py --pretty
+      - name: Run the external audit
+        run: python audit.py
