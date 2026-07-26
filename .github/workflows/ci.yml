@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+
+jobs:
+  # 回歸網跨平台、跨版本跑。這個帳號的專案反覆栽在「同一段程式碼在 Linux 上
+  # 行為不同」上（pathlib 絕對路徑判斷、libm 浮點、CPython 版本差異），
+  # 所以矩陣不是排場,是針對已知病灶的檢查。
+  core:
+    name: core ${{ matrix.os }} py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.9", "3.11", "3.13"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Run the regression net
+        run: python -m unittest tests.test_core -v
+
+      - name: Judge must agree the regression net is green
+        run: python scoreboard.py --require-core --pretty
+
+  # 前線刻意是紅的 —— 這一步只把分數印出來當紀錄,不做成關卡。
+  # 若把它變成必過關卡,整條 CI 就會在專案完成前永遠是紅的。
+  frontier:
+    name: frontier score
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Report the score
+        run: python scoreboard.py --pretty
