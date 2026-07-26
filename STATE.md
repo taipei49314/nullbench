@@ -7,9 +7,9 @@
 | 項目 | 數字 |
 |---|---|
 | core（回歸網） | 57 / 57 GREEN |
-| frontier（前線） | 12 / 123 |
+| frontier（前線） | 35 / 123 |
 | extra | 0 |
-| score | 12 |
+| score | 35 |
 
 ## 已完成
 
@@ -17,26 +17,20 @@
 `Model`（初始狀態保序去重、動作依名排序）、`Invariant`、`Checker`（BFS 窮舉、狀態去重、
 不變量檢查、反例軌跡重建）。
 
-前線一開始就有 12 條是綠的，那是 L0 本來就做對的事：BFS 天生給出最短反例、
-不變量依宣告序回報、大狀態空間（1600 狀態）能跑完。**沒有假綠。**
+**L1 探索核心（本輪完成）** —— `max_depth` / `max_states` 驗證與截斷追蹤、
+`Result.complete`、`Result.max_depth_reached`、`Result.search`、BFS/DFS 搜尋、
+可重播且 deterministic 的 DFS 反例、完整搜尋的 deterministic deadlocks。
+界線上的實際後繼會使結果標記為 incomplete；截斷搜尋一律不宣稱 deadlock。
 
-## 上一輪做了什麼
+## 本輪做了什麼
 
-（尚未開始第一輪。）
+擴充 `crucible/checker.py` 的 `Result` 與 `Checker`，保留既有 L0 行為，並完成 L1 前線測試要求。
+BFS 維持最短反例；DFS 依排序後的 action 與 successors 順序探索；狀態上限不會納入超額狀態，
+深度上限不會展開界線外狀態；只有完整窮舉才回傳排序後的 deadlocks。
+
+驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `35/123`、score `35`。
 
 ## 下一輪建議
 
-**L1 探索核心**是最自然的起點，因為 L4 以後的層都要靠它：
-
-1. `Checker` 的 `max_depth` / `max_states` 邊界與 `Result.complete`
-   —— 注意「被截斷時不得宣稱 complete，也不得宣稱沒有死結」。
-2. `Result.deadlocks`（決定性排序）。
-3. `search="dfs"` 與 `Result.search`。
-
-L3 的 `crucible.dsl` 與 `crucible.net` 是 L7 故障注入的前置，優先序也高。
-
-## 環境
-
-- Python 3.9+，純標準函式庫，測試用 `unittest`。
-- 驗收：`python scoreboard.py --pretty`
-- 完整測試：`python -m unittest discover -s tests -t .`
+優先處理 **L2 安全性質與反例品質**：加入 `stop_on_first` / `violations`、述詞例外的 `Violation.error`
+與格式化錯誤訊息，同時維持 BFS 最短反例與獨立重播成立。之後再進入 L3 DSL / network。

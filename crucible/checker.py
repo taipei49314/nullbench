@@ -65,17 +65,30 @@ class Violation:
 class Result:
     """一次檢查的結果。"""
 
-    __slots__ = ("violation", "states_explored", "max_depth_reached")
+    __slots__ = (
+        "violation",
+        "states_explored",
+        "max_depth_reached",
+        "complete",
+        "deadlocks",
+        "search",
+    )
 
     def __init__(
         self,
         violation: Violation | None,
         states_explored: int,
         max_depth_reached: int,
+        complete: bool = True,
+        deadlocks: Sequence[State] = (),
+        search: str = "bfs",
     ) -> None:
         self.violation = violation
         self.states_explored = states_explored
         self.max_depth_reached = max_depth_reached
+        self.complete = bool(complete)
+        self.deadlocks: tuple[State, ...] = tuple(deadlocks)
+        self.search = search
 
     @property
     def ok(self) -> bool:
@@ -83,50 +96,200 @@ class Result:
 
     def __repr__(self) -> str:
         verdict = "ok" if self.ok else f"violated:{self.violation.invariant}"
-        return f"Result({verdict}, states={self.states_explored}, depth={self.max_depth_reached})"
+        return (
+            f"Result({verdict}, states={self.states_explored}, "
+            f"depth={self.max_depth_reached}, complete={self.complete})"
+        )
 
 
 class Checker:
     """對模型做廣度優先窮舉,回報第一個(即最短的)不變量違反。"""
 
-    def __init__(self, model: Model, invariants: Iterable[Invariant] = ()) -> None:
+    def __init__(
+        self,
+        model: Model,
+        invariants: Iterable[Invariant] = (),
+        max_depth: int | None = None,
+        max_states: int | None = None,
+        search: str = "bfs",
+    ) -> None:
         self.model = model
         self.invariants: tuple[Invariant, ...] = tuple(invariants)
+        self.max_depth = max_depth
+        self.max_states = max_states
+        self.search = search
+        if max_depth is not None and max_depth < 0:
+            raise ValueError("max_depth must be non-negative")
+        if max_states is not None and max_states < 1:
+            raise ValueError("max_states must be at least 1")
+        if search not in ("bfs", "dfs"):
+            raise ValueError("search must be 'bfs' or 'dfs'")
 
     def check(self) -> Result:
         initials = self.model.initial_states()
         actions: tuple[Action, ...] = self.model.action_list()
 
+        if self.search == "dfs":
+            return self._check_dfs(initials, actions)
+        return self._check_bfs(initials, actions)
+
+    def _check_bfs(
+        self, initials: tuple[State, ...], actions: tuple[Action, ...]
+    ) -> Result:
+        """以先進先出的 frontier 做窮舉，保留最短反例保證。"""
+
         # parent[state] = (前驅狀態, 動作名, 來源初始狀態) —— 用來回溯軌跡。
         parent: dict[State, tuple[State | None, str | None, State]] = {}
         queue: deque[tuple[State, int]] = deque()
+        deadlocks: list[State] = []
         max_depth = 0
+        truncated = False
 
         for state in initials:
             if state in parent:
                 continue
+            if self.max_states is not None and len(parent) >= self.max_states:
+                truncated = True
+                break
             parent[state] = (None, None, state)
+            max_depth = max(max_depth, 0)
             violation = self._first_violation(state, parent)
             if violation is not None:
-                return Result(violation, len(parent), 0)
+                return self._result(violation, parent, max_depth, truncated)
             queue.append((state, 0))
 
         while queue:
             state, depth = queue.popleft()
             max_depth = max(max_depth, depth)
+
+            if self.max_depth is not None and depth >= self.max_depth:
+                has_successor = self._has_successor(state, actions)
+                if has_successor:
+                    truncated = True
+                continue
+
+            has_successor = False
             for action in actions:
                 if not action.enabled(state):
                     continue
-                for succ in action.successors(state):
+                successors = action.successors(state)
+                if not successors:
+                    continue
+                has_successor = True
+                for succ in successors:
                     if succ in parent:
                         continue
+                    if self.max_states is not None and len(parent) >= self.max_states:
+                        truncated = True
+                        return self._result(
+                            None, parent, max_depth, truncated, deadlocks
+                        )
                     parent[succ] = (state, action.name, parent[state][2])
+                    max_depth = max(max_depth, depth + 1)
                     violation = self._first_violation(succ, parent)
                     if violation is not None:
-                        return Result(violation, len(parent), max(max_depth, depth + 1))
+                        return self._result(
+                            violation, parent, max_depth, truncated
+                        )
                     queue.append((succ, depth + 1))
 
-        return Result(None, len(parent), max_depth)
+            if not has_successor:
+                deadlocks.append(state)
+
+        return self._result(None, parent, max_depth, truncated, deadlocks)
+
+    def _check_dfs(
+        self, initials: tuple[State, ...], actions: tuple[Action, ...]
+    ) -> Result:
+        """以後進先出的 frontier 做 deterministic depth-first search。"""
+
+        parent: dict[State, tuple[State | None, str | None, State]] = {}
+        stack: list[tuple[State, int]] = []
+        deadlocks: list[State] = []
+        max_depth = 0
+        truncated = False
+
+        # 先依宣告順序收集，再反向壓入，讓第一個初始狀態先被處理。
+        selected_initials: list[State] = []
+        for state in initials:
+            if state in parent:
+                continue
+            if self.max_states is not None and len(parent) >= self.max_states:
+                truncated = True
+                break
+            parent[state] = (None, None, state)
+            selected_initials.append(state)
+        stack.extend((state, 0) for state in reversed(selected_initials))
+
+        while stack:
+            state, depth = stack.pop()
+            max_depth = max(max_depth, depth)
+
+            violation = self._first_violation(state, parent)
+            if violation is not None:
+                return self._result(violation, parent, max_depth, truncated)
+
+            if self.max_depth is not None and depth >= self.max_depth:
+                has_successor = self._has_successor(state, actions)
+                if has_successor:
+                    truncated = True
+                continue
+
+            has_successor = False
+            children: list[tuple[State, int]] = []
+            for action in actions:
+                if not action.enabled(state):
+                    continue
+                successors = action.successors(state)
+                if not successors:
+                    continue
+                has_successor = True
+                for succ in successors:
+                    if succ in parent:
+                        continue
+                    if self.max_states is not None and len(parent) >= self.max_states:
+                        truncated = True
+                        return self._result(
+                            None, parent, max_depth, truncated, deadlocks
+                        )
+                    parent[succ] = (state, action.name, parent[state][2])
+                    max_depth = max(max_depth, depth + 1)
+                    children.append((succ, depth + 1))
+
+            if not has_successor:
+                deadlocks.append(state)
+
+            # Keep the model's deterministic action/successor order.
+            stack.extend(reversed(children))
+
+        return self._result(None, parent, max_depth, truncated, deadlocks)
+
+    def _result(
+        self,
+        violation: Violation | None,
+        parent: dict[State, tuple[State | None, str | None, State]],
+        max_depth: int,
+        truncated: bool,
+        deadlocks: Sequence[State] = (),
+    ) -> Result:
+        # Deadlocks are meaningful only after every reachable state was checked.
+        ordered_deadlocks = tuple(sorted(deadlocks, key=repr)) if not truncated else ()
+        return Result(
+            violation,
+            len(parent),
+            max_depth,
+            complete=not truncated,
+            deadlocks=ordered_deadlocks,
+            search=self.search,
+        )
+
+    @staticmethod
+    def _has_successor(state: State, actions: tuple[Action, ...]) -> bool:
+        """Return whether any enabled action has at least one real successor."""
+        for action in actions:
+            if action.enabled(state) and action.successors(state):
+                return True
+        return False
 
     # -- 內部 ---------------------------------------------------------------
 
