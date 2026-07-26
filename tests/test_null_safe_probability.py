@@ -384,6 +384,38 @@ def test_candidate_rejects_tamper_and_same_day_target(smoke_study):
 
 
 @pytest.mark.parametrize("game", [SUPER, LOTTO649])
+def test_candidate_treats_serialized_weights_as_informational(game):
+    candidate, _ = _formal_candidates()
+    candidate = deepcopy(candidate)
+    model = candidate["models"][game]
+    model["main_weights"] = {
+        expert: 0.0 for expert in model["main_weights"]
+    }
+    payload = {
+        key: value
+        for key, value in candidate.items()
+        if key != "candidate_hash"
+    }
+    candidate["candidate_hash"] = canonical_hash(payload)
+
+    assert validate_forward_candidate(candidate) == candidate
+
+
+def test_candidate_rejects_invalid_main_log_weights():
+    candidate, _ = _formal_candidates()
+    candidate = deepcopy(candidate)
+    expert = next(
+        iter(candidate["models"][SUPER]["main_log_weights"])
+    )
+    candidate["models"][SUPER]["main_log_weights"][expert] = float(
+        "nan"
+    )
+
+    with pytest.raises(ValueError, match="null-safe candidate 主號模型不符"):
+        validate_forward_candidate(candidate)
+
+
+@pytest.mark.parametrize("game", [SUPER, LOTTO649])
 def test_forward_score_capsule_separates_safe_forecast_from_evidence_update(
     game,
 ):

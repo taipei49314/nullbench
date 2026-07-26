@@ -102,46 +102,7 @@ def _snapshot_present():
             return False
     return True
 
-
-# --- 已知的跨平台重現性缺陷 -------------------------------------------------
-#
-# `research/null_safe_probability.py` 驗證 candidate 模型時,拿版控裡的
-# `main_weights` 與 `_softmax(main_log_weights)` 做**精確相等**比較。
-# 但 `math.exp()` 在不同平台的 libm 實作下不是位元等價的,所以在 Windows 上產生、
-# 存進 `research/results/null_safe_probability.json` 的權重,到 Linux 上重算就對不起來,
-# 驗證直接拋 `ValueError: null-safe candidate 主號模型不符`。
-#
-# 實測:同一份 fixture 在 Windows 上重算差值為 0.000e+00(完全相符),在 GitHub Actions
-# 的 ubuntu runner 上則驗證失敗。
-#
-# 這對本專案不是小事 —— 整個立論建立在「決定性、預註冊、可稽核」上,而這個決定性
-# 其實綁定了產生資料的那台機器的平台。這裡標成 xfail 只是讓 CI 能誠實地把它顯示成
-# 「已知缺陷」而不是消失,**不是修好了**。
-#
-# 可能的正解(需人決定,牽涉驗證語意):
-#   (a) 只存 log_weights,weights 一律即時導出,消除會互相矛盾的冗餘欄位
-#   (b) 改用有明確容差的比較 —— 但會削弱 tamper-evident 的強度
-#   (c) 接受限制,並在文件明講「驗證必須在產生資料的同一平台上執行」
-
-PLATFORM_FLOAT_XFAIL = {
-    "test_null_safe_staleness_tracks_candidate_draws_and_ledger_hashes",
-    "test_null_safe_operational_state_is_validated_before_freshness",
-    "test_refresh_null_safe_state_does_not_backfill_v6_settlement",
-}
-
-XFAIL_REASON = (
-    "已知跨平台缺陷:null-safe 驗證對 softmax 權重做精確相等比較,而 math.exp() "
-    "在不同平台的 libm 下不是位元等價的。版控中的 fixture 產生於 Windows,在 Linux "
-    "上重算即不符。詳見 conftest.py 的說明。"
-)
-
-
 def pytest_collection_modifyitems(config, items):
-    xfail_marker = pytest.mark.xfail(reason=XFAIL_REASON, strict=False)
-    for item in items:
-        if item.name in PLATFORM_FLOAT_XFAIL:
-            item.add_marker(xfail_marker)
-
     if _snapshot_present():
         return
     skip_marker = pytest.mark.skip(reason=SKIP_REASON)

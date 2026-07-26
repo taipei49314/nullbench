@@ -587,6 +587,9 @@ def validate_forward_candidate(candidate: dict) -> dict:
             )
         if set(model) != expected_model_fields:
             raise ValueError("null-safe candidate model 欄位不符")
+        # Keep the derived weights for readable, backward-compatible JSON.
+        # They are informational only: math.exp()/libm can differ across
+        # platforms, so runtime calculations must use the log weights.
         if (
             set(model["main_log_weights"]) != set(EXPERT_IDS)
             or set(model["main_weights"]) != set(EXPERT_IDS)
@@ -594,8 +597,10 @@ def validate_forward_candidate(candidate: dict) -> dict:
                 not math.isfinite(float(value))
                 for value in model["main_log_weights"].values()
             )
-            or model["main_weights"]
-            != _softmax(model["main_log_weights"])
+            or any(
+                not math.isfinite(float(value))
+                for value in model["main_weights"].values()
+            )
         ):
             raise ValueError("null-safe candidate 主號模型不符")
         main_state = validate_e_process_state(
@@ -618,8 +623,10 @@ def validate_forward_candidate(candidate: dict) -> dict:
                         "special_log_weights"
                     ].values()
                 )
-                or model["special_weights"]
-                != _softmax(model["special_log_weights"])
+                or any(
+                    not math.isfinite(float(value))
+                    for value in model["special_weights"].values()
+                )
             ):
                 raise ValueError("null-safe candidate 第二區模型不符")
             special_state = validate_e_process_state(

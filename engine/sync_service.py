@@ -315,13 +315,12 @@ def _null_safe_probability_stale(
             and candidate["source_ledger_hashes"]
             != current_ledger_hashes
         )
+        # Derived weights are informational; freshness follows log weights.
         or any(
             candidate["models"][game]["main_log_weights"]
             != stacking_candidate["models"][game][
                 "main_log_weights"
             ]
-            or candidate["models"][game]["main_weights"]
-            != stacking_candidate["models"][game]["main_weights"]
             or (
                 game == SUPER
                 and (
@@ -330,12 +329,6 @@ def _null_safe_probability_stale(
                     ]
                     != stacking_candidate["models"][game][
                         "special_log_weights"
-                    ]
-                    or candidate["models"][game][
-                        "special_weights"
-                    ]
-                    != stacking_candidate["models"][game][
-                        "special_weights"
                     ]
                 )
             )
