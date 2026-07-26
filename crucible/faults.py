@@ -228,6 +228,8 @@ class _FaultModel(Model):
 def with_faults(model: Model, faults: Iterable[Fault]) -> Model:
     """Return an ordinary model with the declared deterministic fault actions."""
 
+    if not isinstance(model, Model):
+        raise TypeError("model must be a Model")
     try:
         declared = tuple(faults)
     except TypeError as exc:
@@ -235,7 +237,15 @@ def with_faults(model: Model, faults: Iterable[Fault]) -> Model:
     for fault in declared:
         if not isinstance(fault, Fault):
             raise TypeError("faults must contain Fault objects")
-    return _FaultModel(model, declared)
+
+    # A zero budget is an explicitly disabled fault.  Do not wrap the model
+    # for disabled declarations: otherwise the wrapper would still add
+    # ``faults.used`` metadata and could change the explored state space even
+    # though no fault transition is reachable.
+    active = tuple(fault for fault in declared if fault.budget > 0)
+    if not active:
+        return model
+    return _FaultModel(model, active)
 
 
 def _message_choice(choice: object, kind: str) -> tuple[str, object]:

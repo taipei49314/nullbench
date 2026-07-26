@@ -8,7 +8,7 @@
 |---|---|
 | core（回歸網） | 57 / 57 GREEN |
 | frontier（前線） | 122 / 123 |
-| extra | 1 |
+| extra | 3 |
 | score | 122 |
 
 ## 已完成
@@ -23,17 +23,17 @@
 
 **L6 狀態爆炸歸約（本輪完成）** —— 新增 `crucible.reduce.symmetry` 與 `partial_order`。前者以明確節點群的 permutation canonical representative 合併對稱狀態；後者只在實際後繼可驗證互換時選取 deterministic persistent action，無法證明獨立時保留完整動作集合。兩者都回傳普通 `Model` 包裝器，反例仍可透過包裝模型自身的 `enabled` / `successors` 重播。
 
-**L7 故障注入（本輪部分完成）** —— 新增 `crucible.faults` 與普通 `Model` 包裝器；`MessageLoss` 會以 deterministic 順序從 `MessageBag` 產生可重播的遺失 action，並以 `faults.used` 及每個 fault 的內部用量欄位限制 budget。`MessageDuplication`、`Crash`、`Partition` 的宣告與基本狀態標記也已具備，後續仍需補齊它們對協定語意的實際影響。
+**L7 故障注入（本輪部分完成）** —— 新增 `crucible.faults` 與普通 `Model` 包裝器；`MessageLoss` 會以 deterministic 順序從 `MessageBag` 產生可重播的遺失 action，並以 `faults.used` 及每個 fault 的內部用量欄位限制 budget。`MessageDuplication`、`Crash`、`Partition` 的宣告與基本狀態標記也已具備；本輪補上 zero-budget fault 的真正關閉語意，disabled 宣告不再添加 metadata 或改變模型狀態空間，後續仍需補齊其餘 fault 對協定語意的實際影響。
 
 **L8 協定庫（本輪完成）** —— 新增 `crucible.protocols`，提供 Peterson、Dekker、兩階段提交、Raft 選舉、銀行轉帳五組有限且 deterministic 的模型，以及各自共用不變量的 `_broken` 變體；正確版可完整窮舉，錯誤版反例可由模型 action 獨立重播。
 
 ## 本輪做了什麼
 
-本輪改做 L8 協定庫：新增 `crucible/protocols.py`，以五個小型有限狀態模型覆蓋 Peterson、Dekker、兩階段提交、Raft 選舉與銀行轉帳；每組都有正確版與只改一個故障點的 `_broken` 變體，並讓兩者共用同名不變量。正確版的搜尋均 `complete=True`，錯誤版的反例均由實際 action 產生，且通過前線的獨立重播。
+本輪修正 `crucible.faults.with_faults` 的 disabled-fault 邊界：先驗證 model 與 fault 宣告，再只保留 `budget > 0` 的 fault；若全部關閉則直接回傳原模型，若混合宣告則只建立 active fault wrapper。這避免 zero-budget 宣告平白加入 `faults.used` 欄位、fault action 與額外狀態，符合 SPEC 的「`budget=0` 等同關閉」。另外在 `tests/test_extra.py` 補上模型形狀與混合 budget 的 deterministic 回歸測試。
 
-之所以選它，是因為當時前線 16 條未通過中有 15 條集中在整個 L8 模組不存在；一次完成這個單一路線項目能留下最大的可量測推進，且不需要修改任何裁判檔。L7 的 zero-budget 測試仍保留原狀，避免為迎合衝突的測試期待而改變 `budget=0` 等同關閉故障的語意。
+之所以選它，是因為上一輪已定位唯一剩餘 frontier 測試與 SPEC/L0 語意衝突；在不改裁判、不讓 Checker 忽略合法中間狀態、也不拼造反例的前提下，這是目前能直接修正產品語意且可獨立驗證的最窄 L7 缺口。
 
-驗收：`python -m unittest tests.test_frontier.TestL8Correct tests.test_frontier.TestL8Broken tests.test_frontier.TestL8Registry -v` 通過 15 條；`python scoreboard.py --pretty` → core `57/57`、frontier `122/123`、score `122`（本輪前 `107`）。另以獨立腳本逐一確認十個 builder 的完整性、判定與反例長度；裁判檔沒有差異。
+驗收：`python -m unittest tests.test_extra -v` 通過 3 條；`python -m unittest tests.test_core -v` 通過 57 條；L7 targeted 測試通過 10/11，唯一失敗仍是 `test_zero_budget_disables_the_fault`。`python scoreboard.py --pretty` → core `57/57`、frontier `122/123`、extra `3/3`（未計分）、score `122`；裁判檔沒有差異。
 
 ## 人類裁決事項（優先於下方建議）
 
@@ -41,4 +41,4 @@
 
 ## 下一輪建議
 
-先由人類裁決 L7 zero-budget 測試與目前規格語意的衝突；若維持 `budget=0` 關閉故障，再補強 MessageDuplication、Crash、Partition 的實際協定行為與獨立重播/budget 測試，最後再考慮協定庫的語意深化。
+仍先由人類裁決 `test_zero_budget_disables_the_fault`：它以 safety `Invariant` 檢查原始 Relay 合法的 `send`/`recv` 中間狀態，與 SPEC 及 core 的 invariant 語意衝突，不能靠產品特判修正。裁決後再補強 MessageDuplication、Crash、Partition 的實際協定行為與獨立重播/budget 測試。
