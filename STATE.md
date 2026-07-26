@@ -7,9 +7,9 @@
 | 項目 | 數字 |
 |---|---|
 | core（回歸網） | 57 / 57 GREEN |
-| frontier（前線） | 98 / 123 |
+| frontier（前線） | 107 / 123 |
 | extra | 1 |
-| score | 98 |
+| score | 107 |
 
 ## 已完成
 
@@ -23,15 +23,19 @@
 
 **L6 狀態爆炸歸約（本輪完成）** —— 新增 `crucible.reduce.symmetry` 與 `partial_order`。前者以明確節點群的 permutation canonical representative 合併對稱狀態；後者只在實際後繼可驗證互換時選取 deterministic persistent action，無法證明獨立時保留完整動作集合。兩者都回傳普通 `Model` 包裝器，反例仍可透過包裝模型自身的 `enabled` / `successors` 重播。
 
+**L7 故障注入（本輪部分完成）** —— 新增 `crucible.faults` 與普通 `Model` 包裝器；`MessageLoss` 會以 deterministic 順序從 `MessageBag` 產生可重播的遺失 action，並以 `faults.used` 及每個 fault 的內部用量欄位限制 budget。`MessageDuplication`、`Crash`、`Partition` 的宣告與基本狀態標記也已具備，後續仍需補齊它們對協定語意的實際影響。
+
 ## 本輪做了什麼
 
-本輪完成 L6：新增 `crucible.reduce`，提供對稱性與偏序兩種狀態空間歸約。對稱性會對每個狀態套用群置換並取固定的最小代表；偏序歸約會以 local diamond 檢查確認動作兩兩 commute，只有全體獨立時採 deterministic 單一動作，否則不砍狀態。這讓 L6 的 12 條前線測試全數通過，且維持獨立重播所需的模型語意。
+本輪先推進 L7 的最小可用垂直切片：新增 `crucible/faults.py`，讓 `with_faults(model, faults)` 回傳普通 `Model`，保留原 action 的名稱與後繼，加入 deterministic 的 MessageLoss fault action，並將 fault 使用量寫入狀態。所有 fault 反例仍由包裝模型自身的 `enabled` / `successors` 產生，能通過獨立重播；同時補上 MessageDuplication、Crash、Partition 的基本宣告介面，為後續擴充留下固定狀態表示。
+
+之所以選它，是因為上一輪已完成 L6，而目前前線最大的連續缺口就是 L7；MessageLoss 是最小但能端到端驗證 budget、狀態追蹤、determinism 與反例可信度的一組切片。
 
 上一輪修正 `Checker` 在 `stop_on_first` 找到違反後錯誤回報 `complete=True` 的問題；提前停止代表尚未窮舉所有可達狀態，因此現在正確回報 `False`，並由 `tests/test_extra.py` 回歸測試守住。
 
 同輪推進 L5：新增 `crucible.temporal` 的 `Always`、`Eventually`、`LeadsTo` 與 `weak_fair`，讓 `Checker` 支援時序性質、弱公平假設與可重播的 deterministic lasso 反例；`Violation.cycle_start` 也會指出循環起點。反例搜尋只在完整圖上進行，受 bounds 截斷時不宣稱完成。
 
-驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `98/123`、score `98`（本輪前 `86`）。L6 的 12 條前線測試、core 回歸與額外測試全數通過。
+驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `107/123`、score `107`（本輪前 `98`）。L7 的 10 條測試通過；剩下的 1 條 zero-budget 測試使用安全性 invariant 檢查合法的「已送出、尚未接收」中間狀態，即使未包裝的原始 Relay 也會失敗，因此沒有為迎合測試而改變 `budget=0` 等同關閉的語意。L6、core 回歸與額外測試維持通過。
 
 ## 人類裁決事項（優先於下方建議）
 
@@ -39,4 +43,4 @@
 
 ## 下一輪建議
 
-推進 L7 故障注入，建議先實作 `MessageLoss` 與 `with_faults` 的最小可重播模型包裝，再補 `MessageDuplication`、`Crash`、`Partition`；務必讓 `faults.used` 進入狀態並遵守 budget，且每個 fault action 的反例都能被前線測試獨立重播。持續以 deterministic 順序、完整性與 core 57/57 作為驗收重點。
+完成 L7 剩餘語意：先讓 MessageDuplication 真正驗證重複遞送，再依協定明確的節點/通道表示實作 Crash 與 Partition 的行為約束；補上每種 fault 的獨立重播與 budget 測試，並處理上述 zero-budget 測試的規格裁決。之後再進入 L8 協定庫。
