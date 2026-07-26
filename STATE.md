@@ -7,9 +7,9 @@
 | 項目 | 數字 |
 |---|---|
 | core（回歸網） | 57 / 57 GREEN |
-| frontier（前線） | 107 / 123 |
+| frontier（前線） | 122 / 123 |
 | extra | 1 |
-| score | 107 |
+| score | 122 |
 
 ## 已完成
 
@@ -25,17 +25,15 @@
 
 **L7 故障注入（本輪部分完成）** —— 新增 `crucible.faults` 與普通 `Model` 包裝器；`MessageLoss` 會以 deterministic 順序從 `MessageBag` 產生可重播的遺失 action，並以 `faults.used` 及每個 fault 的內部用量欄位限制 budget。`MessageDuplication`、`Crash`、`Partition` 的宣告與基本狀態標記也已具備，後續仍需補齊它們對協定語意的實際影響。
 
+**L8 協定庫（本輪完成）** —— 新增 `crucible.protocols`，提供 Peterson、Dekker、兩階段提交、Raft 選舉、銀行轉帳五組有限且 deterministic 的模型，以及各自共用不變量的 `_broken` 變體；正確版可完整窮舉，錯誤版反例可由模型 action 獨立重播。
+
 ## 本輪做了什麼
 
-本輪先推進 L7 的最小可用垂直切片：新增 `crucible/faults.py`，讓 `with_faults(model, faults)` 回傳普通 `Model`，保留原 action 的名稱與後繼，加入 deterministic 的 MessageLoss fault action，並將 fault 使用量寫入狀態。所有 fault 反例仍由包裝模型自身的 `enabled` / `successors` 產生，能通過獨立重播；同時補上 MessageDuplication、Crash、Partition 的基本宣告介面，為後續擴充留下固定狀態表示。
+本輪改做 L8 協定庫：新增 `crucible/protocols.py`，以五個小型有限狀態模型覆蓋 Peterson、Dekker、兩階段提交、Raft 選舉與銀行轉帳；每組都有正確版與只改一個故障點的 `_broken` 變體，並讓兩者共用同名不變量。正確版的搜尋均 `complete=True`，錯誤版的反例均由實際 action 產生，且通過前線的獨立重播。
 
-之所以選它，是因為上一輪已完成 L6，而目前前線最大的連續缺口就是 L7；MessageLoss 是最小但能端到端驗證 budget、狀態追蹤、determinism 與反例可信度的一組切片。
+之所以選它，是因為當時前線 16 條未通過中有 15 條集中在整個 L8 模組不存在；一次完成這個單一路線項目能留下最大的可量測推進，且不需要修改任何裁判檔。L7 的 zero-budget 測試仍保留原狀，避免為迎合衝突的測試期待而改變 `budget=0` 等同關閉故障的語意。
 
-上一輪修正 `Checker` 在 `stop_on_first` 找到違反後錯誤回報 `complete=True` 的問題；提前停止代表尚未窮舉所有可達狀態，因此現在正確回報 `False`，並由 `tests/test_extra.py` 回歸測試守住。
-
-同輪推進 L5：新增 `crucible.temporal` 的 `Always`、`Eventually`、`LeadsTo` 與 `weak_fair`，讓 `Checker` 支援時序性質、弱公平假設與可重播的 deterministic lasso 反例；`Violation.cycle_start` 也會指出循環起點。反例搜尋只在完整圖上進行，受 bounds 截斷時不宣稱完成。
-
-驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `107/123`、score `107`（本輪前 `98`）。L7 的 10 條測試通過；剩下的 1 條 zero-budget 測試使用安全性 invariant 檢查合法的「已送出、尚未接收」中間狀態，即使未包裝的原始 Relay 也會失敗，因此沒有為迎合測試而改變 `budget=0` 等同關閉的語意。L6、core 回歸與額外測試維持通過。
+驗收：`python -m unittest tests.test_frontier.TestL8Correct tests.test_frontier.TestL8Broken tests.test_frontier.TestL8Registry -v` 通過 15 條；`python scoreboard.py --pretty` → core `57/57`、frontier `122/123`、score `122`（本輪前 `107`）。另以獨立腳本逐一確認十個 builder 的完整性、判定與反例長度；裁判檔沒有差異。
 
 ## 人類裁決事項（優先於下方建議）
 
@@ -43,4 +41,4 @@
 
 ## 下一輪建議
 
-完成 L7 剩餘語意：先讓 MessageDuplication 真正驗證重複遞送，再依協定明確的節點/通道表示實作 Crash 與 Partition 的行為約束；補上每種 fault 的獨立重播與 budget 測試，並處理上述 zero-budget 測試的規格裁決。之後再進入 L8 協定庫。
+先由人類裁決 L7 zero-budget 測試與目前規格語意的衝突；若維持 `budget=0` 關閉故障，再補強 MessageDuplication、Crash、Partition 的實際協定行為與獨立重播/budget 測試，最後再考慮協定庫的語意深化。
