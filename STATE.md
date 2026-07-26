@@ -7,9 +7,9 @@
 | 項目 | 數字 |
 |---|---|
 | core（回歸網） | 57 / 57 GREEN |
-| frontier（前線） | 86 / 123 |
+| frontier（前線） | 98 / 123 |
 | extra | 1 |
-| score | 86 |
+| score | 98 |
 
 ## 已完成
 
@@ -21,13 +21,17 @@
 
 **L3 建模語言與訊息袋（本輪完成）** —— 新增 `crucible.dsl.Spec` / `@action`，支援單一或多個初始狀態、參數屬性展開，以及以空後繼序列表示未啟用；新增 `crucible.net` 的不可變多重集訊息袋，支援送出、查詢、單份遞送、重複訊息計數，並維持順序無關與可雜湊。
 
+**L6 狀態爆炸歸約（本輪完成）** —— 新增 `crucible.reduce.symmetry` 與 `partial_order`。前者以明確節點群的 permutation canonical representative 合併對稱狀態；後者只在實際後繼可驗證互換時選取 deterministic persistent action，無法證明獨立時保留完整動作集合。兩者都回傳普通 `Model` 包裝器，反例仍可透過包裝模型自身的 `enabled` / `successors` 重播。
+
 ## 本輪做了什麼
 
-修正 `Checker` 在 `stop_on_first` 找到違反後錯誤回報 `complete=True` 的問題；提前停止代表尚未窮舉所有可達狀態，因此現在正確回報 `False`，並新增 `tests/test_extra.py` 回歸測試。
+本輪完成 L6：新增 `crucible.reduce`，提供對稱性與偏序兩種狀態空間歸約。對稱性會對每個狀態套用群置換並取固定的最小代表；偏序歸約會以 local diamond 檢查確認動作兩兩 commute，只有全體獨立時採 deterministic 單一動作，否則不砍狀態。這讓 L6 的 12 條前線測試全數通過，且維持獨立重播所需的模型語意。
+
+上一輪修正 `Checker` 在 `stop_on_first` 找到違反後錯誤回報 `complete=True` 的問題；提前停止代表尚未窮舉所有可達狀態，因此現在正確回報 `False`，並由 `tests/test_extra.py` 回歸測試守住。
 
 同輪推進 L5：新增 `crucible.temporal` 的 `Always`、`Eventually`、`LeadsTo` 與 `weak_fair`，讓 `Checker` 支援時序性質、弱公平假設與可重播的 deterministic lasso 反例；`Violation.cycle_start` 也會指出循環起點。反例搜尋只在完整圖上進行，受 bounds 截斷時不宣稱完成。
 
-驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `86/123`、score `86`（前一輪 `70`）。L5 的 16 條前線測試與額外測試全數通過。
+驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `98/123`、score `98`（本輪前 `86`）。L6 的 12 條前線測試、core 回歸與額外測試全數通過。
 
 ## 人類裁決事項（優先於下方建議）
 
@@ -35,4 +39,4 @@
 
 ## 下一輪建議
 
-推進 L6 狀態爆炸歸約，建議先做 `symmetry(model, groups=...)`：以 canonical representative 保留判定結果，並用前線測試量測狀態數確實下降；完成後再做 `partial_order`。持續以 deterministic 順序與獨立重播作為驗收重點。
+推進 L7 故障注入，建議先實作 `MessageLoss` 與 `with_faults` 的最小可重播模型包裝，再補 `MessageDuplication`、`Crash`、`Partition`；務必讓 `faults.used` 進入狀態並遵守 budget，且每個 fault action 的反例都能被前線測試獨立重播。持續以 deterministic 順序、完整性與 core 57/57 作為驗收重點。
