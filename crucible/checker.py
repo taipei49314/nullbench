@@ -13,6 +13,7 @@ from typing import Iterable, Sequence
 
 from .model import Action, Invariant, Model
 from .state import State
+from .temporal import Always, Eventually, LeadsTo, WeakFairness
 
 
 class Trace:
@@ -49,14 +50,19 @@ class Trace:
 class Violation:
     """一個不變量被違反的證據。"""
 
-    __slots__ = ("invariant", "trace", "error")
+    __slots__ = ("invariant", "trace", "error", "cycle_start")
 
     def __init__(
-        self, invariant: str, trace: Trace, error: Exception | None = None
+        self,
+        invariant: str,
+        trace: Trace,
+        error: Exception | None = None,
+        cycle_start: int | None = None,
     ) -> None:
         self.invariant = invariant
         self.trace = trace
         self.error = error
+        self.cycle_start = cycle_start
 
     def __repr__(self) -> str:
         return f"Violation({self.invariant!r}, depth={len(self.trace)})"
@@ -129,6 +135,8 @@ class Checker:
         max_states: int | None = None,
         search: str = "bfs",
         stop_on_first: bool = True,
+        properties: Iterable[object] = (),
+        fairness: Iterable[WeakFairness] = (),
     ) -> None:
         self.model = model
         self.invariants: tuple[Invariant, ...] = tuple(invariants)
@@ -136,6 +144,14 @@ class Checker:
         self.max_states = max_states
         self.search = search
         self.stop_on_first = bool(stop_on_first)
+        self.properties: tuple[object, ...] = tuple(properties)
+        self.fairness: tuple[WeakFairness, ...] = tuple(fairness)
+        for prop in self.properties:
+            if not isinstance(prop, (Always, Eventually, LeadsTo)):
+                raise TypeError("properties must be Always, Eventually, or LeadsTo")
+        for assumption in self.fairness:
+            if not isinstance(assumption, WeakFairness):
+                raise TypeError("fairness must contain weak_fair assumptions")
         if max_depth is not None and max_depth < 0:
             raise ValueError("max_depth must be non-negative")
         if max_states is not None and max_states < 1:
@@ -148,8 +164,31 @@ class Checker:
         actions: tuple[Action, ...] = self.model.action_list()
 
         if self.search == "dfs":
-            return self._check_dfs(initials, actions)
-        return self._check_bfs(initials, actions)
+            result = self._check_dfs(initials, actions)
+        else:
+            result = self._check_bfs(initials, actions)
+
+        # A bounded search cannot establish a liveness property.  Likewise,
+        # a safety violation found in stop-on-first mode is already the result
+        # the caller requested.
+        liveness = tuple(
+            prop for prop in self.properties if isinstance(prop, (Eventually, LeadsTo))
+        )
+        if result.violation is not None or not result.complete or not liveness:
+            return result
+
+        temporal = self._temporal_violation(initials, actions, liveness)
+        if temporal is None:
+            return result
+        return Result(
+            temporal,
+            result.states_explored,
+            result.max_depth_reached,
+            complete=result.complete,
+            deadlocks=result.deadlocks,
+            search=result.search,
+            violations=(temporal,),
+        )
 
     def _check_bfs(
         self, initials: tuple[State, ...], actions: tuple[Action, ...]
@@ -327,7 +366,10 @@ class Checker:
             violation,
             len(parent),
             max_depth,
-            complete=not truncated,
+            complete=(
+                not truncated
+                and not (self.stop_on_first and violation is not None)
+            ),
             deadlocks=ordered_deadlocks,
             search=self.search,
             violations=violations,
@@ -341,6 +383,274 @@ class Checker:
                 return True
         return False
 
+    def _temporal_violation(
+        self,
+        initials: tuple[State, ...],
+        actions: tuple[Action, ...],
+        properties: tuple[Eventually | LeadsTo, ...],
+    ) -> Violation | None:
+        """Check liveness properties over the completely explored graph.
+
+        A liveness counterexample is searched as a deterministic lasso in the
+        subgraph where the obligation remains pending.  The search keeps the
+        model's action and successor order, so the reported trace is directly
+        replayable by callers.
+        """
+        action_names = tuple(action.name for action in actions)
+        for assumption in self.fairness:
+            if assumption.action not in action_names:
+                raise ValueError(
+                    f"fairness refers to unknown action {assumption.action!r}"
+                )
+
+        states, transitions, enabled, parent = self._temporal_graph(initials, actions)
+
+        for prop in properties:
+            if isinstance(prop, Eventually):
+                roots = tuple(state for state in initials if not self._holds(prop, state))
+                root_info = {
+                    state: (state, ()) for state in roots
+                }
+
+                def expand(state: State) -> tuple[tuple[str, State], ...]:
+                    return tuple(
+                        (name, successor)
+                        for name, successor in transitions[state]
+                        if not self._holds(prop, successor)
+                    )
+
+                violation = self._find_bad_lasso(
+                    prop.name,
+                    roots,
+                    root_info,
+                    expand,
+                    transitions,
+                    enabled,
+                    lambda state: state,
+                )
+            else:
+                roots = tuple(
+                    state
+                    for state in states
+                    if not self._holds(prop.goal, state) and self._holds(prop, state)
+                )
+                root_info = {
+                    state: self._path_from_parent(state, parent) for state in roots
+                }
+
+                def expand(state: State) -> tuple[tuple[str, State], ...]:
+                    return tuple(
+                        (name, successor)
+                        for name, successor in transitions[state]
+                        if not self._holds(prop.goal, successor)
+                    )
+
+                violation = self._find_bad_lasso(
+                    prop.name,
+                    roots,
+                    root_info,
+                    expand,
+                    transitions,
+                    enabled,
+                    lambda state: state,
+                )
+
+            if violation is not None:
+                return violation
+        return None
+
+    def _find_bad_lasso(
+        self,
+        name: str,
+        roots: Sequence[State],
+        root_info: dict[State, tuple[State, tuple[tuple[str, State], ...]]],
+        expand,
+        transitions: dict[State, tuple[tuple[str, State], ...]],
+        enabled: dict[State, tuple[str, ...]],
+        state_of,
+    ) -> Violation | None:
+        """Find the first fair cycle (or bad terminal) in a pending graph."""
+        if not roots:
+            return None
+
+        # Product nodes are State objects for the current temporal
+        # properties.  Keeping this helper generic makes the ordering rules
+        # explicit and leaves room for richer temporal products later.
+        parent: dict[object, tuple[object | None, str | None]] = {}
+        root_of: dict[object, State] = {}
+        queue: deque[object] = deque()
+        for root in roots:
+            if root in parent:
+                continue
+            parent[root] = (None, None)
+            root_of[root] = root
+            queue.append(root)
+
+        adjacency: dict[object, tuple[tuple[str, object], ...]] = {}
+        order: list[object] = []
+        while queue:
+            node = queue.popleft()
+            order.append(node)
+            edges = tuple(expand(state_of(node)))
+            adjacency[node] = edges
+            for action, successor in edges:
+                if successor in parent:
+                    continue
+                parent[successor] = (node, action)
+                root_of[successor] = root_of[node]
+                queue.append(successor)
+
+        for candidate in order:
+            cycle = self._cycle_from(candidate, adjacency, state_of)
+            if cycle and self._cycle_is_fair(candidate, cycle, enabled, state_of):
+                initial, prefix = self._prefix_to(
+                    candidate, parent, root_of, root_info, state_of
+                )
+                cycle_start = len(prefix)
+                return Violation(
+                    name,
+                    Trace(initial, prefix + cycle),
+                    cycle_start=cycle_start,
+                )
+
+            # A finite path that ends in a deadlock before its obligation is
+            # met is also a liveness counterexample, but a state with outgoing
+            # edges into the satisfied region is not a deadlock here.
+            state = state_of(candidate)
+            if not transitions[state]:
+                initial, prefix = self._prefix_to(
+                    candidate, parent, root_of, root_info, state_of
+                )
+                return Violation(name, Trace(initial, prefix))
+        return None
+
+    def _cycle_is_fair(
+        self,
+        start: object,
+        cycle: tuple[tuple[str, object], ...],
+        enabled: dict[State, tuple[str, ...]],
+        state_of,
+    ) -> bool:
+        cycle_nodes = [start]
+        cycle_nodes.extend(successor for _, successor in cycle[:-1])
+        cycle_states = [state_of(node) for node in cycle_nodes]
+        cycle_actions = {action for action, _ in cycle}
+        for assumption in self.fairness:
+            continuously_enabled = all(
+                assumption.action in enabled[state] for state in cycle_states
+            )
+            if continuously_enabled and assumption.action not in cycle_actions:
+                return False
+        return True
+
+    @staticmethod
+    def _cycle_from(
+        start: object,
+        adjacency: dict[object, tuple[tuple[str, object], ...]],
+        state_of,
+    ) -> tuple[tuple[str, object], ...] | None:
+        """Return the shortest deterministic path from start back to start."""
+        queue: deque[object] = deque([start])
+        seen = {start}
+        paths: dict[object, tuple[tuple[str, object], ...]] = {start: ()}
+        while queue:
+            node = queue.popleft()
+            path = paths[node]
+            for action, successor in adjacency.get(node, ()):
+                edge = (action, successor)
+                if successor == start:
+                    return path + (edge,)
+                if successor in seen:
+                    continue
+                seen.add(successor)
+                paths[successor] = path + (edge,)
+                queue.append(successor)
+        return None
+
+    @staticmethod
+    def _prefix_to(
+        node: object,
+        parent: dict[object, tuple[object | None, str | None]],
+        root_of: dict[object, State],
+        root_info: dict[State, tuple[State, tuple[tuple[str, State], ...]]],
+        state_of,
+    ) -> tuple[State, tuple[tuple[str, State], ...]]:
+        tail: list[tuple[str, State]] = []
+        cursor = node
+        while parent[cursor][0] is not None:
+            previous, action = parent[cursor]
+            tail.append((action or "?", state_of(cursor)))
+            cursor = previous
+        initial, prefix = root_info[root_of[node]]
+        return initial, prefix + tuple(reversed(tail))
+
+    @staticmethod
+    def _path_from_parent(
+        state: State,
+        parent: dict[State, tuple[State | None, str | None, State]],
+    ) -> tuple[State, tuple[tuple[str, State], ...]]:
+        steps: list[tuple[str, State]] = []
+        cursor = state
+        while True:
+            previous, action, root = parent[cursor]
+            if previous is None:
+                return root, tuple(reversed(steps))
+            steps.append((action or "?", cursor))
+            cursor = previous
+
+    @staticmethod
+    def _temporal_graph(
+        initials: tuple[State, ...], actions: tuple[Action, ...]
+    ) -> tuple[
+        tuple[State, ...],
+        dict[State, tuple[tuple[str, State], ...]],
+        dict[State, tuple[str, ...]],
+        dict[State, tuple[State | None, str | None, State]],
+    ]:
+        states: list[State] = []
+        seen: set[State] = set()
+        parent: dict[State, tuple[State | None, str | None, State]] = {}
+        for state in initials:
+            if state in seen:
+                continue
+            seen.add(state)
+            states.append(state)
+            parent[state] = (None, None, state)
+
+        transitions: dict[State, tuple[tuple[str, State], ...]] = {}
+        enabled: dict[State, tuple[str, ...]] = {}
+        index = 0
+        while index < len(states):
+            state = states[index]
+            index += 1
+            edges: list[tuple[str, State]] = []
+            enabled_names: list[str] = []
+            for action in actions:
+                if not action.enabled(state):
+                    continue
+                successors = action.successors(state)
+                if not successors:
+                    continue
+                enabled_names.append(action.name)
+                for successor in successors:
+                    edges.append((action.name, successor))
+                    if successor in seen:
+                        continue
+                    seen.add(successor)
+                    states.append(successor)
+                    parent[successor] = (state, action.name, parent[state][2])
+            transitions[state] = tuple(edges)
+            enabled[state] = tuple(enabled_names)
+        return tuple(states), transitions, enabled, parent
+
+    @staticmethod
+    def _holds(property_or_predicate, state: State) -> bool:
+        predicate = getattr(property_or_predicate, "predicate", property_or_predicate)
+        try:
+            return bool(predicate(state))
+        except Exception:
+            return False
+
     # -- 內部 ---------------------------------------------------------------
 
     def _violations_at(
@@ -350,8 +660,17 @@ class Checker:
     ) -> tuple[Violation, ...]:
         """依宣告順序回報第一個不成立的不變量。"""
         violations: list[Violation] = []
-        for invariant in self.invariants:
-            holds, error = invariant.evaluate(state)
+        checks = self.invariants + tuple(
+            prop for prop in self.properties if isinstance(prop, Always)
+        )
+        for invariant in checks:
+            if isinstance(invariant, Invariant):
+                holds, error = invariant.evaluate(state)
+            else:
+                try:
+                    holds, error = bool(invariant.predicate(state)), None
+                except Exception as exc:
+                    holds, error = False, exc
             if not holds:
                 violations.append(
                     Violation(

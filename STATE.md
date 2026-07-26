@@ -7,9 +7,9 @@
 | 項目 | 數字 |
 |---|---|
 | core（回歸網） | 57 / 57 GREEN |
-| frontier（前線） | 70 / 123 |
-| extra | 0 |
-| score | 70 |
+| frontier（前線） | 86 / 123 |
+| extra | 1 |
+| score | 86 |
 
 ## 已完成
 
@@ -23,18 +23,16 @@
 
 ## 本輪做了什麼
 
-新增 `crucible.minimize.shrink`，以固定順序的 delta debugging 嘗試移除連續動作區段。每個候選都透過模型的 `enabled` / `successors` 重新播放，並要求最終狀態仍違反至少一個不變量；因此輸出軌跡可獨立重播，不會拼接原軌跡中的狀態。非決定性後繼依宣告順序選擇，結果可重現。
+修正 `Checker` 在 `stop_on_first` 找到違反後錯誤回報 `complete=True` 的問題；提前停止代表尚未窮舉所有可達狀態，因此現在正確回報 `False`，並新增 `tests/test_extra.py` 回歸測試。
 
-驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `70/123`、score `70`（前一輪 `60`）。L4 的 11 條前線測試全數通過。
+同輪推進 L5：新增 `crucible.temporal` 的 `Always`、`Eventually`、`LeadsTo` 與 `weak_fair`，讓 `Checker` 支援時序性質、弱公平假設與可重播的 deterministic lasso 反例；`Violation.cycle_start` 也會指出循環起點。反例搜尋只在完整圖上進行，受 bounds 截斷時不宣稱完成。
+
+驗收：`python scoreboard.py --pretty` → core `57/57`、frontier `86/123`、score `86`（前一輪 `70`）。L5 的 16 條前線測試與額外測試全數通過。
 
 ## 人類裁決事項（優先於下方建議）
 
-**`Result.complete` 在 `stop_on_first` 命中違反時謊報 `True`。**
-實測 `Checker(Counter(限1000), [under_2])` 只探索 3 個狀態（可達 1001 個）卻回報 `complete=True`。
-`complete` 的語意是「看遍所有可達狀態」，提前收工不算看完。**請修**，並在 `tests/test_extra.py`
-補一條守住它。前線測試沒涵蓋這個情境，所以裁判不會變紅 —— 但它仍然是錯的。
-詳見 `SPEC.md` L1 段落。
+上一輪記錄的 `Result.complete` 語意問題已修正：`Checker(Counter(限1000), [under_2])` 現在探索 3 個狀態時會正確回報 `complete=False`，並由額外測試守住。
 
 ## 下一輪建議
 
-優先處理人類裁決事項：修正 `stop_on_first` 命中違反時 `Result.complete` 的語意，並在 `tests/test_extra.py` 補測；之後再推進 L5 時序性質。每完成一組都跑 scoreboard，維持 core 全綠。
+推進 L6 狀態爆炸歸約，建議先做 `symmetry(model, groups=...)`：以 canonical representative 保留判定結果，並用前線測試量測狀態數確實下降；完成後再做 `partial_order`。持續以 deterministic 順序與獨立重播作為驗收重點。
