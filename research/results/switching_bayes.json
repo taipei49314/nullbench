@@ -3,14 +3,14 @@
     "chronology": "strictly_increasing",
     "ledger_verification": {
       "lotto649": {
-        "last_event_hash": "e5c637e43566b0c522392f41a8697c8c7983ee3e435af3ea1945ba3106941fcb",
-        "ledger_sha256": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302",
-        "lines": 2153
+        "last_event_hash": "656d20c82d3762630803bdcdcbcbfc9f5105b2cd8a71412cc1b1cfd408d3d772",
+        "ledger_sha256": "f970d29ae88d4e979e74b898f8e310995a7d23572bf9ae08911a25325f98972c",
+        "lines": 2155
       },
       "super": {
-        "last_event_hash": "dd73e41b44d72161be95e0747e9ddfa16dae92c3ae62e16d96110e2a5d8643c1",
-        "ledger_sha256": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3",
-        "lines": 1929
+        "last_event_hash": "85685154d84f9ca6eef81e5f70ffbaa903b04aa1839d8347911b6c8a94af522e",
+        "ledger_sha256": "fab00cec6e4b3b26cb9ec7463bfee531dfb8020ec640d1d91709925cda623efc",
+        "lines": 1931
       }
     },
     "lookahead_control": "draw_t_uses_pre_reveal_t_weights;reveal_t_only_updates_draw_t_plus_1",
@@ -19,8 +19,8 @@
       "super": "2008-01-24"
     },
     "source_last_dates": {
-      "lotto649": "2026-07-17",
-      "super": "2026-07-16"
+      "lotto649": "2026-07-24",
+      "super": "2026-07-23"
     },
     "status": "pass"
   },
@@ -35,70 +35,70 @@
   "final_models": {
     "lotto649": {
       "main_prior_weights": {
-        "debate_consensus": 0.004851925889088139,
-        "overfit_guard": 0.026836672963749187,
-        "regime_shift": 0.0030787540565892285,
-        "structural_bias": 0.05029980057493656,
-        "temporal_dependency": 0.017392599401320562,
-        "uniform": 0.8975402471143162
+        "debate_consensus": 0.002234089414191887,
+        "overfit_guard": 0.015406164912453363,
+        "regime_shift": 0.005161334632577196,
+        "structural_bias": 0.06521307241500403,
+        "temporal_dependency": 0.009248672521573343,
+        "uniform": 0.9027366661042001
       },
       "special_prior_weights": null
     },
     "super": {
       "main_prior_weights": {
-        "debate_consensus": 0.0009568118027419374,
-        "overfit_guard": 0.31731093402933225,
-        "regime_shift": 0.012205412550740058,
-        "structural_bias": 0.09378081662371081,
-        "temporal_dependency": 0.04737419193324875,
-        "uniform": 0.5283718330602261
+        "debate_consensus": 0.0012597219168667838,
+        "overfit_guard": 0.3069248598908406,
+        "regime_shift": 0.03106521263686265,
+        "structural_bias": 0.08921248098253917,
+        "temporal_dependency": 0.06377653843301481,
+        "uniform": 0.5077611861398761
       },
       "special_prior_weights": {
-        "debate_consensus": 0.002454784795152963,
-        "overfit_guard": 0.07768203030045533,
-        "regime_shift": 0.012892733033997364,
-        "structural_bias": 0.5804694204432902,
-        "temporal_dependency": 0.017115029197215387,
-        "uniform": 0.3093860022298887
+        "debate_consensus": 0.001346121069508675,
+        "overfit_guard": 0.07218036345073146,
+        "regime_shift": 0.011950135641296097,
+        "structural_bias": 0.5919145843987494,
+        "temporal_dependency": 0.017645001283484077,
+        "uniform": 0.3049637941562303
       }
     }
   },
   "future_forward_shadow_candidate": {
-    "candidate_hash": "4a01f9f14dd18b67f471c92112f55615e17788578fb84378378ead43fb0b3857",
+    "candidate_hash": "4afe74e9bf6791fc9997f079921392ee372c1f217a89447725178a8463cffc17",
     "experiment_id": "switching-bayes-unknown-generator-forward-shadow-v2",
     "fitted_through": {
-      "lotto649": "2026-07-17",
-      "super": "2026-07-16"
+      "lotto649": "2026-07-24",
+      "super": "2026-07-23"
     },
     "historical_backfill_allowed": false,
     "models": {
       "lotto649": {
         "main_prior_weights": {
-          "debate_consensus": 0.004851925889088139,
-          "overfit_guard": 0.026836672963749187,
-          "regime_shift": 0.0030787540565892285,
-          "structural_bias": 0.05029980057493656,
-          "temporal_dependency": 0.017392599401320562,
-          "uniform": 0.8975402471143162
+          "debate_consensus": 0.002234089414191887,
+          "overfit_guard": 0.015406164912453363,
+          "regime_shift": 0.005161334632577196,
+          "structural_bias": 0.06521307241500403,
+          "temporal_dependency": 0.009248672521573343,
+          "uniform": 0.9027366661042001
         },
         "special_prior_weights": null
       },
       "super": {
         "main_prior_weights": {
-          "debate_consensus": 0.0009568118027419374,
-          "overfit_guard": 0.31731093402933225,
-          "regime_shift": 0.012205412550740058,
-          "structural_bias": 0.09378081662371081,
-          "temporal_dependency": 0.04737419193324875,
-          "uniform": 0.5283718330602261
+          "debate_consensus": 0.0012597219168667838,
+          "overfit_guard": 0.3069248598908406,
+          "regime_shift": 0.03106521263686265,
+          "structural_bias": 0.08921248098253917,
+          "temporal_dependency": 0.06377653843301481,
+          "uniform": 0.5077611861398761
         },
         "special_prior_weights": {
-          "debate_consensus": 0.002454784795152963,
-          "overfit_guard": 0.07768203030045533,
-          "regime_shift": 0.012892733033997364,
-          "structural_bias": 0.5804694204432902,
-          "temporal_dependency": 0.017115029197215387,
-          "uniform": 0.3093860022298887
+          "debate_consensus": 0.001346121069508675,
+          "overfit_guard": 0.07218036345073146,
+          "regime_shift": 0.011950135641296097,
+          "structural_bias": 0.5919145843987494,
+          "temporal_dependency": 0.017645001283484077,
+          "uniform": 0.3049637941562303
         }
       }
     },
@@ -107,7 +107,7 @@
     "source_experiment_id": "switching-bayes-unknown-generator-shadow-v2",
     "use": "future_forward_shadow_only"
   },
-  "generated_at": "2026-07-17T23:59:59+08:00",
+  "generated_at": "2026-07-24T23:59:59+08:00",
   "methodology": {
     "belief_action_separation": true,
     "belief_portfolio": "top_30_from_prior_weighted_label_mass_then_five_disjoint_tickets",
@@ -144,114 +144,114 @@
     "lotto649": {
       "belief_minus_consensus_action": {
         "any_prize": {
-          "all_mean": 0.007895959126799815,
-          "all_sum": 17.0,
-          "holdout_ci_high": 0.09394904458598727,
-          "holdout_ci_low": 0.012738853503184714,
-          "holdout_draws": 628,
-          "holdout_mean": 0.052547770700636945,
-          "recent_208_mean": 0.02403846153846154
+          "all_mean": 0.008352668213457077,
+          "all_sum": 18.0,
+          "holdout_ci_high": 0.09538950715421304,
+          "holdout_ci_low": 0.012718600953895072,
+          "holdout_draws": 629,
+          "holdout_mean": 0.05405405405405406,
+          "recent_208_mean": 0.028846153846153848
         },
         "any_three_plus": {
-          "all_mean": 0.0037157454714352067,
+          "all_mean": 0.0037122969837587007,
           "all_sum": 8.0,
-          "holdout_ci_high": 0.054140127388535034,
-          "holdout_ci_low": -0.0031847133757961785,
-          "holdout_draws": 628,
-          "holdout_mean": 0.025477707006369428,
+          "holdout_ci_high": 0.05405405405405406,
+          "holdout_ci_low": -0.0047694753577106515,
+          "holdout_draws": 629,
+          "holdout_mean": 0.025437201907790145,
           "recent_208_mean": 0.019230769230769232
         },
         "best_main_hits": {
-          "all_mean": 0.024152345564328843,
+          "all_mean": 0.024129930394431554,
           "all_sum": 52.0,
-          "holdout_ci_high": 0.10987261146496816,
-          "holdout_ci_low": -0.014331210191082803,
-          "holdout_draws": 628,
-          "holdout_mean": 0.050955414012738856,
+          "holdout_ci_high": 0.11287758346581876,
+          "holdout_ci_low": -0.01589825119236884,
+          "holdout_draws": 629,
+          "holdout_mean": 0.05087440381558029,
           "recent_208_mean": 0.052884615384615384
         },
         "union_main_hits": {
-          "all_mean": -0.043195541105434276,
-          "all_sum": -93.0,
-          "holdout_ci_high": 0.012738853503184714,
-          "holdout_ci_low": -0.20382165605095542,
-          "holdout_draws": 628,
-          "holdout_mean": -0.09713375796178345,
-          "recent_208_mean": -0.07211538461538461
+          "all_mean": -0.04361948955916473,
+          "all_sum": -94.0,
+          "holdout_ci_high": 0.011128775834658187,
+          "holdout_ci_low": -0.2003577106518283,
+          "holdout_draws": 629,
+          "holdout_mean": -0.09538950715421304,
+          "recent_208_mean": -0.07692307692307693
         }
       },
       "best_static_main_expert": "uniform",
-      "draws": 2153,
+      "draws": 2155,
       "first_date": "2007-01-02",
       "game": "lotto649",
       "game_name": "大樂透",
-      "holdout_start_sequence": 1526,
-      "last_date": "2026-07-17",
+      "holdout_start_sequence": 1527,
+      "last_date": "2026-07-24",
       "main_bound_pass": true,
       "main_exact_subset_regret_vs_uniform": {
-        "all_mean": 0.004087833787053953,
-        "all_sum": 8.80110614352716,
-        "holdout_ci_high": 0.008984622924693795,
-        "holdout_ci_low": -0.0021438310136952517,
-        "holdout_draws": 628,
-        "holdout_mean": 0.0037249781493799094,
-        "recent_208_mean": 0.00544854571826509
+        "all_mean": 0.004090366099269953,
+        "all_sum": 8.814738943926749,
+        "holdout_ci_high": 0.008954223458759377,
+        "holdout_ci_low": -0.002519898526823356,
+        "holdout_draws": 629,
+        "holdout_mean": 0.0036951782591919252,
+        "recent_208_mean": 0.00563439498330574
       },
-      "main_regret_to_best_static_expert": 8.801106143524521,
-      "main_static_expert_regret_bound": 10.43087183418835,
+      "main_regret_to_best_static_expert": 8.814738943925477,
+      "main_static_expert_regret_bound": 10.438900749025674,
       "minimum_observed_next_prior_weight": 0.0008023507063579335,
       "top_30_hit_excess_vs_label_symmetry": {
         "debate_consensus": {
-          "all_mean": 0.039953742760457565,
-          "all_sum": 86.02040816326513,
-          "holdout_ci_high": 0.14659430651241392,
-          "holdout_ci_low": -0.03015728584427405,
-          "holdout_draws": 628,
-          "holdout_mean": 0.0590146886780189,
-          "recent_208_mean": 0.06691522762951327
+          "all_mean": 0.04021970737250808,
+          "all_sum": 86.67346938775492,
+          "holdout_ci_high": 0.1485099445183477,
+          "holdout_ci_low": -0.029590214464164006,
+          "holdout_draws": 629,
+          "holdout_mean": 0.059439992213101374,
+          "recent_208_mean": 0.07172291993720557
         },
         "overfit_guard": {
-          "all_mean": -0.013460098391423534,
-          "all_sum": -28.97959183673487,
-          "holdout_ci_high": 0.07016118549330556,
-          "holdout_ci_low": -0.09862862342389181,
-          "holdout_draws": 628,
-          "holdout_mean": -0.019010789028987472,
-          "recent_208_mean": 0.057299843014128646
+          "all_mean": -0.014536673137932749,
+          "all_sum": -31.326530612245072,
+          "holdout_ci_high": 0.06420946757081208,
+          "holdout_ci_low": -0.09799244021933101,
+          "holdout_draws": 629,
+          "holdout_mean": -0.02005126374874282,
+          "recent_208_mean": 0.038069073783359414
         },
         "regime_shift": {
-          "all_mean": -0.021356057518223347,
-          "all_sum": -45.97959183673487,
-          "holdout_ci_high": 0.060607045365917024,
-          "holdout_ci_low": -0.13529263616274537,
-          "holdout_draws": 628,
-          "holdout_mean": -0.03493435590796836,
-          "recent_208_mean": -0.06289246467817905
+          "all_mean": -0.020569155736540636,
+          "all_sum": -44.32653061224507,
+          "holdout_ci_high": 0.06420946757081214,
+          "holdout_ci_low": -0.12497972161837705,
+          "holdout_draws": 629,
+          "holdout_mean": -0.029590214464164127,
+          "recent_208_mean": -0.05808477237048674
         },
         "structural_bias": {
-          "all_mean": -0.03668350758789358,
-          "all_sum": -78.97959183673487,
-          "holdout_ci_high": 0.004914370206681165,
-          "holdout_ci_low": -0.15595346418822303,
-          "holdout_draws": 628,
-          "holdout_mean": -0.07474327310542059,
-          "recent_208_mean": -0.10616169544740982
+          "all_mean": -0.03588238079454528,
+          "all_sum": -77.32653061224508,
+          "holdout_ci_high": 0.011745238635994911,
+          "holdout_ci_low": -0.15045666915414813,
+          "holdout_draws": 629,
+          "holdout_mean": -0.06933584244508623,
+          "recent_208_mean": -0.09173861852433289
         },
         "temporal_dependency": {
-          "all_mean": -0.012066693839635332,
-          "all_sum": -25.97959183673487,
-          "holdout_ci_high": 0.08134749122578948,
-          "holdout_ci_low": -0.07474327310542052,
-          "holdout_draws": 628,
-          "holdout_mean": 0.0016898479136876865,
-          "recent_208_mean": 0.00922291993720557
+          "all_mean": -0.013144561769023235,
+          "all_sum": -28.326530612245072,
+          "holdout_ci_high": 0.07855763927192479,
+          "holdout_ci_low": -0.07251549268355992,
+          "holdout_draws": 629,
+          "holdout_mean": 0.0006164628013366694,
+          "recent_208_mean": -0.01000784929356366
         },
         "uniform": {
           "all_mean": 0.0,
           "all_sum": 0.0,
           "holdout_ci_high": 0.0,
           "holdout_ci_low": 0.0,
-          "holdout_draws": 628,
+          "holdout_draws": 629,
           "holdout_mean": 0.0,
           "recent_208_mean": 0.0
         }
@@ -260,127 +260,127 @@
     "super": {
       "belief_minus_consensus_action": {
         "any_prize": {
-          "all_mean": -0.01088646967340591,
+          "all_mean": -0.010875194199896427,
           "all_sum": -21.0,
-          "holdout_ci_high": 0.040998217468805706,
-          "holdout_ci_low": -0.06951871657754011,
-          "holdout_draws": 561,
-          "holdout_mean": -0.016042780748663103,
-          "recent_208_mean": 0.0625
+          "holdout_ci_high": 0.03914590747330961,
+          "holdout_ci_low": -0.0693950177935943,
+          "holdout_draws": 562,
+          "holdout_mean": -0.01601423487544484,
+          "recent_208_mean": 0.057692307692307696
         },
         "any_three_plus": {
-          "all_mean": -0.007257646448937273,
+          "all_mean": -0.0072501294665976174,
           "all_sum": -14.0,
-          "holdout_ci_high": 0.05525846702317291,
-          "holdout_ci_low": -0.0285204991087344,
-          "holdout_draws": 561,
-          "holdout_mean": 0.0142602495543672,
-          "recent_208_mean": 0.019230769230769232
+          "holdout_ci_high": 0.05693950177935943,
+          "holdout_ci_low": -0.028469750889679714,
+          "holdout_draws": 562,
+          "holdout_mean": 0.014234875444839857,
+          "recent_208_mean": 0.014423076923076924
         },
         "best_main_hits": {
-          "all_mean": -0.0010368066355624676,
-          "all_sum": -2.0,
-          "holdout_ci_high": 0.08377896613190731,
-          "holdout_ci_low": -0.040998217468805706,
-          "holdout_draws": 561,
-          "holdout_mean": 0.0213903743315508,
-          "recent_208_mean": 0.04326923076923077
+          "all_mean": -0.0005178663904712584,
+          "all_sum": -1.0,
+          "holdout_ci_high": 0.08540925266903915,
+          "holdout_ci_low": -0.04092526690391459,
+          "holdout_draws": 562,
+          "holdout_mean": 0.023131672597864767,
+          "recent_208_mean": 0.04807692307692308
         },
         "union_main_hits": {
-          "all_mean": -0.007776049766718507,
-          "all_sum": -15.0,
-          "holdout_ci_high": 0.058823529411764705,
-          "holdout_ci_low": -0.09982174688057041,
-          "holdout_draws": 561,
-          "holdout_mean": -0.0196078431372549,
-          "recent_208_mean": 0.03365384615384615
+          "all_mean": -0.0072501294665976174,
+          "all_sum": -14.0,
+          "holdout_ci_high": 0.06227758007117438,
+          "holdout_ci_low": -0.09786476868327403,
+          "holdout_draws": 562,
+          "holdout_mean": -0.017793594306049824,
+          "recent_208_mean": 0.04326923076923077
         }
       },
       "best_static_main_expert": "uniform",
       "best_static_special_expert": "uniform",
-      "draws": 1929,
+      "draws": 1931,
       "first_date": "2008-01-24",
       "game": "super",
       "game_name": "威力彩",
-      "holdout_start_sequence": 1369,
-      "last_date": "2026-07-16",
+      "holdout_start_sequence": 1370,
+      "last_date": "2026-07-23",
       "main_bound_pass": true,
       "main_exact_subset_regret_vs_uniform": {
-        "all_mean": 0.004266763716912487,
-        "all_sum": 8.230587209924186,
-        "holdout_ci_high": 0.005971775155557442,
-        "holdout_ci_low": -6.107942163650776e-05,
-        "holdout_draws": 561,
-        "holdout_mean": 0.0030159284529592207,
-        "recent_208_mean": 0.0017175216671953925
+        "all_mean": 0.004245122046278998,
+        "all_sum": 8.197330671364744,
+        "holdout_ci_high": 0.005962804967231086,
+        "holdout_ci_low": -0.00012399359301842522,
+        "holdout_draws": 562,
+        "holdout_mean": 0.0029377229392705323,
+        "recent_208_mean": 0.0016208854198701893
       },
-      "main_regret_to_best_static_expert": 8.230587209924124,
-      "main_static_expert_regret_bound": 9.531633372408097,
+      "main_regret_to_best_static_expert": 8.197330671362579,
+      "main_static_expert_regret_bound": 9.53966228724542,
       "minimum_observed_next_prior_weight": 0.0008046620718785993,
       "special_bound_pass": true,
-      "special_regret_to_best_static_expert": 4.03411488262509,
+      "special_regret_to_best_static_expert": 4.024021712927151,
       "special_regret_vs_uniform": {
-        "all_mean": 0.00209129853946343,
-        "all_sum": 4.034114882624957,
-        "holdout_ci_high": 0.0043355191697842365,
-        "holdout_ci_low": 9.771464933116382e-05,
-        "holdout_draws": 561,
-        "holdout_mean": 0.0021321670022199173,
-        "recent_208_mean": 0.0007423327571187538
+        "all_mean": 0.002083905599651471,
+        "all_sum": 4.024021712926991,
+        "holdout_ci_high": 0.00413254154226742,
+        "holdout_ci_low": -4.7786759975951486e-05,
+        "holdout_draws": 562,
+        "holdout_mean": 0.002039660413822971,
+        "recent_208_mean": 0.0006627258910754513
       },
-      "special_static_expert_regret_bound": 9.531633372408097,
+      "special_static_expert_regret_bound": 9.53966228724542,
       "top_30_hit_excess_vs_label_symmetry": {
         "debate_consensus": {
-          "all_mean": 0.010695478977381618,
-          "all_sum": 20.631578947369142,
-          "holdout_ci_high": 0.1276855239703541,
-          "holdout_ci_low": -0.01669950276761385,
-          "holdout_draws": 561,
-          "holdout_mean": 0.05638427619851806,
+          "all_mean": 0.010956962577339632,
+          "all_sum": 21.157894736842827,
+          "holdout_ci_high": 0.12614721858025882,
+          "holdout_ci_low": -0.012642817006929763,
+          "holdout_draws": 562,
+          "holdout_mean": 0.05675220078666454,
           "recent_208_mean": 0.027580971659919403
         },
         "overfit_guard": {
-          "all_mean": 0.019508335379662595,
-          "all_sum": 37.63157894736914,
-          "holdout_ci_high": 0.07777465053006886,
-          "holdout_ci_low": -0.06308987709916465,
-          "holdout_draws": 561,
-          "holdout_mean": 0.006473402758232854,
-          "recent_208_mean": 0.05161943319838094
+          "all_mean": 0.019760691215351026,
+          "all_sum": 38.15789473684283,
+          "holdout_ci_high": 0.07454579509271436,
+          "holdout_ci_low": -0.062464881063869264,
+          "holdout_draws": 562,
+          "holdout_mean": 0.006930136729725042,
+          "recent_208_mean": 0.06604251012145787
         },
         "regime_shift": {
-          "all_mean": 0.014842705519631488,
-          "all_sum": 28.631578947369142,
-          "holdout_ci_high": 0.07420958814147706,
-          "holdout_ci_low": -0.06661037620789906,
-          "holdout_draws": 561,
-          "holdout_mean": 0.004690871563936954,
+          "all_mean": 0.016135626482052214,
+          "all_sum": 31.157894736842827,
+          "holdout_ci_high": 0.07632515452331935,
+          "holdout_ci_low": -0.06780295935568421,
+          "holdout_draws": 562,
+          "holdout_mean": 0.006930136729725042,
           "recent_208_mean": 0.08527327935222709
         },
         "structural_bias": {
-          "all_mean": 0.02987640173528727,
-          "all_sum": 57.63157894736914,
-          "holdout_ci_high": 0.10094755605591556,
-          "holdout_ci_low": -0.03991697157331795,
-          "holdout_draws": 561,
-          "holdout_mean": 0.034993901866967256,
-          "recent_208_mean": 0.03238866396761171
+          "all_mean": 0.03115375180571871,
+          "all_sum": 60.15789473684283,
+          "holdout_ci_high": 0.10835362427420903,
+          "holdout_ci_low": -0.02687769245176962,
+          "holdout_draws": 562,
+          "holdout_mean": 0.040737965911219705,
+          "recent_208_mean": 0.04200404858299633
         },
         "temporal_dependency": {
-          "all_mean": -0.0038198139204929276,
-          "all_sum": -7.368421052630858,
-          "holdout_ci_high": 0.09559996247302786,
-          "holdout_ci_low": -0.045264565156205645,
-          "holdout_draws": 561,
-          "holdout_mean": 0.022516183506895954,
-          "recent_208_mean": 0.0900809716599194
+          "all_mean": -0.0030254299653843463,
+          "all_sum": -5.842105263157173,
+          "holdout_ci_high": 0.09411874882936916,
+          "holdout_ci_low": -0.04289192732721446,
+          "holdout_draws": 562,
+          "holdout_mean": 0.024723731035774865,
+          "recent_208_mean": 0.09969635627530402
         },
         "uniform": {
           "all_mean": 0.0,
           "all_sum": 0.0,
           "holdout_ci_high": 0.0,
           "holdout_ci_low": 0.0,
-          "holdout_draws": 561,
+          "holdout_draws": 562,
           "holdout_mean": 0.0,
           "recent_208_mean": 0.0
         }

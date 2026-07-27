@@ -2,7 +2,7 @@
   "schema_version": "1",
   "experiment_id": "online-probability-stacking-shadow-v1",
   "source_experiment_id": "agent-loop-v3-unknown-generator",
-  "generated_at": "2026-07-17T23:59:59+08:00",
+  "generated_at": "2026-07-24T23:59:59+08:00",
   "question": "逐期 proper-score 縮權能否建立比未校準辯論共識更可信的未來號碼標籤 shadow？",
   "methodology": {
     "experts": [
@@ -45,14 +45,14 @@
     "status": "pass",
     "ledger_verification": {
       "super": {
-        "lines": 1929,
-        "last_event_hash": "dd73e41b44d72161be95e0747e9ddfa16dae92c3ae62e16d96110e2a5d8643c1",
-        "ledger_sha256": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3"
+        "lines": 1931,
+        "last_event_hash": "85685154d84f9ca6eef81e5f70ffbaa903b04aa1839d8347911b6c8a94af522e",
+        "ledger_sha256": "fab00cec6e4b3b26cb9ec7463bfee531dfb8020ec640d1d91709925cda623efc"
       },
       "lotto649": {
-        "lines": 2153,
-        "last_event_hash": "e5c637e43566b0c522392f41a8697c8c7983ee3e435af3ea1945ba3106941fcb",
-        "ledger_sha256": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+        "lines": 2155,
+        "last_event_hash": "656d20c82d3762630803bdcdcbcbfc9f5105b2cd8a71412cc1b1cfd408d3d772",
+        "ledger_sha256": "f970d29ae88d4e979e74b898f8e310995a7d23572bf9ae08911a25325f98972c"
       }
     },
     "source_first_dates": {
@@ -60,8 +60,8 @@
       "lotto649": "2007-01-02"
     },
     "source_last_dates": {
-      "super": "2026-07-16",
-      "lotto649": "2026-07-17"
+      "super": "2026-07-23",
+      "lotto649": "2026-07-24"
     },
     "chronology": "strictly_increasing",
     "duplicate_periods": 0,
@@ -74,95 +74,95 @@
     "super": {
       "game": "super",
       "game_name": "威力彩",
-      "draws": 1929,
+      "draws": 1931,
       "first_date": "2008-01-24",
-      "last_date": "2026-07-16",
-      "mean_mixture_main_log_loss": 3.63840270902994,
+      "last_date": "2026-07-23",
+      "mean_mixture_main_log_loss": 3.638401863198806,
       "mean_expert_main_log_loss": {
-        "independent_null": 3.8315526575070367,
-        "overfit_guard": 3.8233714644129533,
-        "regime_shift": 3.8271679439166912,
-        "structural_bias": 3.8232387819343296,
-        "temporal_dependency": 3.826188660654262,
-        "debate_consensus": 3.786673110140126,
+        "independent_null": 3.831567942142375,
+        "overfit_guard": 3.8233952225781658,
+        "regime_shift": 3.8270929475468862,
+        "structural_bias": 3.823123765222735,
+        "temporal_dependency": 3.826121321149664,
+        "debate_consensus": 3.7866825325813687,
         "uniform": 3.6375861597263857
       },
       "stacking_minus_consensus": {
         "union_main_hits": {
-          "mean": -0.015552099533437015,
-          "first_half_mean": 0.002074688796680498,
-          "second_half_mean": -0.03316062176165803,
+          "mean": -0.01605385810460901,
+          "first_half_mean": 0.002072538860103627,
+          "second_half_mean": -0.034161490683229816,
           "same_nonzero_direction": false
         },
         "best_main_hits": {
-          "mean": -0.014515292897874546,
-          "first_half_mean": -0.023858921161825725,
-          "second_half_mean": -0.0051813471502590676,
+          "mean": -0.014500258933195235,
+          "first_half_mean": -0.022797927461139896,
+          "second_half_mean": -0.006211180124223602,
           "same_nonzero_direction": true
         },
         "any_three_plus": {
-          "mean": -0.01607050285121825,
-          "first_half_mean": -0.00933609958506224,
-          "second_half_mean": -0.022797927461139896,
+          "mean": -0.016571724495080268,
+          "first_half_mean": -0.008290155440414507,
+          "second_half_mean": -0.024844720496894408,
           "same_nonzero_direction": true
         },
         "any_prize": {
-          "mean": -0.01607050285121825,
-          "first_half_mean": -0.021784232365145227,
-          "second_half_mean": -0.010362694300518135,
+          "mean": -0.016571724495080268,
+          "first_half_mean": -0.02072538860103627,
+          "second_half_mean": -0.012422360248447204,
           "same_nonzero_direction": true
         }
       },
-      "mean_mixture_special_log_loss": 2.080263888888311,
+      "mean_mixture_special_log_loss": 2.08026303807691,
       "mean_expert_special_log_loss": {
-        "independent_null": 2.2642251968953198,
-        "overfit_guard": 2.245674150280537,
-        "regime_shift": 2.25286788964919,
-        "structural_bias": 2.259059205165388,
-        "temporal_dependency": 2.2662822497368733,
-        "debate_consensus": 2.2698980334468715,
+        "independent_null": 2.2646134228225283,
+        "overfit_guard": 2.246081590134845,
+        "regime_shift": 2.2532678787118168,
+        "structural_bias": 2.259452781679577,
+        "temporal_dependency": 2.266099410726562,
+        "debate_consensus": 2.2706954651315656,
         "uniform": 2.0794415416798357
       }
     },
     "lotto649": {
       "game": "lotto649",
       "game_name": "大樂透",
-      "draws": 2153,
+      "draws": 2155,
       "first_date": "2007-01-02",
-      "last_date": "2026-07-17",
-      "mean_mixture_main_log_loss": 3.892527458645956,
+      "last_date": "2026-07-24",
+      "mean_mixture_main_log_loss": 3.8925268023234465,
       "mean_expert_main_log_loss": {
-        "independent_null": 4.061127619691329,
-        "overfit_guard": 4.058125317218557,
-        "regime_shift": 4.06798242844167,
-        "structural_bias": 4.057863211623343,
-        "temporal_dependency": 4.065387468985903,
-        "debate_consensus": 4.060059007083959,
+        "independent_null": 4.060807924901954,
+        "overfit_guard": 4.058227287396845,
+        "regime_shift": 4.068035743480094,
+        "structural_bias": 4.058050391202698,
+        "temporal_dependency": 4.065273260044136,
+        "debate_consensus": 4.060150598793491,
         "uniform": 3.891820298110627
       },
       "stacking_minus_consensus": {
         "union_main_hits": {
-          "mean": -0.030654900139340455,
-          "first_half_mean": -0.04460966542750929,
-          "second_half_mean": -0.016713091922005572,
+          "mean": -0.03062645011600928,
+          "first_half_mean": -0.04549675023212628,
+          "second_half_mean": -0.015769944341372914,
           "same_nonzero_direction": true
         },
         "best_main_hits": {
-          "mean": 0.006038086391082211,
-          "first_half_mean": 0.006505576208178439,
-          "second_half_mean": 0.005571030640668524,
+          "mean": 0.0064965197215777265,
+          "first_half_mean": 0.004642525533890436,
+          "second_half_mean": 0.008348794063079777,
           "same_nonzero_direction": true
         },
         "any_three_plus": {
-          "mean": 0.002786809103576405,
-          "first_half_mean": -0.0027881040892193307,
-          "second_half_mean": 0.008356545961002786,
+          "mean": 0.0027842227378190253,
+          "first_half_mean": -0.003714020427112349,
+          "second_half_mean": 0.00927643784786642,
           "same_nonzero_direction": false
         },
         "any_prize": {
-          "mean": 0.010218300046446818,
-          "first_half_mean": 0.0027881040892193307,
-          "second_half_mean": 0.017641597028783658,
+          "mean": 0.010208816705336427,
+          "first_half_mean": 0.0018570102135561746,
+          "second_half_mean": 0.01855287569573284,
           "same_nonzero_direction": true
         }
       }
@@ -171,60 +171,60 @@
   "final_models": {
     "super": {
       "main_log_weights": {
-        "independent_null": -17.206509134657907,
-        "overfit_guard": -16.982008582339564,
-        "regime_shift": -16.003324773388304,
-        "structural_bias": -16.606051767436995,
-        "temporal_dependency": -16.03072186420148,
-        "debate_consensus": -13.387326966389873,
+        "independent_null": -17.21601170523046,
+        "overfit_guard": -16.99151007357151,
+        "regime_shift": -16.0086573116016,
+        "structural_bias": -16.609447434092907,
+        "temporal_dependency": -16.03634737802645,
+        "debate_consensus": -13.394527269286188,
         "uniform": 0.0
       },
       "main_weights": {
-        "independent_null": 3.3674969255413834e-08,
-        "overfit_guard": 4.215087155244032e-08,
-        "regime_shift": 1.1216142974625705e-07,
-        "structural_bias": 6.138786496033196e-08,
-        "temporal_dependency": 1.091302452860902e-07,
-        "debate_consensus": 1.5344648657608929e-06,
-        "uniform": 0.9999981070297534
+        "independent_null": 3.3356486522889427e-08,
+        "overfit_guard": 4.1752272608238964e-08,
+        "regime_shift": 1.1156491798069126e-07,
+        "structural_bias": 6.117976655601264e-08,
+        "temporal_dependency": 1.0851805656527925e-07,
+        "debate_consensus": 1.5234559553455601e-06,
+        "uniform": 0.9999981201725444
       },
       "special_log_weights": {
-        "independent_null": -16.41765069314638,
-        "overfit_guard": -13.40461895888126,
-        "regime_shift": -15.047914219191266,
-        "structural_bias": -15.502042746111405,
-        "temporal_dependency": -15.997497659514474,
-        "debate_consensus": -16.830238840280035,
+        "independent_null": -16.443123984443652,
+        "overfit_guard": -13.430092250178529,
+        "regime_shift": -15.073387510488535,
+        "structural_bias": -15.527516037408674,
+        "temporal_dependency": -15.997963708743466,
+        "debate_consensus": -16.873951572439502,
         "uniform": 0.0
       },
       "special_weights": {
-        "independent_null": 7.411462808685027e-08,
-        "overfit_guard": 1.5081585120922189e-06,
-        "regime_shift": 2.9159020144783423e-07,
-        "structural_bias": 1.8516010253609882e-07,
-        "temporal_dependency": 1.1281687811277879e-07,
-        "debate_consensus": 4.90590549630935e-08,
-        "uniform": 0.9999977791006228
+        "independent_null": 7.22505316569735e-08,
+        "overfit_guard": 1.4702260152201476e-06,
+        "regime_shift": 2.842562612050395e-07,
+        "structural_bias": 1.8050304231731628e-07,
+        "temporal_dependency": 1.127643182261801e-07,
+        "debate_consensus": 4.69607477041903e-08,
+        "uniform": 0.9999978330390836
       }
     },
     "lotto649": {
       "main_log_weights": {
-        "independent_null": -15.976342604450664,
-        "overfit_guard": -15.598376745190471,
-        "regime_shift": -15.382562950368968,
-        "structural_bias": -15.680348214700501,
-        "temporal_dependency": -15.419156571672202,
-        "debate_consensus": -15.580583253103505,
+        "independent_null": -15.968796511952878,
+        "overfit_guard": -15.610277167171068,
+        "regime_shift": -15.392628953205222,
+        "structural_bias": -15.696193848747175,
+        "temporal_dependency": -15.421333065844946,
+        "debate_consensus": -15.592086250598092,
         "uniform": 0.0
       },
       "main_weights": {
-        "independent_null": 1.1522908763193236e-07,
-        "overfit_guard": 1.6815531938642242e-07,
-        "regime_shift": 2.0865910990772404e-07,
-        "structural_bias": 1.5492120037104127e-07,
-        "temporal_dependency": 2.0116153579598015e-07,
-        "debate_consensus": 1.7117416801189795e-07,
-        "uniform": 0.9999989806995788
+        "independent_null": 1.1610190696113057e-07,
+        "overfit_guard": 1.6616606145178854e-07,
+        "regime_shift": 2.065692841260719e-07,
+        "structural_bias": 1.5248572375364347e-07,
+        "temporal_dependency": 2.0072418661710043e-07,
+        "debate_consensus": 1.6921643484085314e-07,
+        "uniform": 0.9999989887364021
       }
     }
   },
@@ -283,70 +283,70 @@
     "use": "future_forward_shadow_only",
     "historical_evidence_status": "reused_history_for_prequential_initialization_only",
     "fitted_through": {
-      "super": "2026-07-16",
-      "lotto649": "2026-07-17"
+      "super": "2026-07-23",
+      "lotto649": "2026-07-24"
     },
     "source_ledger_hashes": {
-      "super": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3",
-      "lotto649": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+      "super": "fab00cec6e4b3b26cb9ec7463bfee531dfb8020ec640d1d91709925cda623efc",
+      "lotto649": "f970d29ae88d4e979e74b898f8e310995a7d23572bf9ae08911a25325f98972c"
     },
     "models": {
       "super": {
         "main_log_weights": {
-          "independent_null": -17.206509134657907,
-          "overfit_guard": -16.982008582339564,
-          "regime_shift": -16.003324773388304,
-          "structural_bias": -16.606051767436995,
-          "temporal_dependency": -16.03072186420148,
-          "debate_consensus": -13.387326966389873,
+          "independent_null": -17.21601170523046,
+          "overfit_guard": -16.99151007357151,
+          "regime_shift": -16.0086573116016,
+          "structural_bias": -16.609447434092907,
+          "temporal_dependency": -16.03634737802645,
+          "debate_consensus": -13.394527269286188,
           "uniform": 0.0
         },
         "main_weights": {
-          "independent_null": 3.3674969255413834e-08,
-          "overfit_guard": 4.215087155244032e-08,
-          "regime_shift": 1.1216142974625705e-07,
-          "structural_bias": 6.138786496033196e-08,
-          "temporal_dependency": 1.091302452860902e-07,
-          "debate_consensus": 1.5344648657608929e-06,
-          "uniform": 0.9999981070297534
+          "independent_null": 3.3356486522889427e-08,
+          "overfit_guard": 4.1752272608238964e-08,
+          "regime_shift": 1.1156491798069126e-07,
+          "structural_bias": 6.117976655601264e-08,
+          "temporal_dependency": 1.0851805656527925e-07,
+          "debate_consensus": 1.5234559553455601e-06,
+          "uniform": 0.9999981201725444
         },
         "special_log_weights": {
-          "independent_null": -16.41765069314638,
-          "overfit_guard": -13.40461895888126,
-          "regime_shift": -15.047914219191266,
-          "structural_bias": -15.502042746111405,
-          "temporal_dependency": -15.997497659514474,
-          "debate_consensus": -16.830238840280035,
+          "independent_null": -16.443123984443652,
+          "overfit_guard": -13.430092250178529,
+          "regime_shift": -15.073387510488535,
+          "structural_bias": -15.527516037408674,
+          "temporal_dependency": -15.997963708743466,
+          "debate_consensus": -16.873951572439502,
           "uniform": 0.0
         },
         "special_weights": {
-          "independent_null": 7.411462808685027e-08,
-          "overfit_guard": 1.5081585120922189e-06,
-          "regime_shift": 2.9159020144783423e-07,
-          "structural_bias": 1.8516010253609882e-07,
-          "temporal_dependency": 1.1281687811277879e-07,
-          "debate_consensus": 4.90590549630935e-08,
-          "uniform": 0.9999977791006228
+          "independent_null": 7.22505316569735e-08,
+          "overfit_guard": 1.4702260152201476e-06,
+          "regime_shift": 2.842562612050395e-07,
+          "structural_bias": 1.8050304231731628e-07,
+          "temporal_dependency": 1.127643182261801e-07,
+          "debate_consensus": 4.69607477041903e-08,
+          "uniform": 0.9999978330390836
         }
       },
       "lotto649": {
         "main_log_weights": {
-          "independent_null": -15.976342604450664,
-          "overfit_guard": -15.598376745190471,
-          "regime_shift": -15.382562950368968,
-          "structural_bias": -15.680348214700501,
-          "temporal_dependency": -15.419156571672202,
-          "debate_consensus": -15.580583253103505,
+          "independent_null": -15.968796511952878,
+          "overfit_guard": -15.610277167171068,
+          "regime_shift": -15.392628953205222,
+          "structural_bias": -15.696193848747175,
+          "temporal_dependency": -15.421333065844946,
+          "debate_consensus": -15.592086250598092,
           "uniform": 0.0
         },
         "main_weights": {
-          "independent_null": 1.1522908763193236e-07,
-          "overfit_guard": 1.6815531938642242e-07,
-          "regime_shift": 2.0865910990772404e-07,
-          "structural_bias": 1.5492120037104127e-07,
-          "temporal_dependency": 2.0116153579598015e-07,
-          "debate_consensus": 1.7117416801189795e-07,
-          "uniform": 0.9999989806995788
+          "independent_null": 1.1610190696113057e-07,
+          "overfit_guard": 1.6616606145178854e-07,
+          "regime_shift": 2.065692841260719e-07,
+          "structural_bias": 1.5248572375364347e-07,
+          "temporal_dependency": 2.0072418661710043e-07,
+          "debate_consensus": 1.6921643484085314e-07,
+          "uniform": 0.9999989887364021
         }
       }
     },
@@ -354,6 +354,6 @@
       "experiment_id": "five-ticket-structural-optimum-proof-v1",
       "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
     },
-    "candidate_hash": "57885004b35a01f79df8cce3883e6238891e5e2312906cbd2cff65eae133f563"
+    "candidate_hash": "bde5e85ac4e717275fd5c29d6a999dc532731b0f689ee7406463b07296b073ae"
   }
 }

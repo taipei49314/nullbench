@@ -1,0 +1,142 @@
+{
+  "schema_version": "1",
+  "experiment_id": "null-safe-probability-forward-state-v1",
+  "generated_at": "2026-07-24T23:59:59+08:00",
+  "prior_candidate_hash": "7e1b3dbd23a21eaea683cffb61c5efd59429fc170088aef765ffbad8412d98da",
+  "stacking_candidate_hash": "bde5e85ac4e717275fd5c29d6a999dc532731b0f689ee7406463b07296b073ae",
+  "applied_transitions": [],
+  "registered_score_capsules": [],
+  "future_forward_shadow_candidate": {
+    "schema_version": "1",
+    "experiment_id": "null-safe-probability-forward-shadow-v1",
+    "source_experiment_id": "null-safe-probability-gate-v1",
+    "underlying_stacking_experiment_id": "probability-stacking-forward-shadow-v1",
+    "underlying_stacking_protocol_hash": "fbe7eac82cac7a79e08b4aeb75d7e5a840fed092102744adb4afc52b9280df85",
+    "protocol_hash": "5f9846d9731d38ca026682f9a95e32d0343e6e25fa96509dbd51bfe2b40b6fb7",
+    "parameters": {
+      "e_process_protocol_id": "restart-mixture-e-process-v1",
+      "main_likelihood": "product_weighted_unordered_six_number_subset",
+      "special_likelihood": "categorical_probability_mass",
+      "restart_start_weight": "6/(pi^2*s^2)",
+      "family_alpha": 0.05,
+      "evidence_streams": [
+        "super_main",
+        "super_special",
+        "lotto649_main"
+      ],
+      "stream_alpha": 0.016666666666666666,
+      "activation_e_threshold": 60.0,
+      "activation_timing": "target_t_uses_only_e_value_through_reveal_t_minus_1",
+      "inactive_main_forecast": "exact_discrete_uniform",
+      "inactive_special_forecast": "exact_discrete_uniform",
+      "inactive_ticket_labels": "consensus_coverage",
+      "historical_use": "initialization_and_description_only",
+      "promotion_evidence": "future_forward_scores_only"
+    },
+    "use": "future_forward_shadow_only",
+    "historical_evidence_status": "descriptive_only_not_promotion",
+    "fitted_through": {
+      "super": "2026-07-23",
+      "lotto649": "2026-07-24"
+    },
+    "source_ledger_hashes": {
+      "super": "fab00cec6e4b3b26cb9ec7463bfee531dfb8020ec640d1d91709925cda623efc",
+      "lotto649": "f970d29ae88d4e979e74b898f8e310995a7d23572bf9ae08911a25325f98972c"
+    },
+    "models": {
+      "super": {
+        "main_log_weights": {
+          "independent_null": -17.21601170523046,
+          "overfit_guard": -16.99151007357151,
+          "regime_shift": -16.0086573116016,
+          "structural_bias": -16.609447434092907,
+          "temporal_dependency": -16.03634737802645,
+          "debate_consensus": -13.394527269286188,
+          "uniform": 0.0
+        },
+        "main_weights": {
+          "independent_null": 3.3356486522889427e-08,
+          "overfit_guard": 4.1752272608238964e-08,
+          "regime_shift": 1.1156491798069126e-07,
+          "structural_bias": 6.117976655601264e-08,
+          "temporal_dependency": 1.0851805656527925e-07,
+          "debate_consensus": 1.5234559553455601e-06,
+          "uniform": 0.9999981201725444
+        },
+        "main_e_process": {
+          "schema_version": "1",
+          "protocol_id": "restart-mixture-e-process-v1",
+          "sequence": 1929,
+          "log_active_component_wealth": -4.024746141329528,
+          "allocated_start_weight": 0.999684930247089,
+          "log_e_value": -4.007266577767084
+        },
+        "main_gate_active": false,
+        "special_log_weights": {
+          "independent_null": -16.443123984443652,
+          "overfit_guard": -13.430092250178529,
+          "regime_shift": -15.073387510488535,
+          "structural_bias": -15.527516037408674,
+          "temporal_dependency": -15.997963708743466,
+          "debate_consensus": -16.873951572439502,
+          "uniform": 0.0
+        },
+        "special_weights": {
+          "independent_null": 7.22505316569735e-08,
+          "overfit_guard": 1.4702260152201476e-06,
+          "regime_shift": 2.842562612050395e-07,
+          "structural_bias": 1.8050304231731628e-07,
+          "temporal_dependency": 1.127643182261801e-07,
+          "debate_consensus": 4.69607477041903e-08,
+          "uniform": 0.9999978330390836
+        },
+        "special_e_process": {
+          "schema_version": "1",
+          "protocol_id": "restart-mixture-e-process-v1",
+          "sequence": 1929,
+          "log_active_component_wealth": -1.2466514340983994,
+          "allocated_start_weight": 0.999684930247089,
+          "log_e_value": -1.2455560090667344
+        },
+        "special_gate_active": false
+      },
+      "lotto649": {
+        "main_log_weights": {
+          "independent_null": -15.968796511952878,
+          "overfit_guard": -15.610277167171068,
+          "regime_shift": -15.392628953205222,
+          "structural_bias": -15.696193848747175,
+          "temporal_dependency": -15.421333065844946,
+          "debate_consensus": -15.592086250598092,
+          "uniform": 0.0
+        },
+        "main_weights": {
+          "independent_null": 1.1610190696113057e-07,
+          "overfit_guard": 1.6616606145178854e-07,
+          "regime_shift": 2.065692841260719e-07,
+          "structural_bias": 1.5248572375364347e-07,
+          "temporal_dependency": 2.0072418661710043e-07,
+          "debate_consensus": 1.6921643484085314e-07,
+          "uniform": 0.9999989887364021
+        },
+        "main_e_process": {
+          "schema_version": "1",
+          "protocol_id": "restart-mixture-e-process-v1",
+          "sequence": 2153,
+          "log_active_component_wealth": -3.948589011140793,
+          "allocated_start_weight": 0.9997177027671574,
+          "log_e_value": -3.934054611001165
+        },
+        "main_gate_active": false
+      }
+    },
+    "structural_optimum_proof": {
+      "experiment_id": "five-ticket-structural-optimum-proof-v1",
+      "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
+    },
+    "candidate_hash": "217fa6d9906beb593d17bc31cc0de45f2b3e29904fb30e4ec65d9d9b1a924c76"
+  },
+  "historical_backfill_allowed": false,
+  "honesty_note": "stacking 權重可讀取最新 reveal；e-process 每次從凍結正式基線加上帳本全部已登記 v7 score capsule 決定性重建，v6 空窗不得推進 gate。",
+  "state_hash": "0fb891048bc8ab1cc09b6f74f37a17c0aed4059eb48344dea85be50384843315"
+}

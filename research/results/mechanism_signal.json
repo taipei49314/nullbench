@@ -2,7 +2,7 @@
   "schema_version": "1",
   "experiment_id": "draw-mechanism-signal-audit-v1",
   "source_experiment_id": "agent-loop-v3-unknown-generator",
-  "generated_at": "2026-07-17T23:59:59+08:00",
+  "generated_at": "2026-07-24T23:59:59+08:00",
   "question": "歷史開獎是否存在跨時間可重現的主號標籤、星期、序列或第二區偏差，足以在完全分散結構內改變號碼排序？",
   "methodology": {
     "warmup_draws": 60,
@@ -34,184 +34,184 @@
     "status": "pass",
     "profiles": {
       "super": {
-        "draws": 1929,
+        "draws": 1931,
         "first_date": "2008-01-24",
-        "last_date": "2026-07-16",
+        "last_date": "2026-07-23",
         "duplicate_dates": 0,
         "duplicate_periods": 0,
         "ordered_chronologically": true,
         "legal_draws": true,
-        "regular_schedule_draws": 1929,
+        "regular_schedule_draws": 1931,
         "off_schedule_draws": 0,
         "off_schedule_treatment": "weekday candidate 使用全訓練期 fallback；大樂透春節加開屬合法資料，不視為品質失敗。",
-        "dataset_sha256": "5aa5449a20c0da2fc7a17d530014150be20b9a24534add57a825f3bc77786bce",
+        "dataset_sha256": "c3d8d45a0c917593018c560c651d65451983a6d96d1f29058d81f240ccde5cb9",
         "quality_status": "pass",
         "quality_failures": []
       },
       "lotto649": {
-        "draws": 2153,
+        "draws": 2155,
         "first_date": "2007-01-02",
-        "last_date": "2026-07-17",
+        "last_date": "2026-07-24",
         "duplicate_dates": 0,
         "duplicate_periods": 0,
         "ordered_chronologically": true,
         "legal_draws": true,
-        "regular_schedule_draws": 2040,
+        "regular_schedule_draws": 2042,
         "off_schedule_draws": 113,
         "off_schedule_treatment": "weekday candidate 使用全訓練期 fallback；大樂透春節加開屬合法資料，不視為品質失敗。",
-        "dataset_sha256": "96715d44fe934631219b1989e39b7f5dfd18cd20be6395b37c32152cf82e20ef",
+        "dataset_sha256": "dd5ae48fe4321998f20ef022ae24792abdcf454db139e3b04551c3e7321aebf4",
         "quality_status": "pass",
         "quality_failures": []
       }
     },
     "ledger_verification": {
       "super": {
-        "lines": 1929,
-        "last_event_hash": "dd73e41b44d72161be95e0747e9ddfa16dae92c3ae62e16d96110e2a5d8643c1",
-        "ledger_sha256": "4e926e94a16729ad3c6e11faa66c5709cfd2bce3d87d38cac3f48c07ffa2bab3"
+        "lines": 1931,
+        "last_event_hash": "85685154d84f9ca6eef81e5f70ffbaa903b04aa1839d8347911b6c8a94af522e",
+        "ledger_sha256": "fab00cec6e4b3b26cb9ec7463bfee531dfb8020ec640d1d91709925cda623efc"
       },
       "lotto649": {
-        "lines": 2153,
-        "last_event_hash": "e5c637e43566b0c522392f41a8697c8c7983ee3e435af3ea1945ba3106941fcb",
-        "ledger_sha256": "42e388519943c4d342cc58b5b2ae913ff0ada9408f6490156f15ca851196e302"
+        "lines": 2155,
+        "last_event_hash": "656d20c82d3762630803bdcdcbcbfc9f5105b2cd8a71412cc1b1cfd408d3d772",
+        "ledger_sha256": "f970d29ae88d4e979e74b898f8e310995a7d23572bf9ae08911a25325f98972c"
       }
     },
     "split_profiles": {
       "super": {
-        "total_draws": 1929,
+        "total_draws": 1931,
         "warmup_draws": 60,
-        "eligible_draws": 1869,
-        "development_draws": 1308,
-        "inner_training_draws": 915,
+        "eligible_draws": 1871,
+        "development_draws": 1309,
+        "inner_training_draws": 916,
         "inner_validation_draws": 393,
-        "holdout_draws": 561
+        "holdout_draws": 562
       },
       "lotto649": {
-        "total_draws": 2153,
+        "total_draws": 2155,
         "warmup_draws": 60,
-        "eligible_draws": 2093,
-        "development_draws": 1465,
-        "inner_training_draws": 1025,
+        "eligible_draws": 2095,
+        "development_draws": 1466,
+        "inner_training_draws": 1026,
         "inner_validation_draws": 440,
-        "holdout_draws": 628
+        "holdout_draws": 629
       }
     },
     "source_last_dates": {
-      "super": "2026-07-16",
-      "lotto649": "2026-07-17"
+      "super": "2026-07-23",
+      "lotto649": "2026-07-24"
     }
   },
   "mechanism_diagnostics": {
     "super": {
       "development": {
         "main_label_uniformity": {
-          "statistic": 42.03104294087666,
+          "statistic": 41.2646103896104,
           "degrees_of_freedom": 37,
-          "raw_p_value": 0.2620560579016856,
+          "raw_p_value": 0.28952523181269463,
           "minimum_count": 173,
           "maximum_count": 242,
-          "expected_count": 206.52631578947367
+          "expected_count": 206.68421052631578
         },
         "extra_number_uniformity": {
-          "statistic": 3.388379204892966,
+          "statistic": 3.27501909854851,
           "degrees_of_freedom": 7,
-          "raw_p_value": 0.8469029661797973,
+          "raw_p_value": 0.8584490956798562,
           "counts": [
             160,
             179,
             163,
             162,
             175,
-            154,
+            155,
             156,
             159
           ],
-          "expected_count": 163.5
+          "expected_count": 163.625
         },
         "weekday_main_difference": {
-          "statistic": 25.854150739041803,
+          "statistic": 25.251453945349265,
           "degrees_of_freedom": 37,
-          "raw_p_value": 0.9154564556746747,
+          "raw_p_value": 0.9285439649520377,
           "weekday_draws": {
             "0": 654,
-            "3": 654
+            "3": 655
           }
         },
         "serial_main_overlap": {
-          "pairs": 1307,
-          "observed_mean_overlap": 0.9204284621270085,
+          "pairs": 1308,
+          "observed_mean_overlap": 0.9204892966360856,
           "exact_null_mean_overlap": 0.9473684210526315,
-          "z_score": -1.172513773241524,
-          "raw_p_value": 0.24099084563977516
+          "z_score": -1.1703135125768702,
+          "raw_p_value": 0.241874826028154
         }
       },
       "holdout": {
         "main_label_uniformity": {
-          "statistic": 30.952874331550802,
+          "statistic": 31.837336892052193,
           "degrees_of_freedom": 37,
-          "raw_p_value": 0.7475127090871005,
-          "minimum_count": 76,
+          "raw_p_value": 0.7095415171505235,
+          "minimum_count": 75,
           "maximum_count": 107,
-          "expected_count": 88.57894736842105,
+          "expected_count": 88.73684210526316,
           "holm_adjusted_p_value": 1.0
         },
         "extra_number_uniformity": {
-          "statistic": 8.169340463458111,
+          "statistic": 8.619217081850534,
           "degrees_of_freedom": 7,
-          "raw_p_value": 0.31789887093167135,
+          "raw_p_value": 0.2811625325603502,
           "counts": [
             67,
-            83,
+            84,
             70,
             81,
             76,
-            59,
-            61,
+            58,
+            62,
             64
           ],
-          "expected_count": 70.125,
+          "expected_count": 70.25,
           "holm_adjusted_p_value": 1.0
         },
         "weekday_main_difference": {
-          "statistic": 20.563353585327693,
+          "statistic": 21.004522538552795,
           "degrees_of_freedom": 37,
-          "raw_p_value": 0.9868134513402479,
+          "raw_p_value": 0.9840132303254113,
           "weekday_draws": {
-            "0": 280,
+            "0": 281,
             "3": 281
           },
           "holm_adjusted_p_value": 1.0
         },
         "serial_main_overlap": {
-          "pairs": 560,
-          "observed_mean_overlap": 0.9571428571428572,
+          "pairs": 561,
+          "observed_mean_overlap": 0.9625668449197861,
           "exact_null_mean_overlap": 0.9473684210526315,
-          "z_score": 0.278463934286676,
-          "raw_p_value": 0.7806562468398428,
+          "z_score": 0.43337435960321613,
+          "raw_p_value": 0.6647428248043787,
           "holm_adjusted_p_value": 1.0
         }
       },
       "development_holdout_main_residual_correlation": {
-        "correlation": -0.0382955215302238,
-        "fisher_z": -0.22667021157998202,
-        "raw_p_value": 0.820680191948978
+        "correlation": -0.028068014453526673,
+        "fisher_z": -0.16609623964377032,
+        "raw_p_value": 0.8680812133831096
       },
       "development_selected_main_candidate": "uniform_null"
     },
     "lotto649": {
       "development": {
         "main_label_uniformity": {
-          "statistic": 49.567870465909984,
+          "statistic": 49.18963165075034,
           "degrees_of_freedom": 48,
-          "raw_p_value": 0.41050891955898716,
+          "raw_p_value": 0.4252827513787989,
           "minimum_count": 151,
           "maximum_count": 211,
-          "expected_count": 179.3877551020408
+          "expected_count": 179.51020408163265
         },
         "extra_number_uniformity": {
-          "statistic": 62.830034129692834,
+          "statistic": 63.027285129604365,
           "degrees_of_freedom": 48,
-          "raw_p_value": 0.07389071405149394,
+          "raw_p_value": 0.0715650670530897,
           "counts": [
             21,
             31,
@@ -252,7 +252,7 @@
             32,
             26,
             35,
-            33,
+            34,
             42,
             38,
             30,
@@ -263,7 +263,7 @@
             24,
             36
           ],
-          "expected_count": 29.897959183673468
+          "expected_count": 29.918367346938776
         },
         "weekday_main_difference": {
           "statistic": 41.26790172119303,
@@ -275,27 +275,27 @@
           }
         },
         "serial_main_overlap": {
-          "pairs": 1464,
-          "observed_mean_overlap": 0.7390710382513661,
+          "pairs": 1465,
+          "observed_mean_overlap": 0.7385665529010239,
           "exact_null_mean_overlap": 0.7346938775510204,
-          "z_score": 0.2203738314523294,
-          "raw_p_value": 0.8255800239368234
+          "z_score": 0.19504144071636859,
+          "raw_p_value": 0.8453605055528032
         }
       },
       "holdout": {
         "main_label_uniformity": {
-          "statistic": 34.00444378610577,
+          "statistic": 34.47923984175694,
           "degrees_of_freedom": 48,
-          "raw_p_value": 0.9366329106719543,
-          "minimum_count": 62,
-          "maximum_count": 93,
-          "expected_count": 76.89795918367346,
+          "raw_p_value": 0.9287147336547441,
+          "minimum_count": 63,
+          "maximum_count": 94,
+          "expected_count": 77.0204081632653,
           "holm_adjusted_p_value": 1.0
         },
         "extra_number_uniformity": {
-          "statistic": 66.73885350318471,
+          "statistic": 66.27027027027027,
           "degrees_of_freedom": 48,
-          "raw_p_value": 0.037985631711101114,
+          "raw_p_value": 0.041281327340216285,
           "counts": [
             9,
             17,
@@ -307,7 +307,7 @@
             15,
             7,
             17,
-            10,
+            11,
             10,
             16,
             14,
@@ -347,32 +347,32 @@
             12,
             11
           ],
-          "expected_count": 12.816326530612244,
-          "holm_adjusted_p_value": 0.3038850536888089
+          "expected_count": 12.83673469387755,
+          "holm_adjusted_p_value": 0.3302506187217303
         },
         "weekday_main_difference": {
-          "statistic": 62.294573643410864,
+          "statistic": 61.97781247432001,
           "degrees_of_freedom": 48,
-          "raw_p_value": 0.08052103730532308,
+          "raw_p_value": 0.08466829743033186,
           "weekday_draws": {
-            "1": 282,
-            "4": 282
+            "1": 283,
+            "4": 283
           },
-          "holm_adjusted_p_value": 0.5636472611372615
+          "holm_adjusted_p_value": 0.592678082012323
         },
         "serial_main_overlap": {
-          "pairs": 627,
-          "observed_mean_overlap": 0.7352472089314195,
+          "pairs": 628,
+          "observed_mean_overlap": 0.7372611464968153,
           "exact_null_mean_overlap": 0.7346938775510204,
-          "z_score": 0.018231233931353452,
-          "raw_p_value": 0.9854543856996844,
+          "z_score": 0.08465413611428538,
+          "raw_p_value": 0.9325363590965714,
           "holm_adjusted_p_value": 1.0
         }
       },
       "development_holdout_main_residual_correlation": {
-        "correlation": -0.18382517921508917,
-        "fisher_z": -1.261098225954943,
-        "raw_p_value": 0.20727345971739602
+        "correlation": -0.15618003567850602,
+        "fisher_z": -1.068005424301335,
+        "raw_p_value": 0.2855180649914875
       },
       "development_selected_main_candidate": "total_ball_frequency"
     }
@@ -383,18 +383,18 @@
       "game_name": "威力彩",
       "candidate": "main_frequency",
       "inner_validation_draws": 393,
-      "inner_validation_mean_main_hits": 4.7150127226463106,
-      "inner_validation_delta_vs_exact_null": -0.02182938261684697,
-      "holdout_draws": 561,
-      "holdout_observed_total_main_hits": 2639,
-      "holdout_mean_main_hits": 4.704099821746881,
+      "inner_validation_mean_main_hits": 4.712468193384224,
+      "inner_validation_delta_vs_exact_null": -0.024373911878933896,
+      "holdout_draws": 562,
+      "holdout_observed_total_main_hits": 2665,
+      "holdout_mean_main_hits": 4.741992882562277,
       "exact_null_mean_main_hits": 4.7368421052631575,
-      "holdout_delta_vs_exact_null": -0.03274228351627695,
-      "holdout_delta_ci_low": -0.11117365606529656,
-      "holdout_delta_ci_high": 0.05638427619851806,
-      "holdout_first_half_delta": -0.018984962406014664,
-      "holdout_second_half_delta": -0.04645064618842443,
-      "holdout_raw_one_sided_p_value": 0.8047326596238061,
+      "holdout_delta_vs_exact_null": 0.005150777299120059,
+      "holdout_delta_ci_low": -0.06958231878628919,
+      "holdout_delta_ci_high": 0.0798838733845293,
+      "holdout_first_half_delta": 0.010488855590935006,
+      "holdout_second_half_delta": -0.0001873009926948873,
+      "holdout_raw_one_sided_p_value": 0.4579331764054963,
       "holm_adjusted_one_sided_p_value": 1.0
     },
     {
@@ -402,37 +402,37 @@
       "game_name": "威力彩",
       "candidate": "weekday_main_frequency",
       "inner_validation_draws": 393,
-      "inner_validation_mean_main_hits": 4.638676844783715,
-      "inner_validation_delta_vs_exact_null": -0.0981652604794423,
-      "holdout_draws": 561,
-      "holdout_observed_total_main_hits": 2682,
-      "holdout_mean_main_hits": 4.780748663101604,
+      "inner_validation_mean_main_hits": 4.636132315521628,
+      "inner_validation_delta_vs_exact_null": -0.10070978974152922,
+      "holdout_draws": 562,
+      "holdout_observed_total_main_hits": 2671,
+      "holdout_mean_main_hits": 4.752669039145908,
       "exact_null_mean_main_hits": 4.7368421052631575,
-      "holdout_delta_vs_exact_null": 0.043906557838446755,
-      "holdout_delta_ci_low": -0.02204709635050155,
-      "holdout_delta_ci_high": 0.10986021202739506,
-      "holdout_first_half_delta": 0.05601503759398534,
-      "holdout_second_half_delta": 0.031841168758194795,
-      "holdout_raw_one_sided_p_value": 0.136154754522888,
-      "holm_adjusted_one_sided_p_value": 0.68077377261444
+      "holdout_delta_vs_exact_null": 0.01582693388274995,
+      "holdout_delta_ci_low": -0.048230005619029404,
+      "holdout_delta_ci_high": 0.07810451395392433,
+      "holdout_first_half_delta": 0.024723731035774865,
+      "holdout_second_half_delta": 0.006930136729725042,
+      "holdout_raw_one_sided_p_value": 0.35249575346251066,
+      "holm_adjusted_one_sided_p_value": 1.0
     },
     {
       "game": "lotto649",
       "game_name": "大樂透",
       "candidate": "main_frequency",
       "inner_validation_draws": 440,
-      "inner_validation_mean_main_hits": 3.709090909090909,
-      "inner_validation_delta_vs_exact_null": 0.03562152133580687,
-      "holdout_draws": 628,
-      "holdout_observed_total_main_hits": 2278,
-      "holdout_mean_main_hits": 3.627388535031847,
+      "inner_validation_mean_main_hits": 3.706818181818182,
+      "inner_validation_delta_vs_exact_null": 0.03334879406307989,
+      "holdout_draws": 629,
+      "holdout_observed_total_main_hits": 2282,
+      "holdout_mean_main_hits": 3.627980922098569,
       "exact_null_mean_main_hits": 3.673469387755102,
-      "holdout_delta_vs_exact_null": -0.04608085272325499,
-      "holdout_delta_ci_low": -0.12251397374236314,
-      "holdout_delta_ci_high": 0.03516914727674481,
-      "holdout_first_half_delta": 0.04627583517483418,
-      "holdout_second_half_delta": -0.13843754062134417,
-      "holdout_raw_one_sided_p_value": 0.8508012009588571,
+      "holdout_delta_vs_exact_null": -0.045488465656532966,
+      "holdout_delta_ci_low": -0.12338989649914013,
+      "holdout_delta_ci_high": 0.03400279030531123,
+      "holdout_first_half_delta": -0.007864292213700849,
+      "holdout_second_half_delta": -0.08299319727891165,
+      "holdout_raw_one_sided_p_value": 0.8479189744375112,
       "holm_adjusted_one_sided_p_value": 1.0
     },
     {
@@ -440,18 +440,18 @@
       "game_name": "大樂透",
       "candidate": "weekday_main_frequency",
       "inner_validation_draws": 440,
-      "inner_validation_mean_main_hits": 3.6772727272727272,
-      "inner_validation_delta_vs_exact_null": 0.003803339517625126,
-      "holdout_draws": 628,
-      "holdout_observed_total_main_hits": 2276,
-      "holdout_mean_main_hits": 3.624203821656051,
+      "inner_validation_mean_main_hits": 3.675,
+      "inner_validation_delta_vs_exact_null": 0.0015306122448977,
+      "holdout_draws": 629,
+      "holdout_observed_total_main_hits": 2287,
+      "holdout_mean_main_hits": 3.6359300476947536,
       "exact_null_mean_main_hits": 3.673469387755102,
-      "holdout_delta_vs_exact_null": -0.04926556609905117,
-      "holdout_delta_ci_low": -0.14480696737293636,
-      "holdout_delta_ci_high": 0.04786819186273234,
-      "holdout_first_half_delta": 0.03990640842324183,
-      "holdout_second_half_delta": -0.13843754062134417,
-      "holdout_raw_one_sided_p_value": 0.8665809762287163,
+      "holdout_delta_vs_exact_null": -0.03753934006034855,
+      "holdout_delta_ci_low": -0.13451867233379836,
+      "holdout_delta_ci_high": 0.0546705168553908,
+      "holdout_first_half_delta": 0.03672169504744565,
+      "holdout_second_half_delta": -0.11156462585034022,
+      "holdout_raw_one_sided_p_value": 0.8027256561604589,
       "holm_adjusted_one_sided_p_value": 1.0
     },
     {
@@ -461,16 +461,16 @@
       "inner_validation_draws": 440,
       "inner_validation_mean_main_hits": 3.7227272727272727,
       "inner_validation_delta_vs_exact_null": 0.04925788497217054,
-      "holdout_draws": 628,
-      "holdout_observed_total_main_hits": 2292,
-      "holdout_mean_main_hits": 3.6496815286624202,
+      "holdout_draws": 629,
+      "holdout_observed_total_main_hits": 2296,
+      "holdout_mean_main_hits": 3.6502384737678857,
       "exact_null_mean_main_hits": 3.673469387755102,
-      "holdout_delta_vs_exact_null": -0.02378785909268174,
-      "holdout_delta_ci_low": -0.101813336799688,
-      "holdout_delta_ci_high": 0.060607045365917,
-      "holdout_first_half_delta": -0.00467957883790467,
-      "holdout_second_half_delta": -0.042896139347458805,
-      "holdout_raw_one_sided_p_value": 0.7075068011255838,
+      "holdout_delta_vs_exact_null": -0.02323091398721659,
+      "holdout_delta_ci_low": -0.1011323448298238,
+      "holdout_delta_ci_high": 0.05785016709386455,
+      "holdout_first_half_delta": -0.0014948654621084918,
+      "holdout_second_half_delta": -0.04489795918367355,
+      "holdout_raw_one_sided_p_value": 0.7033876815868,
       "holm_adjusted_one_sided_p_value": 1.0
     }
   ],
@@ -525,18 +525,18 @@
       4,
       1
     ],
-    "holdout_draws": 561,
-    "holdout_special_hits": 377,
-    "holdout_special_coverage": 0.6720142602495544,
+    "holdout_draws": 562,
+    "holdout_special_hits": 378,
+    "holdout_special_coverage": 0.6725978647686833,
     "exact_null_special_coverage": 0.625,
-    "holdout_special_coverage_raw_one_sided_p_value": 0.011506331525391777,
-    "holdout_first_half_special_coverage": 0.6714285714285714,
+    "holdout_special_coverage_raw_one_sided_p_value": 0.010598236065301771,
+    "holdout_first_half_special_coverage": 0.6725978647686833,
     "holdout_second_half_special_coverage": 0.6725978647686833,
-    "control_any_prize_rate": 0.5454545454545454,
-    "candidate_any_prize_rate": 0.5704099821746881,
-    "paired_any_prize_delta": 0.024955436720142603,
-    "paired_any_prize_ci_low": -0.0196078431372549,
-    "paired_any_prize_ci_high": 0.0677361853832442,
+    "control_any_prize_rate": 0.5462633451957295,
+    "candidate_any_prize_rate": 0.5711743772241993,
+    "paired_any_prize_delta": 0.02491103202846975,
+    "paired_any_prize_ci_low": -0.017838078291814947,
+    "paired_any_prize_ci_high": 0.06583629893238434,
     "theoretical_structural_probability_unchanged": true,
     "profit_common_special_candidate": {
       "candidate": "development_top_one_special",
@@ -565,7 +565,7 @@
           "candidate_strict_profit_rate": 0.08396946564885496,
           "control_strict_profit_rate": 0.06615776081424936,
           "strict_profit_delta": 0.017811704834605598,
-          "strict_profit_delta_ci_low": -0.01272264631043257,
+          "strict_profit_delta_ci_low": -0.010178117048346057,
           "strict_profit_delta_ci_high": 0.04834605597964377,
           "first_half_strict_profit_delta": 0.025510204081632654,
           "second_half_strict_profit_delta": 0.01015228426395939,
@@ -576,49 +576,49 @@
         }
       },
       "selected_special": 2,
-      "holdout_draws": 561,
-      "holdout_special_hits": 83,
-      "holdout_special_rate": 0.14795008912655971,
+      "holdout_draws": 562,
+      "holdout_special_hits": 84,
+      "holdout_special_rate": 0.1494661921708185,
       "exact_null_special_rate": 0.125,
-      "holdout_raw_one_sided_p_value": 0.05959373461580309,
-      "holdout_first_half_special_rate": 0.14642857142857144,
-      "holdout_second_half_special_rate": 0.1494661921708185,
+      "holdout_raw_one_sided_p_value": 0.04813257244083388,
+      "holdout_first_half_special_rate": 0.14590747330960854,
+      "holdout_second_half_special_rate": 0.15302491103202848,
       "holdout_portfolios": {
         "guarded_profit": {
-          "draws": 561,
-          "candidate_strict_profit_rate": 0.053475935828877004,
-          "control_strict_profit_rate": 0.06417112299465241,
-          "strict_profit_delta": -0.0106951871657754,
-          "strict_profit_delta_ci_low": -0.0338680926916221,
-          "strict_profit_delta_ci_high": 0.016042780748663103,
-          "first_half_strict_profit_delta": 0.0035714285714285713,
+          "draws": 562,
+          "candidate_strict_profit_rate": 0.05338078291814947,
+          "control_strict_profit_rate": 0.06405693950177936,
+          "strict_profit_delta": -0.010676156583629894,
+          "strict_profit_delta_ci_low": -0.033807829181494664,
+          "strict_profit_delta_ci_high": 0.014234875444839857,
+          "first_half_strict_profit_delta": 0.0035587188612099642,
           "second_half_strict_profit_delta": -0.02491103202846975,
           "candidate_wins": 20,
-          "ties": 515,
+          "ties": 516,
           "control_wins": 26,
-          "mean_net_delta_ntd": 7.746880570409982
+          "mean_net_delta_ntd": 8.622775800711743
         },
         "unconstrained_profit": {
-          "draws": 561,
-          "candidate_strict_profit_rate": 0.0855614973262032,
-          "control_strict_profit_rate": 0.08199643493761141,
-          "strict_profit_delta": 0.0035650623885918,
-          "strict_profit_delta_ci_low": -0.026737967914438502,
-          "strict_profit_delta_ci_high": 0.0374331550802139,
-          "first_half_strict_profit_delta": 0.02142857142857143,
-          "second_half_strict_profit_delta": -0.014234875444839857,
-          "candidate_wins": 33,
+          "draws": 562,
+          "candidate_strict_profit_rate": 0.08718861209964412,
+          "control_strict_profit_rate": 0.08185053380782918,
+          "strict_profit_delta": 0.005338078291814947,
+          "strict_profit_delta_ci_low": -0.02491103202846975,
+          "strict_profit_delta_ci_high": 0.03914590747330961,
+          "first_half_strict_profit_delta": 0.021352313167259787,
+          "second_half_strict_profit_delta": -0.010676156583629894,
+          "candidate_wins": 34,
           "ties": 497,
           "control_wins": 31,
-          "mean_net_delta_ntd": 4.354723707664884
+          "mean_net_delta_ntd": 5.414590747330961
         }
       },
       "theoretical_structural_probability_unchanged": true,
-      "holm_adjusted_one_sided_p_value": 0.35756240769481856,
+      "holm_adjusted_one_sided_p_value": 0.2887954346450033,
       "promotion_eligible": false,
       "decision": "retain_consensus_profit_common_special"
     },
-    "holm_adjusted_special_coverage_p_value": 0.08054432067774243,
+    "holm_adjusted_special_coverage_p_value": 0.0741876524571124,
     "promotion_eligible": false,
     "decision": "retain_consensus_special_ranking"
   },
@@ -626,7 +626,7 @@
     "experiment_id": "special-frequency-forward-shadow-v1",
     "source_experiment_id": "draw-mechanism-signal-audit-v1",
     "game": "super",
-    "fitted_through": "2021-03-01",
+    "fitted_through": "2021-03-04",
     "selected_specials": [
       2,
       5,
@@ -641,7 +641,7 @@
       "experiment_id": "five-ticket-structural-optimum-proof-v1",
       "certificate_hash": "9d74135192e33d5c8f20753841885cd604cd9523248e15f52dad4d4580742a23"
     },
-    "candidate_hash": "08f424111df2f6c6a759e001d55eaafd31febc4bc58e8d81cacd4178c2a193e1"
+    "candidate_hash": "57a6ec36d10ad32e87099f4ec3674686cbdeda2b78ce45c33d3ecadc0cc3c088"
   },
   "future_profit_common_special_shadow_candidate": {
     "experiment_id": "profit-common-special-forward-shadow-v1",
