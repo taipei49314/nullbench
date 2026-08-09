@@ -113,6 +113,16 @@ def test_null_safe_staleness_tracks_candidate_draws_and_ledger_hashes(
     results.mkdir(parents=True)
     target = results / "null_safe_probability.json"
     target.write_text(json.dumps(study), encoding="utf-8")
+    forward_source = source.with_name(
+        "null_safe_probability_forward.json"
+    )
+    forward_study = json.loads(
+        forward_source.read_text(encoding="utf-8")
+    )
+    (results / "null_safe_probability_forward.json").write_text(
+        json.dumps(forward_study),
+        encoding="utf-8",
+    )
     stacking_source = (
         Path(__file__).parent.parent
         / "research"
@@ -124,10 +134,11 @@ def test_null_safe_staleness_tracks_candidate_draws_and_ledger_hashes(
         encoding="utf-8",
     )
     manifest = _manifest()
+    candidate = forward_study["future_forward_shadow_candidate"]
     for game in (SUPER, LOTTO649):
-        manifest["games"][game]["last_target"]["date"] = study[
-            "data_quality"
-        ]["source_last_dates"][game]
+        manifest["games"][game]["last_target"]["date"] = candidate[
+            "fitted_through"
+        ][game]
 
     assert _null_safe_probability_stale(tmp_path, manifest) is False
 
