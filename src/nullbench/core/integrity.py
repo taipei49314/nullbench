@@ -104,8 +104,9 @@ def source_fingerprint(obj: Any) -> str:
     except (OSError, TypeError):
         try:
             mod = inspect.getmodule(obj)
-            if mod and getattr(mod, "__file__", None):
-                p = Path(mod.__file__)
+            file_path = getattr(mod, "__file__", None)
+            if file_path:
+                p = Path(file_path)
                 if p.exists() and p.suffix == ".py":
                     return sha256_hex(p.read_text(encoding="utf-8", errors="replace"))
         except Exception:
