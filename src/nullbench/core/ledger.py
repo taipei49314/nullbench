@@ -27,6 +27,9 @@ class Ledger:
         if not self.path.exists():
             self.path.write_text("", encoding="utf-8")
             self._write_tip("0" * 64, 0)
+        elif not self.tip_path.exists() and self._line_count() == 0:
+            # Empty ledger without tip — heal so first append is not blocked
+            self._write_tip("0" * 64, 0)
 
     def _last_line_hash(self) -> str:
         last = ""
@@ -92,7 +95,10 @@ class Ledger:
                 return False, f"line {i}: line_hash mismatch"
             prev = row["line_hash"]
             last_hash = prev
-        # Tip seal (IC-01 partial): rewritten file without tip update fails
+        # Tip seal required whenever the ledger has events (R-01).
+        # Deleting the tip must not leave verify_chain green.
+        if n > 0 and not self.tip_path.exists():
+            return False, "tip seal missing (required when ledger has events)"
         if self.tip_path.exists():
             try:
                 tip = json.loads(self.tip_path.read_text(encoding="utf-8"))

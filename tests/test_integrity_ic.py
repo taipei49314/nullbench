@@ -195,3 +195,78 @@ def test_tip_mismatch_on_truncation(tmp_path: Path) -> None:
     ok, msg = Study(root).ledger().verify_chain()
     assert ok is False
     assert "tip" in msg.lower() or "mismatch" in msg.lower()
+
+
+def test_r01_missing_tip_fails_verify(tmp_path: Path) -> None:
+    """Deleting the tip must not leave verify_chain green (R-01)."""
+    root = _study(tmp_path)
+    tip = root / "ledger" / "events.jsonl.tip"
+    assert tip.exists()
+    tip.unlink()
+    ok, msg = Study(root).ledger().verify_chain()
+    assert ok is False
+    assert "tip" in msg.lower() and "missing" in msg.lower()
+
+
+def _rebuild_ledger(path: Path, rows: list[dict]) -> None:
+    from nullbench.core.hashing import sha256_hex
+
+    prev = "0" * 64
+    rebuilt = []
+    for row in rows:
+        body = {k: v for k, v in row.items() if k not in ("prev_line_hash", "line_hash")}
+        material = {"prev_line_hash": prev, **body}
+        digest = sha256_hex(
+            json.dumps(material, sort_keys=True, separators=(",", ":"), default=str)
+        )
+        material["line_hash"] = digest
+        prev = digest
+        rebuilt.append(material)
+    path.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False, default=str) for r in rebuilt) + "\n",
+        encoding="utf-8",
+    )
+    tip = {
+        "line_hash": prev if rebuilt else "0" * 64,
+        "n_lines": len(rebuilt),
+        "path": path.name,
+    }
+    path.with_suffix(path.suffix + ".tip").write_text(json.dumps(tip), encoding="utf-8")
+
+
+def test_r02_empty_experiment_hash_blocked(tmp_path: Path) -> None:
+    """Clearing experiment_hash must not skip IC-05 drift checks (R-02)."""
+    from nullbench.core.integrity import freeze_content_hash
+
+    root = tmp_path / "r02"
+    pipeline.init_study(root, experiment_id="r02", domain="demo649", demo_draws=20)
+    pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
+    draws = pipeline.load_draws(root / "data" / "draws.jsonl")
+    p = draws[-1].period
+    pipeline.freeze_period(root, p)
+    led = root / "ledger" / "events.jsonl"
+    rows = [json.loads(x) for x in led.read_text(encoding="utf-8").splitlines() if x.strip()]
+    for r in rows:
+        if r.get("type") == "freeze":
+            r["experiment_hash"] = ""
+            if r.get("meta"):
+                r["meta"]["null_seed"] = 999
+            r["content_hash"] = freeze_content_hash(
+                experiment_id=r["experiment_id"],
+                period=r["period"],
+                strategy_id=r["strategy_id"],
+                tickets=r["tickets"],
+                experiment_hash_="",
+                history_hash_=r["history_hash"],
+                code_fingerprint_=r["code_fingerprint"],
+                outcome_hash=r.get("outcome_hash"),
+            )
+    _rebuild_ledger(led, rows)
+    exp = json.loads((root / "experiment.json").read_text(encoding="utf-8"))
+    exp["null_seed"] = 999
+    (root / "experiment.json").write_text(json.dumps(exp, indent=2), encoding="utf-8")
+    with pytest.raises(SettleError):
+        pipeline.settle_period(root, p)
+    sem_ok, issues = verify_study_semantic(root)
+    assert sem_ok is False
+    assert any("experiment_hash" in i for i in issues)

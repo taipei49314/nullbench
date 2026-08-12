@@ -143,22 +143,59 @@ def code_fingerprint(
     return content_hash(parts)[:32]
 
 
+def require_freeze_seals(row: dict[str, Any]) -> tuple[str, str, str, str | None]:
+    """M1 freezes must carry non-empty experiment/history/code seals (R-02).
+
+    Empty-string seals previously skipped settle drift checks (`if eh and …`),
+    allowing experiment.json edits after clearing the hash field.
+    """
+    meta = row.get("meta") or {}
+    eh = row.get("experiment_hash") or meta.get("experiment_hash") or ""
+    hh = row.get("history_hash") or meta.get("history_hash") or ""
+    fp = row.get("code_fingerprint") or ""
+    if not isinstance(eh, str) or not eh.strip():
+        raise IntegrityError(
+            f"missing experiment_hash seal period={row.get('period')} strategy={row.get('strategy_id')}",
+            hint="R-02/IC-05: freeze rows must seal experiment_hash (cannot be empty)",
+        )
+    if not isinstance(hh, str) or not hh.strip():
+        raise IntegrityError(
+            f"missing history_hash seal period={row.get('period')} strategy={row.get('strategy_id')}",
+            hint="R-02/IC-03: freeze rows must seal history_hash (cannot be empty)",
+        )
+    if not isinstance(fp, str) or not fp.strip():
+        raise IntegrityError(
+            f"missing code_fingerprint seal period={row.get('period')} strategy={row.get('strategy_id')}",
+            hint="R-02/IC-08: freeze rows must seal code_fingerprint (cannot be empty)",
+        )
+    if "outcome_hash" in row:
+        oh = row.get("outcome_hash")
+    elif "outcome_hash" in meta:
+        oh = meta.get("outcome_hash")
+    else:
+        oh = None
+    if oh is not None and (not isinstance(oh, str) or not oh.strip()):
+        raise IntegrityError(
+            f"invalid empty outcome_hash period={row.get('period')}",
+            hint="use null for pre-outcome freeze, never empty string",
+        )
+    return eh, hh, fp, oh
+
+
 def verify_freeze_row(row: dict[str, Any]) -> None:
-    """Recompute freeze content_hash (IC-02)."""
+    """Recompute freeze content_hash (IC-02) and require hard seals (R-02)."""
     if row.get("type") != "freeze":
         return
-    meta = row.get("meta") or {}
+    eh, hh, fp, oh = require_freeze_seals(row)
     expected = freeze_content_hash(
         experiment_id=row["experiment_id"],
         period=row["period"],
         strategy_id=row["strategy_id"],
         tickets=row["tickets"],
-        experiment_hash_=row.get("experiment_hash") or meta.get("experiment_hash") or "",
-        history_hash_=row.get("history_hash") or meta.get("history_hash") or "",
-        code_fingerprint_=row.get("code_fingerprint") or "",
-        outcome_hash=row.get("outcome_hash")
-        if "outcome_hash" in row
-        else meta.get("outcome_hash"),
+        experiment_hash_=eh,
+        history_hash_=hh,
+        code_fingerprint_=fp,
+        outcome_hash=oh,
     )
     if row.get("content_hash") != expected:
         raise IntegrityError(
@@ -193,23 +230,22 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
     for fr in freezes:
         try:
             verify_freeze_row(fr)
+            eh, hh, _fp, oh = require_freeze_seals(fr)
         except IntegrityError as e:
             issues.append(str(e.message if hasattr(e, "message") else e))
-        eh = fr.get("experiment_hash") or (fr.get("meta") or {}).get("experiment_hash")
-        if eh and eh != exp_h:
+            continue
+        if eh != exp_h:
             issues.append(
                 f"experiment_hash drift after freeze period={fr.get('period')} "
                 f"(IC-05: experiment.json changed)"
             )
-        hh = fr.get("history_hash") or (fr.get("meta") or {}).get("history_hash")
         hist = history_before(draws, fr["period"])
-        if hh and hh != history_hash(hist):
+        if hh != history_hash(hist):
             issues.append(
                 f"history_hash drift period={fr.get('period')} "
                 f"(IC-03/04: draws reordered or history rewritten)"
             )
-        oh = fr.get("outcome_hash") or (fr.get("meta") or {}).get("outcome_hash")
-        if oh and fr["period"] in by_period:
+        if oh is not None and fr["period"] in by_period:
             if oh != outcome_hash(by_period[fr["period"]]):
                 issues.append(
                     f"outcome_hash drift period={fr.get('period')} "
