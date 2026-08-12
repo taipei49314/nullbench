@@ -17,12 +17,12 @@ Product gate: **without M1, do not claim “auditable / never backfill” as a p
 | M1.1 | Seal `ExperimentSpec` | `experiment_hash` on every freeze |
 | M1.2 | Pin freeze content | `content_hash` over tickets + seals |
 | M1.3 | Pin history / draw | `history_hash`, `outcome_hash` when draw known |
-| M1.4 | Settle forced verify | `verify_freeze_row` + seal drift checks before payout |
+| M1.4 | Settle forced verify | `verify_freeze_row` + **hard** seal drift checks before payout |
 | M1.5 | Recompute not trust | Payouts recomputed; semantic audit detects forge |
 | M1.6 | Claim lint | `scan_forbidden` before report write |
 | M1.7 | Stable history order | `(date, period)` not file order |
 | M1.8 | Code bind | strategy/domain source fingerprint |
-| M1.9 | Adversarial tests IC-01…08 | `pytest -m m1` |
+| M1.9 | Adversarial tests IC-01…08 + R-01/R-02 | `pytest -m m1` |
 
 ### Commands
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1 — 2026-08-12
+
+### Integrity hardening (R-01 / R-02)
+
+- **R-01:** `verify_chain` fails if tip seal is missing when the ledger has events
+- **R-02:** freeze seals `experiment_hash` / `history_hash` / `code_fingerprint` must be non-empty; settle no longer skips drift checks on falsy hashes
+- M1 tests: `test_r01_missing_tip_fails_verify`, `test_r02_empty_experiment_hash_blocked`
+
 ## 0.6.0 — 2026-08-12
 
 ### Maturity gate (M0–M4)

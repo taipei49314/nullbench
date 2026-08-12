@@ -1,6 +1,6 @@
 """nullbench — pre-register decisions, score against chance, never backfill."""
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 
 from nullbench.core.models import (
     Draw,

@@ -14,6 +14,7 @@ from nullbench.core.integrity import (
     history_hash,
     order_draws,
     outcome_hash,
+    require_freeze_seals,
     verify_freeze_row,
 )
 from nullbench.core.models import (
@@ -384,27 +385,25 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
             raise DataError(f"no draw for period {p}")
         draw = draws[p]
 
-        # IC-02/03/05: verify freeze seals before computing
+        # IC-02/03/05 + R-02: hard-require seals (empty hash must not skip checks)
         for f in by_period[p]:
             try:
                 verify_freeze_row(f)
+                eh, hh, _fp, oh = require_freeze_seals(f)
             except IntegrityError as e:
                 raise SettleError(e.message, hint=e.hint) from e
-            eh = f.get("experiment_hash") or ""
-            if eh and eh != exp_h:
+            if eh != exp_h:
                 raise SettleError(
                     f"experiment.json changed after freeze (period={p})",
                     hint="IC-05: restore experiment or start new experiment_id",
                 )
-            hh = f.get("history_hash") or ""
             hist = history_before(draws_list, p)
-            if hh and hh != history_hash(hist):
+            if hh != history_hash(hist):
                 raise SettleError(
                     f"history/draws changed after freeze (period={p})",
                     hint="IC-03/04: restore draws.jsonl order and history",
                 )
-            oh = f.get("outcome_hash")
-            if oh and oh != outcome_hash(draw):
+            if oh is not None and oh != outcome_hash(draw):
                 raise SettleError(
                     f"draw outcome changed after freeze sealed it (period={p})",
                     hint="IC-03: restore the sealed draw",
