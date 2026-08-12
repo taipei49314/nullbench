@@ -5,10 +5,10 @@
 #   domain:<id>
 #   <id>          → matches either group
 #
-# Usage:
+# Usage (trusted locations only):
 #   set NULLBENCH_PLUGIN_ALLOWLIST=/path/to/this/file
-#   # or place at: <study>/plugins.allowlist
 #   # or: %USERPROFILE%\.config\nullbench\plugins.allowlist
+#   # (study-local plugins.allowlist is NOT trusted — A2 can write it)
 #
 # Still safer than NULLBENCH_TRUST_PLUGINS=1 (global trust).
 

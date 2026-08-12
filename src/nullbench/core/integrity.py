@@ -9,11 +9,10 @@ from __future__ import annotations
 
 import hashlib
 import inspect
-import json
 from pathlib import Path
 from typing import Any
 
-from nullbench.core.hashing import canonical_json, content_hash, sha256_hex
+from nullbench.core.hashing import content_hash, sha256_hex
 from nullbench.core.models import Draw, ExperimentSpec, Ticket
 from nullbench.errors import IntegrityError
 
@@ -69,10 +68,7 @@ def freeze_content_payload(
     code_fingerprint_: str,
     outcome_hash: str | None,
 ) -> dict[str, Any]:
-    tix = [
-        t.model_dump() if isinstance(t, Ticket) else t
-        for t in tickets
-    ]
+    tix = [t.model_dump() if isinstance(t, Ticket) else t for t in tickets]
     return {
         "experiment_id": experiment_id,
         "period": period,
@@ -205,7 +201,8 @@ def verify_freeze_row(row: dict[str, Any]) -> None:
 
 
 def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
-    """Full semantic audit (IC-01..05). Chain-only OK is insufficient."""
+    """Full semantic audit (IC-01..05 + R-03). Chain-only OK is insufficient."""
+    from nullbench.core.nullbank import evaluate_null_bank
     from nullbench.core.pipeline import load_draws
     from nullbench.core.settle_math import portfolio_cost, portfolio_payout
     from nullbench.core.study import Study
@@ -226,7 +223,9 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
     if not ok_chain:
         issues.append(f"chain: {chain_msg}")
 
-    freezes = [e for e in ledger.events_of("freeze") if e.get("experiment_id") == spec.experiment_id]
+    freezes = [
+        e for e in ledger.events_of("freeze") if e.get("experiment_id") == spec.experiment_id
+    ]
     for fr in freezes:
         try:
             verify_freeze_row(fr)
@@ -245,17 +244,19 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
                 f"history_hash drift period={fr.get('period')} "
                 f"(IC-03/04: draws reordered or history rewritten)"
             )
-        if oh is not None and fr["period"] in by_period:
-            if oh != outcome_hash(by_period[fr["period"]]):
-                issues.append(
-                    f"outcome_hash drift period={fr.get('period')} "
-                    f"(IC-03: draw altered after sealed freeze)"
-                )
+        if oh is not None and fr["period"] in by_period and oh != outcome_hash(
+            by_period[fr["period"]]
+        ):
+            issues.append(
+                f"outcome_hash drift period={fr.get('period')} "
+                f"(IC-03: draw altered after sealed freeze)"
+            )
 
-    settles = [e for e in ledger.events_of("settle") if e.get("experiment_id") == spec.experiment_id]
+    settles = [
+        e for e in ledger.events_of("settle") if e.get("experiment_id") == spec.experiment_id
+    ]
     for se in settles:
         period = se["period"]
-        # Prefer sealed draw on settle row
         if se.get("draw"):
             try:
                 draw = Draw.model_validate(se["draw"])
@@ -267,10 +268,27 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
         else:
             issues.append(f"settle missing draw period={period}")
             continue
-        # Recompute strategy payouts from freezes (IC-01/02)
+        if period not in by_period:
+            issues.append(f"settle period={period} missing from draws.jsonl")
+            continue
+        file_draw = by_period[period]
+        if draw_payload(draw) != draw_payload(file_draw):
+            issues.append(
+                f"settle.draw diverges from draws.jsonl period={period} "
+                f"(IC-03/R-03: forged settle outcome)"
+            )
+            draw = file_draw
+        sealed_oh = se.get("outcome_hash")
+        if sealed_oh is not None and sealed_oh != outcome_hash(file_draw):
+            issues.append(
+                f"settle outcome_hash drift period={period} (IC-03: draw file vs settle seal)"
+            )
+
         period_freezes = [f for f in freezes if f["period"] == period]
+        n_tickets = 0
         for fr in period_freezes:
             tickets = [Ticket.model_validate(t) for t in fr["tickets"]]
+            n_tickets = max(n_tickets, len(tickets))
             payout, _ = portfolio_payout(spec.game, tickets, draw)
             cost = portfolio_cost(spec.game, len(tickets))
             stored = None
@@ -287,9 +305,36 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
                     f"ledger={stored.get('payout')} recomputed={payout} (IC-01)"
                 )
             if abs(float(stored.get("cost", 0)) - cost) > 1e-9:
-                issues.append(
-                    f"cost mismatch period={period} strategy={fr['strategy_id']}"
-                )
+                issues.append(f"cost mismatch period={period} strategy={fr['strategy_id']}")
+
+        if n_tickets == 0:
+            n_tickets = 5
+        expected_nulls = evaluate_null_bank(
+            spec.game,
+            draw,
+            n_tickets=n_tickets,
+            n_portfolios=spec.null_portfolios,
+            base_seed=spec.null_seed,
+        )
+        stored_nulls = se.get("null_results") or []
+        if len(stored_nulls) != len(expected_nulls):
+            issues.append(
+                f"null_results count mismatch period={period}: "
+                f"ledger={len(stored_nulls)} recomputed={len(expected_nulls)} (R-03)"
+            )
+        else:
+            by_id = {r.get("portfolio_id"): r for r in stored_nulls}
+            for exp in expected_nulls:
+                got = by_id.get(exp.portfolio_id)
+                if got is None:
+                    issues.append(f"null_results missing {exp.portfolio_id} period={period} (R-03)")
+                    continue
+                if abs(float(got.get("payout", 0)) - exp.payout) > 1e-9:
+                    issues.append(
+                        f"forged null payout period={period} {exp.portfolio_id} (R-03/IC-01)"
+                    )
+                if abs(float(got.get("cost", 0)) - exp.cost) > 1e-9:
+                    issues.append(f"forged null cost period={period} {exp.portfolio_id} (R-03)")
 
     return (len(issues) == 0 and ok_chain), issues
 
@@ -301,16 +346,14 @@ def _truthy_env(name: str) -> bool:
 
 
 def plugin_allowlist_paths(study_root: Path | None = None) -> list[Path]:
-    """Ordered allowlist locations (first existing wins when merging all)."""
+    """Allowlist locations. Study-local file is NOT trusted (A2 writable)."""
     import os
 
     paths: list[Path] = []
     env = os.environ.get("NULLBENCH_PLUGIN_ALLOWLIST", "").strip()
     if env:
         paths.append(Path(env))
-    if study_root is not None:
-        paths.append(Path(study_root) / "plugins.allowlist")
-    # XDG-ish / Windows user config
+    # Intentionally omit <study>/plugins.allowlist — A2 can write it.
     home = Path.home()
     paths.append(home / ".config" / "nullbench" / "plugins.allowlist")
     return paths
@@ -322,8 +365,9 @@ def load_plugin_allowlist(study_root: Path | None = None) -> set[str]:
     Lines may be ``strategy:id``, ``domain:id``, or bare ``id``.
     Comments (``#``) and blanks ignored.
     """
+    del study_root  # kept for API compat; study path is not a trust root
     found: set[str] = set()
-    for path in plugin_allowlist_paths(study_root):
+    for path in plugin_allowlist_paths():
         if not path.is_file():
             continue
         for raw in path.read_text(encoding="utf-8").splitlines():
@@ -351,6 +395,7 @@ def assert_plugins_trusted(
     from nullbench.domains import _BUILTIN as DOMAIN_BUILTIN
     from nullbench.strategies import _BUILTIN as STRAT_BUILTIN
 
+    del study_root  # study-local allowlist is not a trust root
     if is_domain:
         if kind in DOMAIN_BUILTIN:
             return
@@ -359,14 +404,14 @@ def assert_plugins_trusted(
             return
     if _truthy_env("NULLBENCH_TRUST_PLUGINS"):
         return
-    allow = load_plugin_allowlist(study_root)
+    allow = load_plugin_allowlist()
     prefixed = f"{'domain' if is_domain else 'strategy'}:{kind}"
     if kind in allow or prefixed in allow:
         return
     raise IntegrityError(
         f"refusing untrusted {'domain' if is_domain else 'strategy'} plugin {kind!r}",
         hint=(
-            "add the id to plugins.allowlist / NULLBENCH_PLUGIN_ALLOWLIST, "
-            "or set NULLBENCH_TRUST_PLUGINS=1 (IC-09/M3)"
+            "add the id to ~/.config/nullbench/plugins.allowlist or "
+            "NULLBENCH_PLUGIN_ALLOWLIST, or set NULLBENCH_TRUST_PLUGINS=1 (IC-09/M3)"
         ),
     )

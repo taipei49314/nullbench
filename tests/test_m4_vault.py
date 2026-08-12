@@ -104,11 +104,14 @@ def test_m4_file_hash_drift_detected(tmp_path: Path) -> None:
     assert any("draws.jsonl" in i or "hash drift" in i or "semantic" in i.lower() or "payout" in i or "bundle" in i for i in issues)
 
 
-def test_m4_http_notary_roundtrip(tmp_path: Path) -> None:
+def test_m4_http_notary_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = _settled_study(tmp_path)
     vault = Vault(tmp_path / "http-vault")
     vault.init()
-    server = serve_notary("127.0.0.1", 0, vault=vault)
+    token = "test-notary-token"
+    monkeypatch.setenv("NULLBENCH_NOTARY_TOKEN", token)
+    server, served_token = serve_notary("127.0.0.1", 0, vault=vault, token=token)
+    assert served_token == token
     host, port = server.server_address[:2]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -131,6 +134,28 @@ def test_m4_http_notary_roundtrip(tmp_path: Path) -> None:
         vault.verify_signature(receipt)
         ok, issues = verify_against_receipt(root, receipt, vault=vault)
         assert ok, issues
+    finally:
+        server.shutdown()
+
+
+def test_m4_http_notary_rejects_unauthorized(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    vault = Vault(tmp_path / "http-vault")
+    vault.init()
+    monkeypatch.delenv("NULLBENCH_NOTARY_TOKEN", raising=False)
+    server, token = serve_notary("127.0.0.1", 0, vault=vault, token="secret")
+    host, port = server.server_address[:2]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        monkeypatch.delenv("NULLBENCH_NOTARY_TOKEN", raising=False)
+        with pytest.raises(VaultError):
+            post_receipt({"tip_line_hash": "abc"}, url=f"http://{host}:{port}")
+        monkeypatch.setenv("NULLBENCH_NOTARY_TOKEN", token)
+        # wrong tip empty still appends once authorized — use minimal payload
+        receipt = post_receipt({"note": "auth-ok"}, url=f"http://{host}:{port}")
+        assert receipt.get("signature")
     finally:
         server.shutdown()
 

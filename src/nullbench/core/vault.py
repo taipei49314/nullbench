@@ -97,6 +97,12 @@ class Vault:
 
     def append_receipt(self, payload: dict[str, Any]) -> dict[str, Any]:
         meta = self._require()
+        tip = payload.get("tip_line_hash")
+        if tip and self.find_by_tip(str(tip)):
+            raise VaultError(
+                "tip already notarized",
+                hint="refuse duplicate tip_line_hash (poison / replay)",
+            )
         body = {
             "schema": VAULT_SCHEMA,
             "receipt_id": str(uuid4()),

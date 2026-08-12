@@ -1,9 +1,13 @@
-"""Built-in + entry-point strategy implementations."""
+"""Built-in + entry-point strategy implementations.
+
+IC-09: entry-point *names* may be listed without import; ``ep.load()`` runs only
+after ``assert_plugins_trusted`` (or explicit trust env / allowlist).
+"""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from importlib.metadata import entry_points
-from typing import Callable
 
 from nullbench.core.models import Draw, GameSpec, StrategySpec, Ticket
 from nullbench.errors import StrategyError
@@ -22,37 +26,53 @@ _BUILTIN_META: dict[str, str] = {
     "frequency": "Laplace-smoothed frequency sampler (no look-ahead)",
 }
 
-_PLUGIN_CACHE: dict[str, ProposeFn] | None = None
+# Loaded plugins only (never populate by scanning EPs eagerly)
+_PLUGIN_CACHE: dict[str, ProposeFn] = {}
 
 
-def _load_plugins() -> dict[str, ProposeFn]:
-    global _PLUGIN_CACHE
-    if _PLUGIN_CACHE is not None:
-        return _PLUGIN_CACHE
-    found: dict[str, ProposeFn] = {}
+def _strategy_entry_points():
     try:
-        eps = entry_points(group="nullbench.strategies")
+        return list(entry_points(group="nullbench.strategies"))
     except TypeError:
-        eps = entry_points().get("nullbench.strategies", [])  # type: ignore[assignment]
-    for ep in eps:
-        try:
-            found[ep.name] = ep.load()
-        except Exception:
+        return list(entry_points().get("nullbench.strategies", []) or [])  # type: ignore[attr-defined]
+
+
+def plugin_strategy_names() -> list[str]:
+    """Entry-point names without importing plugin modules (IC-09)."""
+    names: list[str] = []
+    for ep in _strategy_entry_points():
+        name = getattr(ep, "name", None)
+        if name:
+            names.append(str(name))
+    return names
+
+
+def _load_plugin_strategy(kind: str) -> ProposeFn:
+    if kind in _PLUGIN_CACHE:
+        return _PLUGIN_CACHE[kind]
+    for ep in _strategy_entry_points():
+        if getattr(ep, "name", None) != kind:
             continue
-    _PLUGIN_CACHE = found
-    return found
+        fn = ep.load()
+        _PLUGIN_CACHE[kind] = fn
+        return fn
+    raise StrategyError(
+        f"unknown strategy kind {kind!r}",
+        hint=f"known: {', '.join(list_strategies())}. Run: nullbench strategies",
+    )
 
 
 def list_strategies() -> list[str]:
-    return sorted(set(_BUILTIN) | set(_load_plugins()))
+    return sorted(set(_BUILTIN) | set(plugin_strategy_names()) | set(_PLUGIN_CACHE))
 
 
 def list_strategy_infos() -> list[dict[str, str]]:
-    plugins = _load_plugins()
     rows = []
     for name in list_strategies():
         if name in _BUILTIN:
-            rows.append({"id": name, "source": "builtin", "description": _BUILTIN_META.get(name, "")})
+            rows.append(
+                {"id": name, "source": "builtin", "description": _BUILTIN_META.get(name, "")}
+            )
         else:
             rows.append({"id": name, "source": "plugin", "description": "entry-point plugin"})
     return rows
@@ -61,18 +81,14 @@ def list_strategy_infos() -> list[dict[str, str]]:
 def get_strategy(kind: str) -> ProposeFn:
     if kind in _BUILTIN:
         return _BUILTIN[kind]
-    plugins = _load_plugins()
-    if kind in plugins:
-        return plugins[kind]
-    known = ", ".join(list_strategies())
-    raise StrategyError(
-        f"unknown strategy kind {kind!r}",
-        hint=f"known: {known}. Run: nullbench strategies",
-    )
+    # Trust gate before import (IC-09) — closes eager ep.load() RCE
+    from nullbench.core.integrity import assert_plugins_trusted
+
+    assert_plugins_trusted(kind, is_domain=False)
+    return _load_plugin_strategy(kind)
 
 
 def register_strategy(kind: str, fn: ProposeFn) -> None:
     """Runtime registration (tests / notebooks)."""
     _BUILTIN[kind] = fn
-    global _PLUGIN_CACHE
-    _PLUGIN_CACHE = None
+    _PLUGIN_CACHE.pop(kind, None)
