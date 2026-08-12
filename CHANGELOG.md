@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.1 — 2026-08-12
+
+### Red-team hardening (R-03 / IC-09 / M4 UX)
+
+- Semantic audit recomputes **null_results** and requires **settle.draw ≡ draws.jsonl**
+- Doctor fail-closed when vault has experiment receipts but tip/receipt missing
+- Plugins: list entry-point names without `ep.load()`; load only after trust gate
+- Study-local `plugins.allowlist` no longer a trust root (env / `~/.config` only)
+- HTTP notary: Bearer `NULLBENCH_NOTARY_TOKEN`; reject duplicate `tip_line_hash`
+
 ## 0.8.0 — 2026-08-12
 
 ### M4 external vault notary

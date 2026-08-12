@@ -1,4 +1,8 @@
-"""Domain packs — built-in registry + entry-point plugins."""
+"""Domain packs — built-in registry + entry-point plugins.
+
+IC-09: list plugin ids from entry-point metadata without ``ep.load()``;
+loading happens only after ``assert_plugins_trusted``.
+"""
 
 from __future__ import annotations
 
@@ -35,55 +39,80 @@ _BUILTIN: dict[str, DomainInfo] = {
     ),
 }
 
-_PLUGIN_CACHE: dict[str, DomainInfo] | None = None
+_PLUGIN_CACHE: dict[str, DomainInfo] = {}
 
 
-def _load_plugin_domains() -> dict[str, DomainInfo]:
-    """Load domains from entry points group ``nullbench.domains``.
-
-    Entry target may be:
-    - a module with DOMAIN_ID + GAME (+ optional prepare_data / write_demo_data)
-    - a zero-arg callable returning such a module or DomainInfo
-    """
-    global _PLUGIN_CACHE
-    if _PLUGIN_CACHE is not None:
-        return _PLUGIN_CACHE
-    found: dict[str, DomainInfo] = {}
+def _domain_entry_points():
     try:
-        eps = entry_points(group="nullbench.domains")
+        return list(entry_points(group="nullbench.domains"))
     except TypeError:
-        eps = entry_points().get("nullbench.domains", [])  # type: ignore[assignment]
-    for ep in eps:
-        try:
-            obj = ep.load()
-            if callable(obj) and not hasattr(obj, "GAME"):
-                obj = obj()
-            if isinstance(obj, DomainInfo):
-                found[obj.id] = obj
-                continue
-            mod = obj
-            domain_id = getattr(mod, "DOMAIN_ID", ep.name)
-            game = getattr(mod, "GAME", None)
-            if game is None:
-                continue
-            network = bool(getattr(mod, "NETWORK", hasattr(mod, "prepare_data")))
-            found[domain_id] = DomainInfo(
-                id=domain_id,
-                name=getattr(game, "name", domain_id),
-                network=network,
-                description=getattr(game, "description", "") or f"plugin:{ep.name}",
-                module=mod,
-            )
-        except Exception:
+        return list(entry_points().get("nullbench.domains", []) or [])  # type: ignore[attr-defined]
+
+
+def plugin_domain_names() -> list[str]:
+    """Entry-point names without importing plugins (IC-09)."""
+    names: list[str] = []
+    for ep in _domain_entry_points():
+        name = getattr(ep, "name", None)
+        if name:
+            names.append(str(name))
+    return names
+
+
+def _materialize_domain(ep_name: str, obj: Any) -> DomainInfo | None:
+    if callable(obj) and not hasattr(obj, "GAME"):
+        obj = obj()
+    if isinstance(obj, DomainInfo):
+        return obj
+    mod = obj
+    domain_id = getattr(mod, "DOMAIN_ID", ep_name)
+    game = getattr(mod, "GAME", None)
+    if game is None:
+        return None
+    network = bool(getattr(mod, "NETWORK", hasattr(mod, "prepare_data")))
+    return DomainInfo(
+        id=domain_id,
+        name=getattr(game, "name", domain_id),
+        network=network,
+        description=getattr(game, "description", "") or f"plugin:{ep_name}",
+        module=mod,
+    )
+
+
+def _load_plugin_domain(domain_id: str) -> DomainInfo:
+    if domain_id in _PLUGIN_CACHE:
+        return _PLUGIN_CACHE[domain_id]
+    for ep in _domain_entry_points():
+        ep_name = str(getattr(ep, "name", "") or "")
+        if ep_name != domain_id:
             continue
-    _PLUGIN_CACHE = found
-    return found
+        try:
+            info = _materialize_domain(ep_name, ep.load())
+        except Exception as e:
+            raise DomainError(
+                f"failed to load domain plugin {domain_id!r}",
+                hint=str(e),
+            ) from e
+        if info is None:
+            raise DomainError(
+                f"domain plugin {domain_id!r} missing GAME",
+                hint="entry point must expose GAME / DomainInfo",
+            )
+        _PLUGIN_CACHE[info.id] = info
+        if ep_name != info.id:
+            _PLUGIN_CACHE[ep_name] = info
+        return info
+    raise DomainError(
+        f"unknown domain {domain_id!r}",
+        hint=f"known domains: {', '.join(list_domains())}. Run: nullbench domains -v",
+    )
 
 
 def _all() -> dict[str, DomainInfo]:
+    """Builtins + already-loaded plugins (does not import new EPs)."""
     merged = dict(_BUILTIN)
-    for k, v in _load_plugin_domains().items():
-        if k not in merged:  # builtins win on id clash
+    for k, v in _PLUGIN_CACHE.items():
+        if k not in merged:
             merged[k] = v
     return merged
 
@@ -93,15 +122,14 @@ REGISTRY: dict[str, ModuleType] = {k: v.module for k, v in _BUILTIN.items()}
 
 
 def get_domain_info(domain_id: str) -> DomainInfo:
-    reg = _all()
-    try:
-        return reg[domain_id]
-    except KeyError as e:
-        known = ", ".join(list_domains())
-        raise DomainError(
-            f"unknown domain {domain_id!r}",
-            hint=f"known domains: {known}. Run: nullbench domains -v",
-        ) from e
+    if domain_id in _BUILTIN:
+        return _BUILTIN[domain_id]
+    if domain_id in _PLUGIN_CACHE:
+        return _PLUGIN_CACHE[domain_id]
+    from nullbench.core.integrity import assert_plugins_trusted
+
+    assert_plugins_trusted(domain_id, is_domain=True)
+    return _load_plugin_domain(domain_id)
 
 
 def get_domain(domain_id: str) -> Any:
@@ -113,12 +141,21 @@ def game_for(domain_id: str) -> GameSpec:
 
 
 def list_domains() -> list[str]:
-    return sorted(_all())
+    return sorted(set(_BUILTIN) | set(plugin_domain_names()) | set(_PLUGIN_CACHE))
 
 
 def list_domain_infos() -> list[DomainInfo]:
-    reg = _all()
-    return [reg[k] for k in list_domains()]
+    """Builtins + loaded plugins. Unloaded EP ids appear in ``list_domains`` only."""
+    infos: list[DomainInfo] = []
+    seen: set[str] = set()
+    for k in list_domains():
+        if k in _BUILTIN:
+            infos.append(_BUILTIN[k])
+            seen.add(k)
+        elif k in _PLUGIN_CACHE and _PLUGIN_CACHE[k].id not in seen:
+            infos.append(_PLUGIN_CACHE[k])
+            seen.add(_PLUGIN_CACHE[k].id)
+    return infos
 
 
 def domain_needs_network(domain_id: str) -> bool:
@@ -127,6 +164,5 @@ def domain_needs_network(domain_id: str) -> bool:
 
 def register_domain(info: DomainInfo) -> None:
     """Runtime registration (tests / notebooks)."""
-    global _PLUGIN_CACHE
     _BUILTIN[info.id] = info
-    _PLUGIN_CACHE = None
+    _PLUGIN_CACHE.pop(info.id, None)

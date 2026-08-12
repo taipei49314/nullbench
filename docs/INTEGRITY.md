@@ -26,10 +26,18 @@ Hardening (0.6.1+):
 Trust a plugin without global `NULLBENCH_TRUST_PLUGINS=1`:
 
 1. `NULLBENCH_PLUGIN_ALLOWLIST=/path/to/file`, or
-2. `<study>/plugins.allowlist`, or
-3. `~/.config/nullbench/plugins.allowlist`
+2. `~/.config/nullbench/plugins.allowlist`
 
 Format: one id per line (`strategy:foo`, `domain:bar`, or bare `foo`). See `examples/plugins.allowlist`.
+
+**Not trusted:** `<study>/plugins.allowlist` (A2 can write the study tree).  
+Entry-point modules are **not imported** until a trusted `get_strategy` / `get_domain` call (IC-09).
+
+Hardening (0.8.1+):
+
+- **R-03:** settle.draw must match `draws.jsonl`; `null_results` recomputed vs null bank
+- Doctor fail-closed if vault has receipts for the experiment but tip/receipt missing
+- HTTP notary requires `NULLBENCH_NOTARY_TOKEN` (Bearer); duplicate `tip_line_hash` refused
 
 ## Commands
 

@@ -618,15 +618,15 @@ def vault_serve(
     port: int = typer.Option(8765, "--port"),
     path: Optional[Path] = typer.Option(None, "--path"),
 ) -> None:
-    """Run a local HTTP notary bound to this vault (M4 remote-capable stub)."""
-    from nullbench.core.notary_http import serve_notary
+    """Run a local HTTP notary bound to this vault (Bearer token required)."""
+    from nullbench.core.notary_http import TOKEN_ENV, serve_notary
     from nullbench.core.vault import Vault
 
     try:
         v = Vault(path)
         if not v.exists():
             v.init()
-        server = serve_notary(host, port, vault=v)
+        server, token = serve_notary(host, port, vault=v)
     except NullbenchError as e:
         _fail(e)
     console.print(
@@ -634,6 +634,7 @@ def vault_serve(
         f"(vault={v.root})"
     )
     console.print(f"Set NULLBENCH_NOTARY_URL=http://{host}:{port} on clients.")
+    console.print(f"Set {TOKEN_ENV}={token} on clients (Authorization: Bearer).")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

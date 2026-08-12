@@ -201,10 +201,19 @@ def verify_study_vault(
     receipt_path: Path | None = None,
     vault: Vault | None = None,
 ) -> tuple[bool, list[str], dict[str, Any] | None]:
-    """Load receipt (path, study copy, or vault-by-tip) and verify."""
+    """Load receipt (path, study copy, or vault-by-tip) and verify.
+
+    If the vault holds any receipt for this experiment_id but the current tip
+    is not notarized (e.g. local receipt deleted after A5 rewrite), fail closed.
+    """
     root = root.resolve()
     vault = vault or Vault()
     receipt: dict[str, Any] | None = None
+    experiment_id: str | None = None
+    try:
+        experiment_id = Study(root).load_experiment().experiment_id
+    except Exception:
+        experiment_id = None
 
     if receipt_path is not None:
         receipt = json.loads(Path(receipt_path).read_text(encoding="utf-8"))
@@ -213,10 +222,27 @@ def verify_study_vault(
         if local.is_file():
             receipt = json.loads(local.read_text(encoding="utf-8"))
         else:
-            tip = load_tip(root)
-            receipt = vault.find_by_tip(str(tip.get("line_hash")))
+            try:
+                tip = load_tip(root)
+            except VaultError as e:
+                return False, [e.message], None
+            receipt = vault.find_by_tip(str(tip.get("line_hash"))) if vault.exists() else None
 
     if receipt is None:
+        if vault.exists() and experiment_id:
+            prior = [
+                r for r in vault.iter_receipts() if r.get("experiment_id") == experiment_id
+            ]
+            if prior:
+                return (
+                    False,
+                    [
+                        f"vault has {len(prior)} receipt(s) for experiment {experiment_id!r} "
+                        "but none match the current tip "
+                        "(possible receipt deletion after A5 rewrite)"
+                    ],
+                    None,
+                )
         return False, ["no vault receipt found for this study tip"], None
 
     ok, issues = verify_against_receipt(root, receipt, vault=vault)
