@@ -93,7 +93,7 @@ ignore = [
 "src/nullbench/cli.py" = ["B008"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 packages = ["nullbench"]
 warn_return_any = false
 warn_unused_ignores = false
@@ -111,6 +111,7 @@ module = [
   "numpy.*",
 ]
 ignore_missing_imports = true
+follow_imports = "skip"
 
 [tool.coverage.run]
 branch = true
