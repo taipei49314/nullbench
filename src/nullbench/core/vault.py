@@ -8,16 +8,17 @@ receipt, even when local seals were rewritten consistently.
 
 from __future__ import annotations
 
+import contextlib
 import hmac
 import json
 import os
 import secrets
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from nullbench.core.hashing import canonical_json, content_hash, sha256_hex
+from nullbench.core.hashing import canonical_json, content_hash
 from nullbench.errors import VaultError
 
 VAULT_SCHEMA = "nullbench.vault.receipt.v1"
@@ -54,14 +55,12 @@ class Vault:
         meta = {
             "schema": "nullbench.vault.v1",
             "vault_id": vault_id,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "alg": "HMAC-SHA256",
         }
         self.key_path.write_text(key, encoding="utf-8")
-        try:
+        with contextlib.suppress(OSError):
             os.chmod(self.key_path, 0o600)
-        except OSError:
-            pass
         self.meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
         if not self.receipts_path.exists():
             self.receipts_path.write_text("", encoding="utf-8")
@@ -107,7 +106,7 @@ class Vault:
             "schema": VAULT_SCHEMA,
             "receipt_id": str(uuid4()),
             "vault_id": meta["vault_id"],
-            "notarized_at": datetime.now(timezone.utc).isoformat(),
+            "notarized_at": datetime.now(UTC).isoformat(),
             **payload,
         }
         # stable order for signing

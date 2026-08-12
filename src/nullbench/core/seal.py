@@ -163,8 +163,7 @@ def verify_against_receipt(
         )
     if tip.get("n_lines") != receipt.get("tip_n_lines"):
         issues.append(
-            f"tip_n_lines mismatch study={tip.get('n_lines')} "
-            f"receipt={receipt.get('tip_n_lines')}"
+            f"tip_n_lines mismatch study={tip.get('n_lines')} receipt={receipt.get('tip_n_lines')}"
         )
 
     try:

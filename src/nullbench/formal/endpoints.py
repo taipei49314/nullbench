@@ -118,9 +118,8 @@ def evaluate_formal_endpoint(
     if alpha is None:
         upcoming = sorted(config.checkpoints)
         next_look = next((k for k in upcoming if k > n_settled), None)
-        note = (
-            f"Between looks (n={n_settled}). Descriptive only. "
-            + (f"Next formal look at n={next_look}." if next_look else "Past final look.")
+        note = f"Between looks (n={n_settled}). Descriptive only. " + (
+            f"Next formal look at n={next_look}." if next_look else "Past final look."
         )
         return FormalEvaluation(
             n_settled=n_settled,

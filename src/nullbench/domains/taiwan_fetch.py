@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 import time
 import urllib.request
-from datetime import date
+from collections.abc import Callable
+from datetime import UTC, date
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from nullbench.core.models import Draw
 
@@ -142,7 +143,7 @@ def write_draws_jsonl(draws: list[Draw], path: Path) -> None:
 def write_cache_provenance(cache_dir: Path, game_key: str) -> Path:
     """Record SHA-256 of each raw month cache file (IC-10 provenance)."""
     import hashlib
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     raw_dir = cache_dir / "raw" / game_key
     rows = []
@@ -159,7 +160,7 @@ def write_cache_provenance(cache_dir: Path, game_key: str) -> Path:
             )
     out = cache_dir / "provenance" / f"{game_key}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).isoformat()
+    stamp = datetime.now(UTC).isoformat()
     lines = [
         json.dumps({"type": "provenance_batch", "ts": stamp, "game_key": game_key, "n": len(rows)})
     ]

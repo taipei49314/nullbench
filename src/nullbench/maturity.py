@@ -7,7 +7,6 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-
 LEVELS = (
     ("M0", "Lab CLI / demo / PyPI", "done"),
     ("M1", "Sealed local study (must-pass gate)", "done"),

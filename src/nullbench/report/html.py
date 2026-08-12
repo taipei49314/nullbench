@@ -284,12 +284,12 @@ def _formal_section(formal: dict[str, Any] | None) -> str:
 <h2>Formal endpoint (alpha-spending)</h2>
 <div class="card">
   <p>
-    <span class="badge {badge}">{'OPEN' if open_ else 'CLOSED'}</span>
-    checkpoint n={formal.get('n_settled', '—')}
-    · α spent = {formal.get('alpha_spent', '—')}
-    · primary = <code>{esc(str(formal.get('primary_strategy') or '—'))}</code>
+    <span class="badge {badge}">{"OPEN" if open_ else "CLOSED"}</span>
+    checkpoint n={formal.get("n_settled", "—")}
+    · α spent = {formal.get("alpha_spent", "—")}
+    · primary = <code>{esc(str(formal.get("primary_strategy") or "—"))}</code>
   </p>
-  <p class="muted">{esc(formal.get('note', ''))}</p>
+  <p class="muted">{esc(formal.get("note", ""))}</p>
   <table>
     <thead><tr><th>Strategy</th><th>Cum P&amp;L</th><th>Empirical p</th><th>α</th><th>Reject H0</th></tr></thead>
     <tbody>{"".join(rows)}</tbody>

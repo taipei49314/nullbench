@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -35,7 +34,7 @@ app = typer.Typer(
 console = Console()
 
 
-def _root(path: Optional[Path]) -> Path:
+def _root(path: Path | None) -> Path:
     return (path or Path.cwd()).resolve()
 
 
@@ -63,9 +62,7 @@ def maturity(
     check_m1: bool = typer.Option(
         False, "--check-m1", help="Run M1 adversarial gate (pytest -m m1)"
     ),
-    check_m4: bool = typer.Option(
-        False, "--check-m4", help="Run M4 vault gate (pytest -m m4)"
-    ),
+    check_m4: bool = typer.Option(False, "--check-m4", help="Run M4 vault gate (pytest -m m4)"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
     """Show maturity ladder M0-M4; optionally run M1/M4 product gates."""
@@ -87,7 +84,9 @@ def maturity(
     for item in status.m4_checklist:
         console.print(f"  {item['id']}  {item['item']}")
     if not check_m1 and not check_m4:
-        console.print("\nGates: [cyan]nullbench maturity --check-m1[/cyan] | [cyan]--check-m4[/cyan]")
+        console.print(
+            "\nGates: [cyan]nullbench maturity --check-m1[/cyan] | [cyan]--check-m4[/cyan]"
+        )
         return
     failed = False
     if check_m1:
@@ -114,7 +113,7 @@ def maturity(
 
 @app.command()
 def doctor(
-    study: Optional[Path] = typer.Option(None, "--study", "-s"),
+    study: Path | None = typer.Option(None, "--study", "-s"),
 ) -> None:
     """Check environment (and optional study) health."""
     info = run_doctor(_root(study) if study else None)
@@ -228,14 +227,14 @@ def init_cmd(
     null_portfolios: int = typer.Option(200, "--nulls"),
     demo_draws: int = typer.Option(120, "--demo-draws"),
     fetch: bool = typer.Option(False, "--fetch", help="Fetch network data (taiwan_*)"),
-    max_months: Optional[int] = typer.Option(None, "--max-months"),
+    max_months: int | None = typer.Option(None, "--max-months"),
     formal: bool = typer.Option(
         False, "--formal", help="Enable alpha-spending formal endpoint (26/52)"
     ),
-    formal_primary: Optional[str] = typer.Option(
+    formal_primary: str | None = typer.Option(
         None, "--formal-primary", help="Primary strategy id for formal claim"
     ),
-    path: Optional[Path] = typer.Option(None, "--path", help="Parent directory"),
+    path: Path | None = typer.Option(None, "--path", help="Parent directory"),
 ) -> None:
     """Create a new study workspace (writes STUDY.md)."""
     parent = path or Path.cwd()
@@ -265,7 +264,7 @@ def init_cmd(
 def formal_cmd(
     study: Path = typer.Option(..., "--study", "-s"),
     enable: bool = typer.Option(True, "--enable/--disable"),
-    primary: Optional[str] = typer.Option(None, "--primary", help="Primary strategy id"),
+    primary: str | None = typer.Option(None, "--primary", help="Primary strategy id"),
 ) -> None:
     """Enable/disable formal alpha-spending endpoint (before any freeze)."""
     try:
@@ -284,7 +283,7 @@ def formal_cmd(
 @app.command("ingest")
 def ingest_cmd(
     study: Path = typer.Option(..., "--study", "-s"),
-    max_months: Optional[int] = typer.Option(None, "--max-months"),
+    max_months: int | None = typer.Option(None, "--max-months"),
 ) -> None:
     """Fetch/refresh official data for network domains."""
     try:
@@ -299,7 +298,7 @@ def strategy_cmd(
     action: str = typer.Argument(..., help="add"),
     kind: str = typer.Argument(..., help="random | frequency | plugin"),
     study: Path = typer.Option(..., "--study", "-s"),
-    strategy_id: Optional[str] = typer.Option(None, "--id"),
+    strategy_id: str | None = typer.Option(None, "--id"),
     tickets: int = typer.Option(5, "--tickets", "-n"),
     seed: int = typer.Option(0, "--seed"),
     window: int = typer.Option(50, "--window"),
@@ -327,10 +326,10 @@ def strategy_cmd(
 
 @app.command("freeze")
 def freeze_cmd(
-    period: Optional[str] = typer.Argument(None, help="Period id (or use --latest)"),
+    period: str | None = typer.Argument(None, help="Period id (or use --latest)"),
     study: Path = typer.Option(..., "--study", "-s"),
     latest: bool = typer.Option(False, "--latest", help="Freeze newest unsettled period"),
-    last: Optional[int] = typer.Option(None, "--last", help="Freeze last N unsettled periods"),
+    last: int | None = typer.Option(None, "--last", help="Freeze last N unsettled periods"),
 ) -> None:
     """Freeze strategy tickets before using outcomes."""
     root = _root(study)
@@ -359,7 +358,7 @@ def freeze_cmd(
 @app.command("settle")
 def settle_cmd(
     study: Path = typer.Option(..., "--study", "-s"),
-    period: Optional[str] = typer.Option(None, "--period", "-p"),
+    period: str | None = typer.Option(None, "--period", "-p"),
 ) -> None:
     """Settle frozen periods (never rewrites freezes)."""
     try:
@@ -379,9 +378,7 @@ def settle_cmd(
 @app.command("report")
 def report_cmd(
     study: Path = typer.Option(..., "--study", "-s"),
-    open_html: bool = typer.Option(
-        False, "--open", help="Open latest.html in the default browser"
-    ),
+    open_html: bool = typer.Option(False, "--open", help="Open latest.html in the default browser"),
 ) -> None:
     """Build descriptive report vs null cloud + sequential evidence."""
     try:
@@ -443,9 +440,7 @@ def status_cmd(
     console.print(f"study: {info['root']}")
     console.print(f"experiment: {info['experiment_id']}  domain: {info['domain']}")
     console.print(f"strategies: {info['strategies']}")
-    console.print(
-        f"draws={info['draws']} freezes={info['freezes']} settles={info['settles']}"
-    )
+    console.print(f"draws={info['draws']} freezes={info['freezes']} settles={info['settles']}")
     flag = "[green]ok[/green]" if info["ledger_ok"] else "[red]BROKEN[/red]"
     console.print(f"ledger: {flag} ({info['ledger_msg']})")
     try:
@@ -506,7 +501,7 @@ def coverage_cmd(
 @app.command("demo")
 def demo_cmd(
     name: str = typer.Option("demo-study", "--name"),
-    path: Optional[Path] = typer.Option(None, "--path"),
+    path: Path | None = typer.Option(None, "--path"),
     settle_last: int = typer.Option(10, "--periods"),
 ) -> None:
     """One-shot golden path: init → strategies → freeze/settle → report."""
@@ -550,9 +545,7 @@ def demo_cmd(
         {
             "periods": summary.periods_settled,
             "pnl": summary.strategy_cum_pnl,
-            "backends": {
-                k: v.get("backend") for k, v in summary.sequential_evidence.items()
-            },
+            "backends": {k: v.get("backend") for k, v in summary.sequential_evidence.items()},
         }
     )
 
@@ -567,7 +560,7 @@ app.add_typer(vault_app, name="vault")
 
 @vault_app.command("init")
 def vault_init(
-    path: Optional[Path] = typer.Option(None, "--path", help="Vault directory"),
+    path: Path | None = typer.Option(None, "--path", help="Vault directory"),
     force: bool = typer.Option(False, "--force"),
 ) -> None:
     """Initialize a vault outside the study (HMAC key + receipts log)."""
@@ -584,7 +577,7 @@ def vault_init(
 
 @vault_app.command("list")
 def vault_list(
-    path: Optional[Path] = typer.Option(None, "--path"),
+    path: Path | None = typer.Option(None, "--path"),
     tail: int = typer.Option(10, "--tail"),
 ) -> None:
     """List recent vault receipts."""
@@ -616,7 +609,7 @@ def vault_list(
 def vault_serve(
     host: str = typer.Option("127.0.0.1", "--host"),
     port: int = typer.Option(8765, "--port"),
-    path: Optional[Path] = typer.Option(None, "--path"),
+    path: Path | None = typer.Option(None, "--path"),
 ) -> None:
     """Run a local HTTP notary bound to this vault (Bearer token required)."""
     from nullbench.core.notary_http import TOKEN_ENV, serve_notary
@@ -630,8 +623,7 @@ def vault_serve(
     except NullbenchError as e:
         _fail(e)
     console.print(
-        f"[green]Notary listening[/green] http://{host}:{port}/v1/notarize "
-        f"(vault={v.root})"
+        f"[green]Notary listening[/green] http://{host}:{port}/v1/notarize (vault={v.root})"
     )
     console.print(f"Set NULLBENCH_NOTARY_URL=http://{host}:{port} on clients.")
     console.print(f"Set {TOKEN_ENV}={token} on clients (Authorization: Bearer).")
@@ -660,10 +652,8 @@ def seal_export(
 @seal_app.command("notarize")
 def seal_notarize(
     study: Path = typer.Option(..., "--study", "-s"),
-    vault_path: Optional[Path] = typer.Option(None, "--vault"),
-    remote: bool = typer.Option(
-        False, "--remote", help="Also POST to NULLBENCH_NOTARY_URL if set"
-    ),
+    vault_path: Path | None = typer.Option(None, "--vault"),
+    remote: bool = typer.Option(False, "--remote", help="Also POST to NULLBENCH_NOTARY_URL if set"),
 ) -> None:
     """Notarize study tip into the external vault (A5 control)."""
     from nullbench.core.seal import notarize_study
@@ -696,8 +686,8 @@ def seal_notarize(
 @seal_app.command("verify")
 def seal_verify(
     study: Path = typer.Option(..., "--study", "-s"),
-    receipt: Optional[Path] = typer.Option(None, "--receipt", "-r"),
-    vault_path: Optional[Path] = typer.Option(None, "--vault"),
+    receipt: Path | None = typer.Option(None, "--receipt", "-r"),
+    vault_path: Path | None = typer.Option(None, "--vault"),
 ) -> None:
     """Verify study against a vault receipt (detects A5-style rewrite)."""
     from nullbench.core.seal import verify_study_vault

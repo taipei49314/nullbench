@@ -32,7 +32,7 @@ def brier_for_main_balls(
     draw: Draw,
     main_max: int,
     main_count: int,
-) -> dict[str, float]:
+) -> dict[str, float | str]:
     """
     Mean squared error of per-ball soft presence vs binary outcomes.
 

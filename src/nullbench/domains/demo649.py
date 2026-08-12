@@ -24,8 +24,7 @@ GAME = GameSpec(
         "6": 10_000_000.0,
     },
     description=(
-        "Synthetic 6-of-49 lab game for tutorials. "
-        "Prizes are illustrative, not any real lottery."
+        "Synthetic 6-of-49 lab game for tutorials. Prizes are illustrative, not any real lottery."
     ),
 )
 

@@ -39,9 +39,12 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
+  "pytest-cov>=5.0",
   "hypothesis>=6.100",
   "build>=1.2",
   "twine>=5.0",
+  "ruff>=0.6",
+  "mypy>=1.11",
 ]
 # Optional giants — thin adapters live under nullbench.scoring
 stats = [
@@ -49,6 +52,7 @@ stats = [
   # comparecast needs confseq (MSVC on Windows); pure-Python port is always on
   "comparecast>=1.0; platform_system != 'Windows'",
 ]
+# combinatorial coverage search (OR-Tools) — not code-coverage tooling
 coverage = [
   "ortools>=9.8",
 ]
@@ -75,3 +79,54 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+  "E501",  # line length handled by formatter budget
+  "B008",  # Typer Option/Argument defaults are idiomatic
+  "UP042", # keep str, Enum for pydantic compat
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011", "B018"]
+"src/nullbench/cli.py" = ["B008"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["nullbench"]
+warn_return_any = false
+warn_unused_ignores = false
+check_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+  "ortools.*",
+  "properscoring.*",
+  "comparecast.*",
+  "scipy.*",
+  "numpy.*",
+]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["nullbench"]
+omit = [
+  "*/nullbench/cli.py",
+  "*/nullbench/__main__.py",
+  "*/nullbench/coverage/*",
+]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true
+skip_empty = true
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]

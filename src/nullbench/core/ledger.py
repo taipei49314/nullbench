@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from nullbench.core.hashing import sha256_hex
 from nullbench.errors import IntegrityError
@@ -62,7 +63,9 @@ class Ledger:
         prev = self._last_line_hash()
         body = {k: v for k, v in event.items() if k not in ("prev_line_hash", "line_hash")}
         material = {"prev_line_hash": prev, **body}
-        digest = sha256_hex(json.dumps(material, sort_keys=True, separators=(",", ":"), default=str))
+        digest = sha256_hex(
+            json.dumps(material, sort_keys=True, separators=(",", ":"), default=str)
+        )
         row = {**material, "line_hash": digest}
         with self.path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(row, ensure_ascii=False, default=str) + "\n")

@@ -7,7 +7,6 @@ from pathlib import Path
 from nullbench.core.hashing import content_hash
 from nullbench.core.integrity import (
     assert_plugins_trusted,
-    code_fingerprint as seal_code_fingerprint,
     experiment_hash,
     freeze_content_hash,
     history_before,
@@ -16,6 +15,9 @@ from nullbench.core.integrity import (
     outcome_hash,
     require_freeze_seals,
     verify_freeze_row,
+)
+from nullbench.core.integrity import (
+    code_fingerprint as seal_code_fingerprint,
 )
 from nullbench.core.models import (
     ClaimStatus,
@@ -74,9 +76,7 @@ def init_study(
         raise DataError(e.message, hint=e.hint) from e
     game = game_for(domain)
     mod = get_domain(domain)
-    if hasattr(mod, "write_demo_data") and not hasattr(mod, "prepare_data"):
-        mod.write_demo_data(study.draws_path, n=demo_draws)
-    elif domain == "demo649":
+    if hasattr(mod, "write_demo_data") and not hasattr(mod, "prepare_data") or domain == "demo649":
         mod.write_demo_data(study.draws_path, n=demo_draws)
     elif hasattr(mod, "prepare_data") and fetch:
         mod.prepare_data(study.data_dir, max_months=max_months)
@@ -356,9 +356,7 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
     ledger = study.ledger()
 
     freezes = [
-        e
-        for e in ledger.events_of("freeze")
-        if e.get("experiment_id") == spec.experiment_id
+        e for e in ledger.events_of("freeze") if e.get("experiment_id") == spec.experiment_id
     ]
     settled = {
         e["period"]
@@ -498,9 +496,7 @@ def build_report(root: Path) -> ReportSummary:
     spec = study.load_experiment()
     ledger = study.ledger()
     settles = [
-        e
-        for e in ledger.events_of("settle")
-        if e.get("experiment_id") == spec.experiment_id
+        e for e in ledger.events_of("settle") if e.get("experiment_id") == spec.experiment_id
     ]
     if not settles:
         raise SettleError(
@@ -526,9 +522,7 @@ def build_report(root: Path) -> ReportSummary:
             period_pnl.setdefault(sid, []).append(pnl)
         for r in s.get("null_results", []):
             pid = r["portfolio_id"]
-            null_cum_by_idx[pid] = null_cum_by_idx.get(pid, 0.0) + (
-                r["payout"] - r["cost"]
-            )
+            null_cum_by_idx[pid] = null_cum_by_idx.get(pid, 0.0) + (r["payout"] - r["cost"])
 
     null_final = list(null_cum_by_idx.values())
     null_mean = sum(null_final) / len(null_final) if null_final else 0.0
@@ -602,9 +596,7 @@ def build_report(root: Path) -> ReportSummary:
             "Taiwan floating jackpot tiers are valued at 0 (conservative fixed-only table)."
         )
     if len(settles) < 26:
-        warnings.append(
-            f"Only {len(settles)} settled period(s); treat percentiles as unstable."
-        )
+        warnings.append(f"Only {len(settles)} settled period(s); treat percentiles as unstable.")
 
     summary = ReportSummary(
         experiment_id=spec.experiment_id,
@@ -754,7 +746,7 @@ def render_report_markdown(
         for r in s["strategy_results"]:
             lines.append(
                 f"- `{r['portfolio_id']}`: cost={r['cost']:.0f} payout={r['payout']:.0f} "
-                f"pnl={r['payout']-r['cost']:.0f}"
+                f"pnl={r['payout'] - r['cost']:.0f}"
             )
         lines.append("")
     lines += [

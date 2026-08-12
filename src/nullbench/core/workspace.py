@@ -35,8 +35,7 @@ def write_study_readme(root: Path, spec: ExperimentSpec) -> Path:
         )
     else:
         periods_hint = (
-            "- No draws yet. If this is a network domain: "
-            f"`nullbench ingest --study {root}`\n"
+            f"- No draws yet. If this is a network domain: `nullbench ingest --study {root}`\n"
         )
 
     body = f"""# Study: {root.name}
@@ -142,9 +141,7 @@ def next_actions(root: Path) -> list[str]:
             actions.append("No draws — re-init with demo649 or add data/draws.jsonl")
         return actions
     if not spec.strategies:
-        actions.append(
-            f"nullbench strategy add random --study {root} --tickets 5 --seed 1"
-        )
+        actions.append(f"nullbench strategy add random --study {root} --tickets 5 --seed 1")
         actions.append(
             f"nullbench strategy add frequency --study {root} --id frequency --tickets 5"
         )
@@ -155,7 +152,9 @@ def next_actions(root: Path) -> list[str]:
         if e["period"] not in settled_periods:
             unsettled_frozen.add(e["period"])
     if unsettled_frozen:
-        actions.append(f"nullbench settle --study {root}   # pending: {sorted(unsettled_frozen)[:5]}")
+        actions.append(
+            f"nullbench settle --study {root}   # pending: {sorted(unsettled_frozen)[:5]}"
+        )
         return actions
     if not freezes:
         last = draws[-1].period
@@ -184,7 +183,9 @@ def doctor(root: Path | None = None) -> dict:
     from nullbench import __version__
 
     checks: list[dict] = []
-    checks.append({"name": "python", "ok": sys.version_info >= (3, 11), "detail": sys.version.split()[0]})
+    checks.append(
+        {"name": "python", "ok": sys.version_info >= (3, 11), "detail": sys.version.split()[0]}
+    )
     checks.append({"name": "nullbench", "ok": True, "detail": __version__})
     for mod, label in (
         ("numpy", "numpy"),

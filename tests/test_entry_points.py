@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nullbench.core.models import Draw, GameSpec, SpecialMode, StrategySpec, Ticket
+from nullbench.core.models import GameSpec, SpecialMode, StrategySpec, Ticket
 from nullbench.strategies import get_strategy, list_strategies, register_strategy
 
 

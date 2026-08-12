@@ -18,14 +18,12 @@ from nullbench.core.integrity import (
     code_fingerprint,
     experiment_hash,
     history_before,
-    history_hash,
-    outcome_hash,
     verify_freeze_row,
     verify_study_semantic,
 )
-from nullbench.core.models import Draw, ExperimentSpec
+from nullbench.core.models import Draw
 from nullbench.core.study import Study
-from nullbench.errors import IntegrityError, SettleError
+from nullbench.errors import SettleError
 from nullbench.report.html import _safe_script_json
 
 pytestmark = pytest.mark.m1
@@ -75,11 +73,7 @@ def test_m1_seal_experiment_and_freeze_hashes(tmp_path: Path) -> None:
     root, p = _fresh(tmp_path)
     spec = Study(root).load_experiment()
     exp_h = experiment_hash(spec)
-    freezes = [
-        e
-        for e in Study(root).ledger().events_of("freeze")
-        if e.get("period") == p
-    ]
+    freezes = [e for e in Study(root).ledger().events_of("freeze") if e.get("period") == p]
     assert freezes
     for fr in freezes:
         assert fr.get("experiment_hash") == exp_h
@@ -167,7 +161,7 @@ def test_m1_ic05_experiment_pin(tmp_path: Path) -> None:
 
 
 def test_m1_ic06_claim_lint() -> None:
-    assert scan_forbidden("winning numbers tonight") 
+    assert scan_forbidden("winning numbers tonight")
     assert_clean("Descriptive percentile vs equal-cost chance.")
     with pytest.raises(ValueError):
         assert_clean("We predict the next draw.")

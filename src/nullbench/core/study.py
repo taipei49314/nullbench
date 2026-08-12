@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from nullbench.core.ledger import Ledger
@@ -41,9 +40,7 @@ class Study:
     def load_experiment(self) -> ExperimentSpec:
         if not self.experiment_path.exists():
             raise FileNotFoundError(f"no experiment.json in {self.root}")
-        return ExperimentSpec.model_validate_json(
-            self.experiment_path.read_text(encoding="utf-8")
-        )
+        return ExperimentSpec.model_validate_json(self.experiment_path.read_text(encoding="utf-8"))
 
     def ledger(self) -> Ledger:
         self.ensure_layout()

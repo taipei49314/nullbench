@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from nullbench.core import pipeline
-from nullbench.core.models import FormalEndpointSpec, GameSpec, SpecialMode
+from nullbench.core.models import GameSpec, SpecialMode
 from nullbench.domains import get_domain_info, list_domains, register_domain
 from nullbench.formal.endpoints import (
     FormalEndpointConfig,
@@ -86,16 +86,15 @@ def test_register_domain_plugin(tmp_path: Path) -> None:
 
         @staticmethod
         def write_demo_data(path: Path, n: int = 20, seed: int = 1) -> Path:
-            from nullbench.core.models import Draw
             import random
+
+            from nullbench.core.models import Draw
 
             rng = random.Random(seed)
             lines = []
             for i in range(1, n + 1):
                 nums = sorted(rng.sample(range(1, 11), 3))
-                lines.append(
-                    Draw(period=f"T{i:03d}", numbers=nums).model_dump_json()
-                )
+                lines.append(Draw(period=f"T{i:03d}", numbers=nums).model_dump_json())
             path.write_text("\n".join(lines) + "\n", encoding="utf-8")
             return path
 
@@ -131,9 +130,7 @@ def test_render_html_smoke() -> None:
         strategy_cum_pnl={"a": -10.0},
         null_mean_cum_pnl=-12.0,
         strategy_percentiles={"a": 40.0},
-        sequential_evidence={
-            "a": {"backend": "test", "e_pq": 1.0, "lcb": -1.0, "ucb": 1.0}
-        },
+        sequential_evidence={"a": {"backend": "test", "e_pq": 1.0, "lcb": -1.0, "ucb": 1.0}},
     )
     html = render_html(spec=spec, summary=summary, settles=[], formal=None)
     assert "<!DOCTYPE html>" in html

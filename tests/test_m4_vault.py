@@ -101,7 +101,14 @@ def test_m4_file_hash_drift_detected(tmp_path: Path) -> None:
     draws.write_text(draws.read_text(encoding="utf-8") + "\n", encoding="utf-8")
     ok, issues = verify_against_receipt(root, receipt, vault=vault)
     assert ok is False
-    assert any("draws.jsonl" in i or "hash drift" in i or "semantic" in i.lower() or "payout" in i or "bundle" in i for i in issues)
+    assert any(
+        "draws.jsonl" in i
+        or "hash drift" in i
+        or "semantic" in i.lower()
+        or "payout" in i
+        or "bundle" in i
+        for i in issues
+    )
 
 
 def test_m4_http_notary_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
