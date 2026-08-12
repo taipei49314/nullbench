@@ -61,7 +61,11 @@ nullbench next --study my-study
 | `formal` | Enable alpha-spending looks (26/52) before freezes |
 | `domains -v` / `strategies -v` | Discovery (builtin + plugins) |
 
-After `report`, open **`reports/latest.html`** (single-file static) or `latest.md`.
+After `report`, open **`reports/latest.html`** (single-file static) or `latest.md`:
+
+```bash
+nullbench report --study my-study --open
+```
 
 ## Taiwan domains
 

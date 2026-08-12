@@ -325,6 +325,9 @@ def settle_cmd(
 @app.command("report")
 def report_cmd(
     study: Path = typer.Option(..., "--study", "-s"),
+    open_html: bool = typer.Option(
+        False, "--open", help="Open latest.html in the default browser"
+    ),
 ) -> None:
     """Build descriptive report vs null cloud + sequential evidence."""
     try:
@@ -334,8 +337,9 @@ def report_cmd(
             _fail(e)
         _fail(NullbenchError(str(e)))
     reports = Study(_root(study)).reports_dir
+    html_path = reports / "latest.html"
     console.print(f"[green]Report[/green] → {reports / 'latest.md'}")
-    console.print(f"  html  → {reports / 'latest.html'}")
+    console.print(f"  html  → {html_path}")
     console.print(f"  json  → {reports / 'latest.json'}")
     if summary.formal_endpoint:
         fe = summary.formal_endpoint
@@ -343,6 +347,11 @@ def report_cmd(
             f"  formal: open={fe.get('endpoint_open')} "
             f"n={fe.get('n_settled')} reject_H0={fe.get('reject_h0')}"
         )
+    if open_html and html_path.exists():
+        import webbrowser
+
+        webbrowser.open(html_path.resolve().as_uri())
+        console.print("  opened in browser")
     table = Table(title="Strategy vs null")
     table.add_column("Strategy")
     table.add_column("Cum P&L", justify="right")

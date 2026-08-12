@@ -14,6 +14,8 @@ nullbench is a thin **honesty layer** over domain games and scoring giants.
 │  hash chain   │  entry_points       │  offline / network    │
 ├───────────────┴─────────────────────┴───────────────────────┤
 │  Scoring        comparecast port · brier · null bank        │
+│  Formal         alpha-spending looks (26 / 52)              │
+│  Report         markdown · JSON · single-file HTML          │
 │  Coverage       OR-Tools (optional extra)                   │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -26,9 +28,11 @@ nullbench is a thin **honesty layer** over domain games and scoring giants.
 | Pipeline | `core/pipeline.py` | Golden path orchestration |
 | Contracts | `protocols.py`, `core/models.py`, `errors.py` | Stable types & errors |
 | Integrity | `core/ledger.py`, `core/hashing.py` | Append-only evidence |
-| Domain | `domains/*` | Game rules + data bootstrap |
-| Strategy | `strategies/*` | Pure proposal functions |
+| Domain | `domains/*` + entry points `nullbench.domains` | Game rules + data bootstrap |
+| Strategy | `strategies/*` + entry points `nullbench.strategies` | Pure proposal functions |
 | Scoring | `scoring/*` | Null comparison diagnostics |
+| Formal | `formal/*` | Pre-registered α-spending |
+| Report | `report/html.py` | Static single-file HTML |
 | Coverage | `coverage/*` | Combinatorial extras |
 
 ## Invariants

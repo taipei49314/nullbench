@@ -44,6 +44,8 @@ init → add strategies → freeze → settle → report → (repeat freeze)
 | Work | `init` `strategy` `freeze` `settle` `report` |
 | Taiwan data | `ingest` |
 | Structure | `coverage` |
+| Formal α | `formal --enable --primary …` (before freeze) |
+| View | `report --open` → `reports/latest.html` |
 
 ## Success metrics (product)
 

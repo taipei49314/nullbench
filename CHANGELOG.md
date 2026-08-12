@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1 — 2026-08-12
+
+### Product
+- `nullbench report --open` opens `latest.html` in the default browser
+- Docs: architecture/product maps formal + HTML report layers
+
+### Release
+- PyPI-ready build for 0.5.1 (upload with project-scoped token)
+
 ## 0.5.0 — 2026-08-12
 
 ### Product
