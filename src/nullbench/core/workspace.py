@@ -211,6 +211,9 @@ def doctor(root: Path | None = None) -> dict:
             ok, msg = study.ledger().verify_chain()
             if not ok:
                 raise IntegrityError(msg)
+            from nullbench.core.integrity import verify_study_semantic
+
+            sem_ok, sem_issues = verify_study_semantic(root)
             draws = load_draws(study.draws_path)
             study_info = {
                 "root": str(study.root),
@@ -219,9 +222,18 @@ def doctor(root: Path | None = None) -> dict:
                 "draws": len(draws),
                 "strategies": spec.strategy_ids(),
                 "ledger_ok": ok,
+                "semantic_ok": sem_ok,
+                "semantic_issues": sem_issues[:5],
             }
             checks.append({"name": "study", "ok": True, "detail": study.root.name})
-            checks.append({"name": "ledger", "ok": ok, "detail": msg})
+            checks.append({"name": "ledger_chain", "ok": ok, "detail": msg})
+            checks.append(
+                {
+                    "name": "ledger_semantic",
+                    "ok": sem_ok,
+                    "detail": "ok" if sem_ok else "; ".join(sem_issues[:2]),
+                }
+            )
         except Exception as e:
             checks.append({"name": "study", "ok": False, "detail": str(e)})
     return {

@@ -131,7 +131,7 @@ class ExperimentSpec(BaseModel):
 class FreezeRecord(BaseModel):
     """Pre-outcome lock. Outcomes after freeze must not rewrite this row."""
 
-    schema_version: str = "1"
+    schema_version: str = "2"
     type: str = "freeze"
     experiment_id: str
     period: str
@@ -139,6 +139,9 @@ class FreezeRecord(BaseModel):
     tickets: list[Ticket]
     content_hash: str
     code_fingerprint: str
+    experiment_hash: str = ""
+    history_hash: str = ""
+    outcome_hash: str | None = None  # sealed when draw already known at freeze
     frozen_at: datetime = Field(default_factory=utc_now)
     late: bool = False
     meta: dict[str, Any] = Field(default_factory=dict)
@@ -189,5 +192,5 @@ class ReportSummary(BaseModel):
     generated_at: datetime = Field(default_factory=utc_now)
     disclaimer: str = (
         "Descriptive only unless a pre-registered formal endpoint is open. "
-        "This tool does not predict outcomes or encourage real-money wagering."
+        "This tool does not forecast outcomes or encourage real-money wagering."
     )

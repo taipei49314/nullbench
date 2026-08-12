@@ -137,3 +137,32 @@ def write_draws_jsonl(draws: list[Draw], path: Path) -> None:
         "\n".join(d.model_dump_json() for d in draws) + ("\n" if draws else ""),
         encoding="utf-8",
     )
+
+
+def write_cache_provenance(cache_dir: Path, game_key: str) -> Path:
+    """Record SHA-256 of each raw month cache file (IC-10 provenance)."""
+    import hashlib
+    from datetime import datetime, timezone
+
+    raw_dir = cache_dir / "raw" / game_key
+    rows = []
+    if raw_dir.exists():
+        for f in sorted(raw_dir.glob("*.json")):
+            h = hashlib.sha256(f.read_bytes()).hexdigest()
+            rows.append(
+                {
+                    "file": f.name,
+                    "sha256": h,
+                    "bytes": f.stat().st_size,
+                    "game_key": game_key,
+                }
+            )
+    out = cache_dir / "provenance" / f"{game_key}.jsonl"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).isoformat()
+    lines = [
+        json.dumps({"type": "provenance_batch", "ts": stamp, "game_key": game_key, "n": len(rows)})
+    ]
+    lines.extend(json.dumps(r) for r in rows)
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return out

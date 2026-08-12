@@ -120,11 +120,13 @@ settle_period(root, "P0100")
 
 ## Design rules
 
-1. No look-ahead  
+1. No look-ahead (history ordered by date/period; `history_hash` sealed)  
 2. Never backfill freezes after settle  
-3. Change params after freezes → new experiment  
+3. Change params after freezes → new experiment (`experiment_hash` sealed)  
 4. Core path: deterministic, zero LLM  
-5. Reports default descriptive  
+5. Reports default descriptive; claim language scanned  
+6. Plugins off unless `NULLBENCH_TRUST_PLUGINS=1`  
+7. Ledger tip seal + semantic payout recompute — see [docs/INTEGRITY.md](docs/INTEGRITY.md)
 
 ## Ethics
 

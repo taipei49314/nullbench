@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.2 — 2026-08-12
+
+### Security / integrity (IC-01 … IC-10)
+
+- **IC-01/02:** settle recomputes payouts; freeze `content_hash` verified; tip seal on ledger; semantic audit
+- **IC-03/04:** `history_hash` + `outcome_hash`; history ordered by (date, period) not file order
+- **IC-05:** `experiment_hash` sealed at freeze (blocks null_seed / formal α edits)
+- **IC-06:** claim language scan on report markdown
+- **IC-07:** HTML chart JSON via `application/json` + `\u003c` escapes
+- **IC-08:** code fingerprint includes strategy/domain source
+- **IC-09:** entry-point plugins require `NULLBENCH_TRUST_PLUGINS=1`
+- **IC-10:** cache provenance JSONL; OIDC publish workflow docs
+
+See [docs/INTEGRITY.md](docs/INTEGRITY.md).
+
 ## 0.5.1 — 2026-08-12
 
 ### Product

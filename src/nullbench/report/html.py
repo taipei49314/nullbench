@@ -81,9 +81,9 @@ def render_html(
         lines.append("</ul>")
         recent.append("\n".join(lines))
 
-    # Chart data (sparkline-friendly cumulative series)
+    # Chart data — JSON for <script> must not break out (IC-07)
     chart = _cum_series(settles)
-    chart_json = json.dumps(chart)
+    chart_json = _safe_script_json(chart)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -188,9 +188,13 @@ svg.spark {{ width: 100%; height: 160px; background: #121a24; border-radius: 8px
   <p>Pre-register before outcomes. Never backfill. Not a prediction product.</p>
 </footer>
 
+<script type="application/json" id="chart-data">{chart_json}</script>
 <script>
-const CHART = {chart_json};
 (function() {{
+  const el = document.getElementById('chart-data');
+  if (!el) return;
+  let CHART;
+  try {{ CHART = JSON.parse(el.textContent); }} catch (e) {{ return; }}
   const svg = document.getElementById('spark');
   const legend = document.getElementById('spark-legend');
   if (!svg || !CHART.series || !CHART.series.length) return;
@@ -202,7 +206,7 @@ const CHART = {chart_json};
   const colors = ['#3d9cf0', '#3ecf8e', '#f0b429', '#f07178', '#c3a6ff'];
   const names = [];
   CHART.series.forEach((s, i) => {{
-    names.push(s.id);
+    names.push(String(s.id));
     const n = s.values.length;
     if (n < 1) return;
     let d = '';
@@ -218,7 +222,6 @@ const CHART = {chart_json};
     path.setAttribute('stroke-width', '2');
     svg.appendChild(path);
   }});
-  // zero line
   const z = H - pad - ((0 - min) / span) * (H - 2 * pad);
   const zero = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   zero.setAttribute('x1', pad); zero.setAttribute('x2', W - pad);
@@ -241,6 +244,19 @@ def _fmt(v: Any) -> str:
             return f"{v:.4g}"
         return f"{v:.4f}"
     return html.escape(str(v))
+
+
+def _safe_script_json(obj: Any) -> str:
+    """Embed JSON in HTML without script-breakout (IC-07)."""
+    raw = json.dumps(obj, ensure_ascii=True, separators=(",", ":"))
+    # Prevent </script> and <!-- breakouts inside JSON text nodes / scripts
+    return (
+        raw.replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
 
 
 def _formal_section(formal: dict[str, Any] | None) -> str:

@@ -43,6 +43,7 @@ def prepare_data(study_data_dir: Path, *, max_months: int | None = None) -> int:
     """Ingest API cache into study data/draws.jsonl. Returns draw count."""
     cache = study_data_dir / "cache"
     taiwan_fetch.ingest(GAME_KEY, cache, max_months=max_months)
+    taiwan_fetch.write_cache_provenance(cache, GAME_KEY)
     draws = taiwan_fetch.load_all_draws(GAME_KEY, cache)
     taiwan_fetch.write_draws_jsonl(draws, study_data_dir / "draws.jsonl")
     return len(draws)

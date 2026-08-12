@@ -21,7 +21,7 @@ def content_hash(payload: dict[str, Any]) -> str:
 
 
 def code_fingerprint() -> str:
-    """Lightweight fingerprint of public package version (not full tree hash)."""
+    """Deprecated thin wrapper — prefer integrity.code_fingerprint(...)."""
     from nullbench import __version__
 
     return sha256_hex(f"nullbench=={__version__}")[:16]

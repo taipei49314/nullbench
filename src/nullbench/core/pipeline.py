@@ -4,7 +4,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from nullbench.core.hashing import code_fingerprint, content_hash
+from nullbench.core.hashing import content_hash
+from nullbench.core.integrity import (
+    assert_plugins_trusted,
+    code_fingerprint as seal_code_fingerprint,
+    experiment_hash,
+    freeze_content_hash,
+    history_before,
+    history_hash,
+    order_draws,
+    outcome_hash,
+    verify_freeze_row,
+)
 from nullbench.core.models import (
     ClaimStatus,
     Draw,
@@ -23,6 +34,7 @@ from nullbench.domains import game_for, get_domain
 from nullbench.errors import (
     DataError,
     FreezeError,
+    IntegrityError,
     SettleError,
     StrategyError,
     StudyExistsError,
@@ -55,6 +67,10 @@ def init_study(
             hint="pick a new directory name, or continue with status/next",
         )
     study.ensure_layout()
+    try:
+        assert_plugins_trusted(domain, is_domain=True)
+    except IntegrityError as e:
+        raise DataError(e.message, hint=e.hint) from e
     game = game_for(domain)
     mod = get_domain(domain)
     if hasattr(mod, "write_demo_data") and not hasattr(mod, "prepare_data"):
@@ -143,6 +159,10 @@ def add_strategy(
             f"strategy id already exists: {strategy_id}",
             hint="choose a different --id",
         )
+    try:
+        assert_plugins_trusted(kind, is_domain=False)
+    except IntegrityError as e:
+        raise StrategyError(e.message, hint=e.hint) from e
     get_strategy(kind)
     ledger = study.ledger()
     if ledger.events_of("freeze"):
@@ -174,20 +194,11 @@ def load_draws(path: Path) -> list[Draw]:
         line = line.strip()
         if line:
             rows.append(Draw.model_validate_json(line))
-    return rows
-
-
-def _history_before(draws: list[Draw], period: str) -> list[Draw]:
-    out: list[Draw] = []
-    for d in draws:
-        if d.period == period:
-            break
-        out.append(d)
-    return out
+    # Always return stable causal order (IC-04)
+    return order_draws(rows)
 
 
 def _period_seed(period: str) -> int:
-    # Stable across processes (Python's hash() is randomized per process).
     from nullbench.core.hashing import sha256_hex
 
     return int(sha256_hex(period)[:8], 16)
@@ -204,6 +215,17 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
             hint=f"nullbench strategy add random --study {root} --tickets 5",
         )
 
+    # Trust gate for domain plugins (IC-09)
+    try:
+        assert_plugins_trusted(spec.domain, is_domain=True)
+    except IntegrityError as e:
+        raise FreezeError(e.message, hint=e.hint) from e
+    for s in spec.strategies:
+        try:
+            assert_plugins_trusted(s.kind, is_domain=False)
+        except IntegrityError as e:
+            raise FreezeError(e.message, hint=e.hint) from e
+
     draws = load_draws(study.draws_path)
     periods = {d.period for d in draws}
     if period not in periods:
@@ -214,7 +236,13 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
             + (f"  (examples: {sample})" if sample else ""),
         )
 
-    history = _history_before(draws, period)
+    history = history_before(draws, period)
+    h_hash = history_hash(history)
+    exp_h = experiment_hash(spec)
+    by_period = {d.period: d for d in draws}
+    # Seal outcome if already present (demo/backfill) — IC-03
+    oh = outcome_hash(by_period[period]) if period in by_period else None
+
     ledger = study.ledger()
     settled = {
         e["period"]
@@ -224,7 +252,7 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
     if period in settled:
         raise FreezeError(
             f"period {period} already settled — never backfill freezes",
-            hint="choose a later unsettleable period or start a new experiment",
+            hint="choose a later period or start a new experiment",
         )
 
     existing = {
@@ -233,31 +261,43 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
         if e.get("experiment_id") == spec.experiment_id
     }
 
-    records: list[FreezeRecord] = []
-    fp = code_fingerprint()
+    kinds = [s.kind for s in spec.strategies]
+    fp = seal_code_fingerprint(strategy_kinds=kinds, domain_id=spec.domain)
     pseed = _period_seed(period)
+    records: list[FreezeRecord] = []
 
     for s in spec.strategies:
         if (s.id, period) in existing:
-            # idempotent: skip
             continue
         fn = get_strategy(s.kind)
         tickets = fn(spec.game, s, history, pseed)
-        payload = {
-            "experiment_id": spec.experiment_id,
-            "period": period,
-            "strategy_id": s.id,
-            "tickets": [t.model_dump() for t in tickets],
-        }
+        ch = freeze_content_hash(
+            experiment_id=spec.experiment_id,
+            period=period,
+            strategy_id=s.id,
+            tickets=tickets,
+            experiment_hash_=exp_h,
+            history_hash_=h_hash,
+            code_fingerprint_=fp,
+            outcome_hash=oh,
+        )
         rec = FreezeRecord(
             experiment_id=spec.experiment_id,
             period=period,
             strategy_id=s.id,
             tickets=tickets,
-            content_hash=content_hash(payload),
+            content_hash=ch,
             code_fingerprint=fp,
+            experiment_hash=exp_h,
+            history_hash=h_hash,
+            outcome_hash=oh,
             late=False,
-            meta={"history_draws_used": len(history), "strategy_kind": s.kind},
+            meta={
+                "history_draws_used": len(history),
+                "strategy_kind": s.kind,
+                "null_seed": spec.null_seed,
+                "null_portfolios": spec.null_portfolios,
+            },
         )
         ledger.append(rec.model_dump(mode="json"))
         records.append(rec)
@@ -309,7 +349,9 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
     if not study.exists():
         raise StudyNotFoundError(f"no study at {root}")
     spec = study.load_experiment()
-    draws = {d.period: d for d in load_draws(study.draws_path)}
+    exp_h = experiment_hash(spec)
+    draws_list = load_draws(study.draws_path)
+    draws = {d.period: d for d in draws_list}
     ledger = study.ledger()
 
     freezes = [
@@ -323,7 +365,6 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
         if e.get("experiment_id") == spec.experiment_id
     }
 
-    # Group freezes by period
     by_period: dict[str, list[dict]] = {}
     for f in freezes:
         by_period.setdefault(f["period"], []).append(f)
@@ -342,11 +383,39 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
         if p not in draws:
             raise DataError(f"no draw for period {p}")
         draw = draws[p]
+
+        # IC-02/03/05: verify freeze seals before computing
+        for f in by_period[p]:
+            try:
+                verify_freeze_row(f)
+            except IntegrityError as e:
+                raise SettleError(e.message, hint=e.hint) from e
+            eh = f.get("experiment_hash") or ""
+            if eh and eh != exp_h:
+                raise SettleError(
+                    f"experiment.json changed after freeze (period={p})",
+                    hint="IC-05: restore experiment or start new experiment_id",
+                )
+            hh = f.get("history_hash") or ""
+            hist = history_before(draws_list, p)
+            if hh and hh != history_hash(hist):
+                raise SettleError(
+                    f"history/draws changed after freeze (period={p})",
+                    hint="IC-03/04: restore draws.jsonl order and history",
+                )
+            oh = f.get("outcome_hash")
+            if oh and oh != outcome_hash(draw):
+                raise SettleError(
+                    f"draw outcome changed after freeze sealed it (period={p})",
+                    hint="IC-03: restore the sealed draw",
+                )
+
         strategy_results: list[PortfolioResult] = []
         n_tickets = 0
         for f in by_period[p]:
             tickets = [Ticket.model_validate(t) for t in f["tickets"]]
             n_tickets = max(n_tickets, len(tickets))
+            # Always recompute from tickets + draw (IC-01/02)
             payout, hits = portfolio_payout(spec.game, tickets, draw)
             cost = portfolio_cost(spec.game, len(tickets))
             strategy_results.append(
@@ -358,11 +427,18 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
                     hits=hits,
                 )
             )
-            # Attach diagnostic scores into hits meta via separate field later
             _ = period_score_summary(spec.game, tickets, draw)
 
         if n_tickets == 0:
             n_tickets = 5
+        # null_seed sealed in freeze meta — use experiment but verify match
+        for f in by_period[p]:
+            meta = f.get("meta") or {}
+            if meta.get("null_seed") is not None and meta["null_seed"] != spec.null_seed:
+                raise SettleError(
+                    "null_seed changed after freeze",
+                    hint="IC-05: restore experiment.null_seed",
+                )
         null_results = evaluate_null_bank(
             spec.game,
             draw,
@@ -373,9 +449,11 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
         payload = {
             "experiment_id": spec.experiment_id,
             "period": p,
-            "draw": draw.model_dump(),
-            "strategy_results": [r.model_dump() for r in strategy_results],
+            "draw": draw.model_dump(mode="json"),
+            "strategy_results": [r.model_dump(mode="json") for r in strategy_results],
             "null_pnl": [r.pnl for r in null_results],
+            "experiment_hash": exp_h,
+            "outcome_hash": outcome_hash(draw),
         }
         rec = SettleRecord(
             experiment_id=spec.experiment_id,
@@ -385,12 +463,18 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
             null_results=null_results,
             content_hash=content_hash(payload),
         )
-        # Store compact null summary in ledger to keep file smaller
         ledger_row = rec.model_dump(mode="json")
         ledger_row["null_results"] = [
-            {"portfolio_id": r.portfolio_id, "kind": "null", "cost": r.cost, "payout": r.payout}
+            {
+                "portfolio_id": r.portfolio_id,
+                "kind": "null",
+                "cost": r.cost,
+                "payout": r.payout,
+            }
             for r in null_results
         ]
+        ledger_row["experiment_hash"] = exp_h
+        ledger_row["outcome_hash"] = outcome_hash(draw)
         ledger_row["scores"] = {
             f["strategy_id"]: period_score_summary(
                 spec.game,
@@ -535,20 +619,58 @@ def build_report(root: Path) -> ReportSummary:
         warnings=warnings,
     )
 
+    # IC-06: claim language guard on generated surfaces
+    from nullbench.core.claims import assert_clean, scan_forbidden
+    from nullbench.core.integrity import verify_study_semantic
+
+    sem_ok, sem_issues = verify_study_semantic(root)
+    if not sem_ok:
+        warnings.insert(0, f"SEMANTIC INTEGRITY FAILED: {sem_issues[:3]}")
+        summary.warnings = warnings
+        # Still refuse to publish a "clean" claim status if seals broken
+        summary.claim_status = ClaimStatus.DESCRIPTIVE_ONLY
+        summary.forbidden_hits = []
+        # Do not write promotional language; hard-fail on integrity
+        raise IntegrityError(
+            "semantic integrity failed — refusing report",
+            hint="; ".join(sem_issues[:5]),
+        )
+
     md = render_report_markdown(spec, summary, settles)
+    hits = scan_forbidden(md)
+    if hits:
+        raise IntegrityError(
+            f"forbidden claim language in report: {hits}",
+            hint="IC-06: remove promotional wording from generated text",
+        )
+    assert_clean(md)
+
     study.reports_dir.mkdir(parents=True, exist_ok=True)
     (study.reports_dir / "latest.md").write_text(md, encoding="utf-8")
     (study.reports_dir / "latest.json").write_text(
         summary.model_dump_json(indent=2),
         encoding="utf-8",
     )
+    html_path = study.reports_dir / "latest.html"
     write_html_report(
-        study.reports_dir / "latest.html",
+        html_path,
         spec=spec,
         summary=summary,
         settles=settles,
         formal=formal_dict,
     )
+    html_hits = scan_forbidden(html_path.read_text(encoding="utf-8"))
+    # Allow words only inside our own disclaimer/forbidden scanner docs — scan user content
+    # HTML includes fixed chrome; strip script and re-scan strategy labels already escaped
+    if any(h in ("predict", "prediction", "winning numbers") for h in html_hits):
+        # If injected via strategy id into template before escape — should be escaped
+        # Re-check raw strategy ids
+        for sid in summary.strategy_cum_pnl:
+            if scan_forbidden(sid):
+                raise IntegrityError(
+                    f"forbidden claim language in strategy id: {sid}",
+                    hint="IC-06/07: rename strategy",
+                )
     return summary
 
 
