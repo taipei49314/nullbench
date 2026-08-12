@@ -97,6 +97,17 @@ class StrategySpec(BaseModel):
     seed: int = 0
 
 
+class FormalEndpointSpec(BaseModel):
+    """Serializable formal endpoint config (alpha-spending)."""
+
+    enabled: bool = False
+    primary_strategy_id: str | None = None
+    checkpoints: dict[int, float] = Field(
+        default_factory=lambda: {26: 0.005, 52: 0.020}
+    )
+    primary_only_for_claim: bool = True
+
+
 class ExperimentSpec(BaseModel):
     """Immutable experiment identity. Change params → new experiment_id."""
 
@@ -106,6 +117,7 @@ class ExperimentSpec(BaseModel):
     strategies: list[StrategySpec] = Field(default_factory=list)
     null_portfolios: int = Field(default=200, ge=1)
     null_seed: int = 42
+    formal: FormalEndpointSpec = Field(default_factory=FormalEndpointSpec)
     created_at: datetime = Field(default_factory=utc_now)
     notes: str = (
         "Negative expected value domain. Formal question: "
@@ -171,6 +183,7 @@ class ReportSummary(BaseModel):
     strategy_percentiles: dict[str, float]  # empirical percentile vs null cum PnL
     # strategy_id -> sequential evidence dict
     sequential_evidence: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    formal_endpoint: dict[str, Any] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
     forbidden_hits: list[str] = Field(default_factory=list)
     generated_at: datetime = Field(default_factory=utc_now)

@@ -135,12 +135,15 @@ def domains_cmd(
     table.add_column("Name")
     table.add_column("Network")
     table.add_column("Description")
+    from nullbench.domains import _BUILTIN
+
     for info in list_domain_infos():
+        src = "builtin" if info.id in _BUILTIN else "plugin"
         table.add_row(
             info.id,
-            info.name,
+            f"{info.name} [{src}]",
             "yes" if info.network else "no",
-            (info.description or "")[:80],
+            (info.description or "")[:70],
         )
     console.print(table)
 
@@ -172,6 +175,12 @@ def init_cmd(
     demo_draws: int = typer.Option(120, "--demo-draws"),
     fetch: bool = typer.Option(False, "--fetch", help="Fetch network data (taiwan_*)"),
     max_months: Optional[int] = typer.Option(None, "--max-months"),
+    formal: bool = typer.Option(
+        False, "--formal", help="Enable alpha-spending formal endpoint (26/52)"
+    ),
+    formal_primary: Optional[str] = typer.Option(
+        None, "--formal-primary", help="Primary strategy id for formal claim"
+    ),
     path: Optional[Path] = typer.Option(None, "--path", help="Parent directory"),
 ) -> None:
     """Create a new study workspace (writes STUDY.md)."""
@@ -186,6 +195,8 @@ def init_cmd(
             demo_draws=demo_draws,
             fetch=fetch,
             max_months=max_months,
+            formal_enabled=formal,
+            formal_primary=formal_primary,
         )
     except NullbenchError as e:
         _fail(e)
@@ -194,6 +205,26 @@ def init_cmd(
     console.print(f"  experiment={spec.experiment_id}  domain={spec.domain}  draws={len(draws)}")
     console.print(f"  guide → {root / 'STUDY.md'}")
     console.print(f"  next  → nullbench next --study {root}")
+
+
+@app.command("formal")
+def formal_cmd(
+    study: Path = typer.Option(..., "--study", "-s"),
+    enable: bool = typer.Option(True, "--enable/--disable"),
+    primary: Optional[str] = typer.Option(None, "--primary", help="Primary strategy id"),
+) -> None:
+    """Enable/disable formal alpha-spending endpoint (before any freeze)."""
+    try:
+        spec = pipeline.enable_formal_endpoint(
+            _root(study), primary_strategy_id=primary, enabled=enable
+        )
+    except NullbenchError as e:
+        _fail(e)
+    console.print(
+        f"[green]Formal endpoint[/green] enabled={spec.formal.enabled} "
+        f"primary={spec.formal.primary_strategy_id} "
+        f"checkpoints={spec.formal.checkpoints}"
+    )
 
 
 @app.command("ingest")
@@ -302,8 +333,16 @@ def report_cmd(
         if isinstance(e, NullbenchError):
             _fail(e)
         _fail(NullbenchError(str(e)))
-    path = Study(_root(study)).reports_dir / "latest.md"
-    console.print(f"[green]Report[/green] → {path}")
+    reports = Study(_root(study)).reports_dir
+    console.print(f"[green]Report[/green] → {reports / 'latest.md'}")
+    console.print(f"  html  → {reports / 'latest.html'}")
+    console.print(f"  json  → {reports / 'latest.json'}")
+    if summary.formal_endpoint:
+        fe = summary.formal_endpoint
+        console.print(
+            f"  formal: open={fe.get('endpoint_open')} "
+            f"n={fe.get('n_settled')} reject_H0={fe.get('reject_h0')}"
+        )
     table = Table(title="Strategy vs null")
     table.add_column("Strategy")
     table.add_column("Cum P&L", justify="right")

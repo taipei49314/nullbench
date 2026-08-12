@@ -58,7 +58,10 @@ nullbench next --study my-study
 | `init` / `strategy` / `freeze` / `settle` / `report` | Core loop |
 | `ingest` | Taiwan official API domains |
 | `coverage` | Max-disjoint multi-ticket plan |
-| `domains -v` / `strategies -v` | Discovery |
+| `formal` | Enable alpha-spending looks (26/52) before freezes |
+| `domains -v` / `strategies -v` | Discovery (builtin + plugins) |
+
+After `report`, open **`reports/latest.html`** (single-file static) or `latest.md`.
 
 ## Taiwan domains
 
@@ -85,8 +88,9 @@ CLI / workspace (product)
 
 - **Contracts:** `protocols.py`, `errors.py`, Pydantic models  
 - **Integrity:** append-only JSONL + SHA-256 chain  
-- **Plugins:** `nullbench.strategies` entry points  
-- **Docs:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/PRODUCT.md](docs/PRODUCT.md)
+- **Plugins:** `nullbench.strategies` + `nullbench.domains` entry points  
+- **Formal:** alpha-spending at n=26 (α=0.005) and n=52 (α=0.020)  
+- **Docs:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/PRODUCT.md](docs/PRODUCT.md) · [CHANGELOG.md](CHANGELOG.md)
 
 ## Giants
 

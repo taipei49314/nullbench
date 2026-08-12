@@ -1,5 +1,7 @@
 # Plugin strategies
 
+Also see [plugin_domain_readme.md](plugin_domain_readme.md) for domain packs.
+
 Register a strategy from another package via setuptools entry points.
 
 ```toml

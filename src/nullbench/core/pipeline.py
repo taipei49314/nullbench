@@ -42,7 +42,10 @@ def init_study(
     demo_draws: int = 120,
     fetch: bool = False,
     max_months: int | None = None,
+    formal_enabled: bool = False,
+    formal_primary: str | None = None,
 ) -> ExperimentSpec:
+    from nullbench.core.models import FormalEndpointSpec
     from nullbench.core.workspace import write_study_readme
 
     study = Study(root)
@@ -54,7 +57,9 @@ def init_study(
     study.ensure_layout()
     game = game_for(domain)
     mod = get_domain(domain)
-    if domain == "demo649":
+    if hasattr(mod, "write_demo_data") and not hasattr(mod, "prepare_data"):
+        mod.write_demo_data(study.draws_path, n=demo_draws)
+    elif domain == "demo649":
         mod.write_demo_data(study.draws_path, n=demo_draws)
     elif hasattr(mod, "prepare_data") and fetch:
         mod.prepare_data(study.data_dir, max_months=max_months)
@@ -68,9 +73,36 @@ def init_study(
         strategies=[],
         null_portfolios=null_portfolios,
         null_seed=null_seed,
+        formal=FormalEndpointSpec(
+            enabled=formal_enabled,
+            primary_strategy_id=formal_primary,
+        ),
     )
     study.save_experiment(spec)
     write_study_readme(root, spec)
+    return spec
+
+
+def enable_formal_endpoint(
+    root: Path,
+    *,
+    primary_strategy_id: str | None = None,
+    enabled: bool = True,
+) -> ExperimentSpec:
+    """Enable formal alpha-spending. Forbidden after first freeze."""
+    study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
+    if study.ledger().events_of("freeze"):
+        raise StrategyError(
+            "cannot change formal endpoint after freezes exist",
+            hint="start a new experiment_id",
+        )
+    spec = study.load_experiment()
+    spec.formal.enabled = enabled
+    if primary_strategy_id is not None:
+        spec.formal.primary_strategy_id = primary_strategy_id
+    study.save_experiment(spec)
     return spec
 
 
@@ -373,9 +405,13 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
 
 
 def build_report(root: Path) -> ReportSummary:
+    from nullbench.formal.endpoints import FormalEndpointConfig, evaluate_formal_endpoint
+    from nullbench.report.html import write_html_report
     from nullbench.scoring.sequential import compare_strategy_to_null
 
     study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
     spec = study.load_experiment()
     ledger = study.ledger()
     settles = [
@@ -384,14 +420,15 @@ def build_report(root: Path) -> ReportSummary:
         if e.get("experiment_id") == spec.experiment_id
     ]
     if not settles:
-        raise RuntimeError("no settlements yet — freeze and settle at least one period")
+        raise SettleError(
+            "no settlements yet",
+            hint=f"nullbench freeze --study {root} --latest && nullbench settle --study {root}",
+        )
 
-    # Sort by period for sequential evidence
     settles = sorted(settles, key=lambda e: (e.get("draw", {}).get("date") or "", e["period"]))
 
     cum: dict[str, float] = {}
     null_cum_by_idx: dict[str, float] = {}
-    # per-strategy period pnl series
     period_pnl: dict[str, list[float]] = {}
     null_mean_series: list[float] = []
 
@@ -440,11 +477,43 @@ def build_report(root: Path) -> ReportSummary:
             "alpha": ev.alpha,
         }
 
+    # Formal endpoint
+    formal_cfg = FormalEndpointConfig(
+        enabled=spec.formal.enabled,
+        primary_strategy_id=spec.formal.primary_strategy_id,
+        checkpoints={int(k): float(v) for k, v in spec.formal.checkpoints.items()},
+        primary_only_for_claim=spec.formal.primary_only_for_claim,
+    )
+    formal_ev = evaluate_formal_endpoint(
+        config=formal_cfg,
+        strategy_cum_pnl=cum,
+        null_cum_pnl_cloud=null_final,
+        n_settled=len(settles),
+    )
+    formal_dict = formal_ev.as_dict()
+
+    claim = ClaimStatus.DESCRIPTIVE_ONLY
+    if formal_ev.endpoint_open and formal_cfg.enabled:
+        claim = ClaimStatus.FORMAL_ENDPOINT
+
     warnings = [
-        "Descriptive statistics only — no formal alpha spend in v0.2.",
         "Equal-cost null portfolios share ticket count with the largest strategy arm.",
         "Sequential e-values are diagnostic; do not treat E>1 as a discovery claim.",
     ]
+    if not formal_cfg.enabled:
+        warnings.insert(
+            0,
+            "Formal endpoint disabled — descriptive only. "
+            "Enable via experiment formal.enabled (checkpoints 26/52).",
+        )
+    elif not formal_ev.endpoint_open:
+        warnings.insert(0, formal_ev.note)
+    else:
+        warnings.insert(
+            0,
+            f"Formal look open at n={formal_ev.n_settled} α={formal_ev.alpha_spent}. "
+            f"Reject H0={formal_ev.reject_h0}.",
+        )
     if any(k in (spec.domain or "") for k in ("taiwan",)):
         warnings.append(
             "Taiwan floating jackpot tiers are valued at 0 (conservative fixed-only table)."
@@ -457,20 +526,28 @@ def build_report(root: Path) -> ReportSummary:
     summary = ReportSummary(
         experiment_id=spec.experiment_id,
         periods_settled=len(settles),
-        claim_status=ClaimStatus.DESCRIPTIVE_ONLY,
+        claim_status=claim,
         strategy_cum_pnl=cum,
         null_mean_cum_pnl=null_mean,
         strategy_percentiles=percentiles,
         sequential_evidence=sequential,
+        formal_endpoint=formal_dict,
         warnings=warnings,
     )
 
     md = render_report_markdown(spec, summary, settles)
-    out_path = study.reports_dir / "latest.md"
-    out_path.write_text(md, encoding="utf-8")
+    study.reports_dir.mkdir(parents=True, exist_ok=True)
+    (study.reports_dir / "latest.md").write_text(md, encoding="utf-8")
     (study.reports_dir / "latest.json").write_text(
         summary.model_dump_json(indent=2),
         encoding="utf-8",
+    )
+    write_html_report(
+        study.reports_dir / "latest.html",
+        spec=spec,
+        summary=summary,
+        settles=settles,
+        formal=formal_dict,
     )
     return summary
 
@@ -502,6 +579,20 @@ def render_report_markdown(
     lines += [
         "",
         f"Null cloud mean cum P&L: **{summary.null_mean_cum_pnl:.2f}**",
+        "",
+        "## Formal endpoint",
+        "",
+    ]
+    fe = summary.formal_endpoint or {}
+    if fe:
+        lines.append(
+            f"- open={fe.get('endpoint_open')} n={fe.get('n_settled')} "
+            f"α={fe.get('alpha_spent')} reject_H0={fe.get('reject_h0')}"
+        )
+        lines.append(f"- {fe.get('note', '')}")
+    else:
+        lines.append("- (none)")
+    lines += [
         "",
         "## Sequential evidence (strategy − null mean, per period)",
         "",
