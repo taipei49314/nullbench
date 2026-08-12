@@ -19,3 +19,7 @@ htmlcov/
 # Local studies (users create these; never commit secrets)
 studies/
 !studies/.gitkeep
+
+# Build artifacts
+dist/
+*.egg-info/
