@@ -29,5 +29,7 @@ def test_maturity_m2_frozen() -> None:
     by_id = {row["id"]: row for row in status.levels}
     assert by_id["M1"]["role"] == "done"
     assert by_id["M2"]["role"] == "frozen"
-    assert by_id["M3"]["role"] == "partial"
+    assert by_id["M3"]["role"] == "done"
+    assert by_id["M4"]["role"] == "done"
     assert LEVELS[2][0] == "M2"
+    assert LEVELS[4][0] == "M4"

@@ -38,11 +38,22 @@
 | Missing tip after rewrite | tip required when ledger non-empty | | |
 | Malicious plugin | trust env off by default | allowlist file | |
 | Stolen long-lived PyPI token | docs discourage | OIDC trusted publish + SBOM | |
-| Consistent full rewrite (A5) | **residual** | SBOM helps consumers | remote vault/notary |
+| Consistent full rewrite (A5) | residual locally | SBOM helps consumers | **vault receipt verify** |
 
 ## Out of scope until M4
 
-Proving integrity against A5 without external append-only storage or signing service.
+~~Proving integrity against A5 without external append-only storage or signing service.~~
+
+### Amendment (0.8.0 — M4 shipped)
+
+A5 is addressed **relative to an external vault** via:
+
+- `nullbench vault init` — HMAC key + append-only `receipts.jsonl` outside the study
+- `nullbench seal notarize` — tip + file hashes signed into the vault
+- `nullbench seal verify` — fail if study tip/files diverge from receipt
+- optional `nullbench vault serve` HTTP notary (`NULLBENCH_NOTARY_URL`)
+
+Compromise of the vault key remains out of scope (operator secret).
 
 ## Assumptions
 

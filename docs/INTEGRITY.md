@@ -37,9 +37,24 @@ Format: one id per line (`strategy:foo`, `domain:bar`, or bare `foo`). See `exam
 nullbench doctor --study ./my-study   # chain + semantic
 ```
 
-## Residual risk
+## Residual risk (without M4)
 
 An adversary with full write access who rewrites ledger **and** tip **and**
-draws **and** experiment consistently can still forge a study. Local seals
-stop casual tampering and detect inconsistent edits; they are not a global
-notary. Use external append-only storage / signing for high assurance.
+draws **and** experiment consistently can still forge a **local-only** study.
+Use M4 vault notarize/verify for A5 detection relative to an external vault.
+
+## M4 vault notary
+
+Commands:
+
+```bash
+nullbench vault init
+nullbench seal export --study ./my-study --out ./bundle
+nullbench seal notarize --study ./my-study
+nullbench seal verify --study ./my-study
+nullbench vault serve --port 8765   # optional HTTP notary
+```
+
+Vault default: `~/.config/nullbench/vault` (override with `NULLBENCH_VAULT_DIR`).
+Receipts are HMAC-SHA256 signed; the study copy at `study/vault/latest_receipt.json`
+is a convenience pointer — **trust root is the vault**, not the study tree.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0 — 2026-08-12
+
+### M4 external vault notary
+
+- `nullbench vault init|list|serve` — HMAC vault outside the study tree
+- `nullbench seal export|notarize|verify` — tip-bound bundle + A5 rewrite detection
+- Optional HTTP notary (`NULLBENCH_NOTARY_URL` / `vault serve`)
+- Doctor reports `vault_receipt` when a receipt is present
+- `pytest -m m4` / `maturity --check-m4`
+- Maturity ladder: M3/M4 marked done; CLAIM_POLICY/THREAT_MODEL amended for vault claims
+
 ## 0.7.0 — 2026-08-12
 
 ### Public open-source product

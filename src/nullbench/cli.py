@@ -63,10 +63,13 @@ def maturity(
     check_m1: bool = typer.Option(
         False, "--check-m1", help="Run M1 adversarial gate (pytest -m m1)"
     ),
+    check_m4: bool = typer.Option(
+        False, "--check-m4", help="Run M4 vault gate (pytest -m m4)"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
-    """Show maturity ladder M0–M4; optionally run M1 product gate."""
-    from nullbench.maturity import PRODUCT_GATE, describe, run_m1_gate
+    """Show maturity ladder M0-M4; optionally run M1/M4 product gates."""
+    from nullbench.maturity import PRODUCT_GATE, describe, run_m1_gate, run_m4_gate
 
     status = describe()
     table = Table(title="nullbench maturity")
@@ -80,20 +83,32 @@ def maturity(
     console.print("[bold]M1 checklist[/bold]")
     for item in status.m1_checklist:
         console.print(f"  {item['id']}  {item['item']}")
-    if not check_m1:
-        console.print("\nRun gate: [cyan]nullbench maturity --check-m1[/cyan]")
+    console.print("[bold]M4 checklist[/bold]")
+    for item in status.m4_checklist:
+        console.print(f"  {item['id']}  {item['item']}")
+    if not check_m1 and not check_m4:
+        console.print("\nGates: [cyan]nullbench maturity --check-m1[/cyan] | [cyan]--check-m4[/cyan]")
         return
-    console.print("\n[bold]Running M1 gate (pytest -m m1)…[/bold]")
-    ok, log = run_m1_gate(verbose=verbose)
-    console.print(log)
-    if ok:
-        console.print("[green]M1 GATE PASS[/green] — local seals adversarial suite green")
-        console.print(
-            "You may state M1 seals with residual-risk footnote; "
-            "not a global notary (M4)."
-        )
-    else:
-        console.print("[red]M1 GATE FAIL[/red] — do not claim absolute auditable / never-backfill")
+    failed = False
+    if check_m1:
+        console.print("\n[bold]Running M1 gate...[/bold]")
+        ok, log = run_m1_gate(verbose=verbose)
+        console.print(log)
+        if ok:
+            console.print("[green]M1 GATE PASS[/green]")
+        else:
+            console.print("[red]M1 GATE FAIL[/red]")
+            failed = True
+    if check_m4:
+        console.print("\n[bold]Running M4 gate...[/bold]")
+        ok, log = run_m4_gate(verbose=verbose)
+        console.print(log)
+        if ok:
+            console.print("[green]M4 GATE PASS[/green] — vault notary adversarial suite green")
+        else:
+            console.print("[red]M4 GATE FAIL[/red]")
+            failed = True
+    if failed:
         raise typer.Exit(1)
 
 
@@ -540,6 +555,168 @@ def demo_cmd(
             },
         }
     )
+
+
+# --- M4: sealed export / vault notary -----------------------------------------
+
+seal_app = typer.Typer(help="M4 sealed bundle export / notarize / verify", no_args_is_help=True)
+vault_app = typer.Typer(help="M4 external vault (outside study tree)", no_args_is_help=True)
+app.add_typer(seal_app, name="seal")
+app.add_typer(vault_app, name="vault")
+
+
+@vault_app.command("init")
+def vault_init(
+    path: Optional[Path] = typer.Option(None, "--path", help="Vault directory"),
+    force: bool = typer.Option(False, "--force"),
+) -> None:
+    """Initialize a vault outside the study (HMAC key + receipts log)."""
+    from nullbench.core.vault import Vault
+
+    try:
+        v = Vault(path)
+        meta = v.init(force=force)
+    except NullbenchError as e:
+        _fail(e)
+    console.print(f"[green]Vault ready[/green] {v.root}")
+    console.print(meta)
+
+
+@vault_app.command("list")
+def vault_list(
+    path: Optional[Path] = typer.Option(None, "--path"),
+    tail: int = typer.Option(10, "--tail"),
+) -> None:
+    """List recent vault receipts."""
+    from nullbench.core.vault import Vault
+
+    try:
+        v = Vault(path)
+        if not v.exists():
+            raise NullbenchError(f"no vault at {v.root}", hint="nullbench vault init")
+        rows = v.iter_receipts()[-tail:]
+    except NullbenchError as e:
+        _fail(e)
+    table = Table(title=f"Vault receipts ({v.root})")
+    table.add_column("When")
+    table.add_column("Experiment")
+    table.add_column("Tip")
+    table.add_column("Receipt")
+    for r in rows:
+        table.add_row(
+            str(r.get("notarized_at", ""))[:19],
+            str(r.get("experiment_id", "")),
+            str(r.get("tip_line_hash", ""))[:12] + "…",
+            str(r.get("receipt_id", ""))[:8],
+        )
+    console.print(table)
+
+
+@vault_app.command("serve")
+def vault_serve(
+    host: str = typer.Option("127.0.0.1", "--host"),
+    port: int = typer.Option(8765, "--port"),
+    path: Optional[Path] = typer.Option(None, "--path"),
+) -> None:
+    """Run a local HTTP notary bound to this vault (M4 remote-capable stub)."""
+    from nullbench.core.notary_http import serve_notary
+    from nullbench.core.vault import Vault
+
+    try:
+        v = Vault(path)
+        if not v.exists():
+            v.init()
+        server = serve_notary(host, port, vault=v)
+    except NullbenchError as e:
+        _fail(e)
+    console.print(
+        f"[green]Notary listening[/green] http://{host}:{port}/v1/notarize "
+        f"(vault={v.root})"
+    )
+    console.print(f"Set NULLBENCH_NOTARY_URL=http://{host}:{port} on clients.")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        console.print("stopped")
+
+
+@seal_app.command("export")
+def seal_export(
+    study: Path = typer.Option(..., "--study", "-s"),
+    out: Path = typer.Option(..., "--out", "-o", help="Output bundle directory"),
+) -> None:
+    """Export a sealed study bundle (manifest + tip-bound files)."""
+    from nullbench.core.seal import export_bundle
+
+    try:
+        manifest = export_bundle(_root(study), out)
+    except NullbenchError as e:
+        _fail(e)
+    console.print(f"[green]Exported[/green] {out}")
+    console.print({"bundle_id": manifest["bundle_id"], "tip": manifest["tip_line_hash"]})
+
+
+@seal_app.command("notarize")
+def seal_notarize(
+    study: Path = typer.Option(..., "--study", "-s"),
+    vault_path: Optional[Path] = typer.Option(None, "--vault"),
+    remote: bool = typer.Option(
+        False, "--remote", help="Also POST to NULLBENCH_NOTARY_URL if set"
+    ),
+) -> None:
+    """Notarize study tip into the external vault (A5 control)."""
+    from nullbench.core.seal import notarize_study
+    from nullbench.core.vault import Vault
+
+    try:
+        v = Vault(vault_path)
+        receipt = notarize_study(_root(study), vault=v)
+        if remote:
+            from nullbench.core import notary_http
+
+            if notary_http.notary_url():
+                remote_receipt = notary_http.post_receipt(
+                    {k: receipt[k] for k in receipt if k != "signature"}
+                )
+                console.print({"remote_receipt_id": remote_receipt.get("receipt_id")})
+    except NullbenchError as e:
+        _fail(e)
+    console.print("[green]Notarized[/green]")
+    console.print(
+        {
+            "receipt_id": receipt["receipt_id"],
+            "bundle_id": receipt["bundle_id"],
+            "tip": receipt["tip_line_hash"],
+            "vault": str(v.root),
+        }
+    )
+
+
+@seal_app.command("verify")
+def seal_verify(
+    study: Path = typer.Option(..., "--study", "-s"),
+    receipt: Optional[Path] = typer.Option(None, "--receipt", "-r"),
+    vault_path: Optional[Path] = typer.Option(None, "--vault"),
+) -> None:
+    """Verify study against a vault receipt (detects A5-style rewrite)."""
+    from nullbench.core.seal import verify_study_vault
+    from nullbench.core.vault import Vault
+
+    try:
+        ok, issues, rec = verify_study_vault(
+            _root(study), receipt_path=receipt, vault=Vault(vault_path)
+        )
+    except NullbenchError as e:
+        _fail(e)
+    if ok:
+        console.print("[green]VAULT VERIFY PASS[/green]")
+        if rec:
+            console.print({"receipt_id": rec.get("receipt_id"), "bundle_id": rec.get("bundle_id")})
+    else:
+        console.print("[red]VAULT VERIFY FAIL[/red]")
+        for i in issues:
+            console.print(f"  - {i}")
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
