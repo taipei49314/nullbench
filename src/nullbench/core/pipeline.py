@@ -32,6 +32,8 @@ def init_study(
     null_portfolios: int = 200,
     null_seed: int = 42,
     demo_draws: int = 120,
+    fetch: bool = False,
+    max_months: int | None = None,
 ) -> ExperimentSpec:
     study = Study(root)
     if study.exists():
@@ -41,6 +43,8 @@ def init_study(
     mod = get_domain(domain)
     if domain == "demo649":
         mod.write_demo_data(study.draws_path, n=demo_draws)
+    elif hasattr(mod, "prepare_data") and fetch:
+        mod.prepare_data(study.data_dir, max_months=max_months)
     elif not study.draws_path.exists():
         study.draws_path.write_text("", encoding="utf-8")
 
@@ -54,6 +58,17 @@ def init_study(
     )
     study.save_experiment(spec)
     return spec
+
+
+def ingest_data(root: Path, *, max_months: int | None = None) -> int:
+    """Fetch/refresh domain data into study draws.jsonl. Returns draw count."""
+    study = Study(root)
+    spec = study.load_experiment()
+    mod = get_domain(spec.domain)
+    if not hasattr(mod, "prepare_data"):
+        raise RuntimeError(f"domain {spec.domain!r} has no network prepare_data()")
+    n = mod.prepare_data(study.data_dir, max_months=max_months)
+    return int(n)
 
 
 def add_strategy(
@@ -272,6 +287,8 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
 
 
 def build_report(root: Path) -> ReportSummary:
+    from nullbench.scoring.sequential import compare_strategy_to_null
+
     study = Study(root)
     spec = study.load_experiment()
     ledger = study.ledger()
@@ -283,15 +300,24 @@ def build_report(root: Path) -> ReportSummary:
     if not settles:
         raise RuntimeError("no settlements yet — freeze and settle at least one period")
 
-    # Cumulative PnL per strategy
+    # Sort by period for sequential evidence
+    settles = sorted(settles, key=lambda e: (e.get("draw", {}).get("date") or "", e["period"]))
+
     cum: dict[str, float] = {}
     null_cum_by_idx: dict[str, float] = {}
+    # per-strategy period pnl series
+    period_pnl: dict[str, list[float]] = {}
+    null_mean_series: list[float] = []
 
     for s in settles:
+        null_pnls = [(r["payout"] - r["cost"]) for r in s.get("null_results", [])]
+        null_m = sum(null_pnls) / len(null_pnls) if null_pnls else 0.0
+        null_mean_series.append(null_m)
         for r in s["strategy_results"]:
-            cum[r["portfolio_id"]] = cum.get(r["portfolio_id"], 0.0) + (
-                r["payout"] - r["cost"]
-            )
+            sid = r["portfolio_id"]
+            pnl = r["payout"] - r["cost"]
+            cum[sid] = cum.get(sid, 0.0) + pnl
+            period_pnl.setdefault(sid, []).append(pnl)
         for r in s.get("null_results", []):
             pid = r["portfolio_id"]
             null_cum_by_idx[pid] = null_cum_by_idx.get(pid, 0.0) + (
@@ -304,17 +330,35 @@ def build_report(root: Path) -> ReportSummary:
     def percentile_of(value: float, cloud: list[float]) -> float:
         if not cloud:
             return 50.0
-        # empirical percentile: fraction of nulls strictly below value
         below = sum(1 for x in cloud if x < value)
         equal = sum(1 for x in cloud if x == value)
         return 100.0 * (below + 0.5 * equal) / len(cloud)
 
     percentiles = {sid: percentile_of(v, null_final) for sid, v in cum.items()}
 
+    sequential: dict[str, dict] = {}
+    for sid, series in period_pnl.items():
+        # align length
+        n = min(len(series), len(null_mean_series))
+        ev = compare_strategy_to_null(series[:n], null_mean_series[:n])
+        sequential[sid] = {
+            "backend": ev.backend,
+            "n": ev.n,
+            "mean_delta": ev.mean_delta,
+            "e_value": ev.e_value,
+            "log_e": ev.log_e,
+            "note": ev.note,
+        }
+
     warnings = [
-        "Descriptive statistics only — no formal alpha spend in v0.1.",
+        "Descriptive statistics only — no formal alpha spend in v0.2.",
         "Equal-cost null portfolios share ticket count with the largest strategy arm.",
+        "Sequential e-values are diagnostic; do not treat E>1 as a discovery claim.",
     ]
+    if any(k in (spec.domain or "") for k in ("taiwan",)):
+        warnings.append(
+            "Taiwan floating jackpot tiers are valued at 0 (conservative fixed-only table)."
+        )
     if len(settles) < 26:
         warnings.append(
             f"Only {len(settles)} settled period(s); treat percentiles as unstable."
@@ -327,10 +371,10 @@ def build_report(root: Path) -> ReportSummary:
         strategy_cum_pnl=cum,
         null_mean_cum_pnl=null_mean,
         strategy_percentiles=percentiles,
+        sequential_evidence=sequential,
         warnings=warnings,
     )
 
-    # Write markdown report
     md = render_report_markdown(spec, summary, settles)
     out_path = study.reports_dir / "latest.md"
     out_path.write_text(md, encoding="utf-8")
@@ -368,6 +412,19 @@ def render_report_markdown(
     lines += [
         "",
         f"Null cloud mean cum P&L: **{summary.null_mean_cum_pnl:.2f}**",
+        "",
+        "## Sequential evidence (strategy − null mean, per period)",
+        "",
+        "| Strategy | n | mean Δ | e-value | log E | backend |",
+        "|----------|--:|-------:|--------:|------:|---------|",
+    ]
+    for sid, ev in sorted(summary.sequential_evidence.items()):
+        lines.append(
+            f"| `{sid}` | {ev.get('n', 0)} | {ev.get('mean_delta', 0):.4f} | "
+            f"{ev.get('e_value', 1):.4g} | {ev.get('log_e', 0):.4f} | "
+            f"{ev.get('backend', '?')} |"
+        )
+    lines += [
         "",
         "## Warnings",
         "",

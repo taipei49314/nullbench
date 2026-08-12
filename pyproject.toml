@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nullbench"
-version = "0.1.0"
+version = "0.2.0"
 description = "Pre-register decisions. Score them against chance. Never backfill."
 readme = "README.md"
 license = "MIT"
@@ -39,6 +39,8 @@ dependencies = [
 dev = [
   "pytest>=8.0",
   "hypothesis>=6.100",
+  "build>=1.2",
+  "twine>=5.0",
 ]
 # Optional giants — thin adapters live under nullbench.scoring
 stats = [

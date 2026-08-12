@@ -13,6 +13,8 @@ from rich.table import Table
 from nullbench import __version__
 from nullbench.core import pipeline
 from nullbench.core.study import Study
+from nullbench.domains import list_domains
+from nullbench.strategies import list_strategies
 
 app = typer.Typer(
     name="nullbench",
@@ -38,6 +40,20 @@ def version() -> None:
     console.print(f"nullbench {__version__}")
 
 
+@app.command("domains")
+def domains_cmd() -> None:
+    """List built-in domains."""
+    for d in list_domains():
+        console.print(f"  {d}")
+
+
+@app.command("strategies")
+def strategies_cmd() -> None:
+    """List built-in + plugin strategy kinds."""
+    for s in list_strategies():
+        console.print(f"  {s}")
+
+
 @app.command("init")
 def init_cmd(
     name: str = typer.Argument(..., help="Study directory name or path"),
@@ -45,9 +61,13 @@ def init_cmd(
     domain: str = typer.Option("demo649", "--domain", "-d"),
     null_portfolios: int = typer.Option(200, "--nulls"),
     demo_draws: int = typer.Option(120, "--demo-draws"),
+    fetch: bool = typer.Option(False, "--fetch", help="Fetch network data (taiwan_*)"),
+    max_months: Optional[int] = typer.Option(
+        None, "--max-months", help="Limit months when fetching (tests/smoke)"
+    ),
     path: Optional[Path] = typer.Option(None, "--path", help="Parent directory"),
 ) -> None:
-    """Create a new study with offline demo data (demo649)."""
+    """Create a new study (demo649 offline, or taiwan_* with --fetch)."""
     parent = path or Path.cwd()
     root = (parent / name).resolve() if not Path(name).is_absolute() else Path(name)
     spec = pipeline.init_study(
@@ -56,17 +76,31 @@ def init_cmd(
         domain=domain,
         null_portfolios=null_portfolios,
         demo_draws=demo_draws,
+        fetch=fetch,
+        max_months=max_months,
     )
     console.print(f"[green]Initialized[/green] study at {root}")
     console.print(f"  experiment_id={spec.experiment_id} domain={spec.domain}")
-    console.print(f"  draws → {Study(root).draws_path}")
-    console.print("Next: nullbench strategy add random --study ...")
+    draws = pipeline.load_draws(Study(root).draws_path)
+    console.print(f"  draws={len(draws)} → {Study(root).draws_path}")
+    if domain.startswith("taiwan") and not draws:
+        console.print("[yellow]No draws yet.[/yellow] Run: nullbench ingest --study ...")
+
+
+@app.command("ingest")
+def ingest_cmd(
+    study: Path = typer.Option(..., "--study", "-s"),
+    max_months: Optional[int] = typer.Option(None, "--max-months"),
+) -> None:
+    """Fetch/refresh official data for network domains (taiwan_*)."""
+    n = pipeline.ingest_data(_root(study), max_months=max_months)
+    console.print(f"[green]Ingested[/green] {n} draws")
 
 
 @app.command("strategy")
 def strategy_cmd(
     action: str = typer.Argument(..., help="add"),
-    kind: str = typer.Argument(..., help="random | frequency"),
+    kind: str = typer.Argument(..., help="random | frequency | plugin name"),
     study: Path = typer.Option(..., "--study", "-s", help="Study directory"),
     strategy_id: Optional[str] = typer.Option(None, "--id"),
     tickets: int = typer.Option(5, "--tickets", "-n"),
@@ -75,7 +109,7 @@ def strategy_cmd(
 ) -> None:
     """Manage strategies (currently: add)."""
     if action != "add":
-        raise typer.BadParameter("only 'add' is supported in v0.1")
+        raise typer.BadParameter("only 'add' is supported in v0.2")
     sid = strategy_id or kind
     params = {"window": window} if kind == "frequency" else {}
     spec = pipeline.add_strategy(
@@ -92,7 +126,7 @@ def strategy_cmd(
 
 @app.command("freeze")
 def freeze_cmd(
-    period: str = typer.Argument(..., help="Period id, e.g. P0100"),
+    period: str = typer.Argument(..., help="Period id, e.g. P0100 or 115000058"),
     study: Path = typer.Option(..., "--study", "-s"),
 ) -> None:
     """Freeze strategy tickets for a period (before using its outcome)."""
@@ -128,7 +162,7 @@ def settle_cmd(
 def report_cmd(
     study: Path = typer.Option(..., "--study", "-s"),
 ) -> None:
-    """Build descriptive report vs null cloud."""
+    """Build descriptive report vs null cloud (+ sequential e diagnostics)."""
     summary = pipeline.build_report(_root(study))
     root = _root(study)
     path = Study(root).reports_dir / "latest.md"
@@ -137,9 +171,16 @@ def report_cmd(
     table = Table(title="Strategy vs null (descriptive)")
     table.add_column("Strategy")
     table.add_column("Cum P&L", justify="right")
-    table.add_column("Null percentile", justify="right")
+    table.add_column("Null %ile", justify="right")
+    table.add_column("e-value", justify="right")
     for sid, pnl in sorted(summary.strategy_cum_pnl.items()):
-        table.add_row(sid, f"{pnl:.2f}", f"{summary.strategy_percentiles[sid]:.1f}")
+        ev = summary.sequential_evidence.get(sid, {})
+        table.add_row(
+            sid,
+            f"{pnl:.2f}",
+            f"{summary.strategy_percentiles[sid]:.1f}",
+            f"{ev.get('e_value', float('nan')):.4g}",
+        )
     console.print(table)
     console.print(f"Null mean cum P&L: {summary.null_mean_cum_pnl:.2f}")
     for w in summary.warnings:
@@ -198,14 +239,19 @@ def demo_cmd(
     draws = pipeline.load_draws(Study(root).draws_path)
     if len(draws) < settle_last + 20:
         raise typer.Exit("not enough draws for demo")
-    # Use late periods so frequency has history
     targets = [d.period for d in draws[-(settle_last):]]
     for p in targets:
         pipeline.freeze_period(root, p)
     pipeline.settle_period(root)
     summary = pipeline.build_report(root)
     console.print(f"[bold green]Demo complete[/bold green] → {root / 'reports' / 'latest.md'}")
-    console.print(summary.model_dump())
+    console.print(
+        {
+            "periods": summary.periods_settled,
+            "pnl": summary.strategy_cum_pnl,
+            "e_values": {k: v.get("e_value") for k, v in summary.sequential_evidence.items()},
+        }
+    )
 
 
 if __name__ == "__main__":

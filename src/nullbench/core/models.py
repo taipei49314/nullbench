@@ -52,6 +52,14 @@ class Draw(BaseModel):
         return sorted(v)
 
 
+class SpecialMode(str, Enum):
+    """How the special ball interacts with tickets."""
+
+    NONE = "none"  # no special
+    SEPARATE = "separate"  # ticket picks special from special_max (e.g. 威力彩第二區)
+    FROM_MAIN_POOL = "from_main_pool"  # draw has special from main pool; ticket does not pick it
+
+
 class GameSpec(BaseModel):
     """Domain-agnostic game rules for k-of-n style selections."""
 
@@ -59,7 +67,8 @@ class GameSpec(BaseModel):
     name: str
     main_count: int = Field(ge=1)
     main_max: int = Field(ge=2)
-    special_max: int | None = None  # None = no special ball
+    special_max: int | None = None  # pool size for SEPARATE mode
+    special_mode: SpecialMode = SpecialMode.NONE
     ticket_cost: float = Field(gt=0)
     # prize_table: hits_main (+ optional special flag key) -> payout
     # keys like "3", "3+s", "6", "6+s"
@@ -70,8 +79,11 @@ class GameSpec(BaseModel):
     def bounds(self) -> GameSpec:
         if self.main_count > self.main_max:
             raise ValueError("main_count cannot exceed main_max")
-        if self.special_max is not None and self.special_max < 1:
-            raise ValueError("special_max must be >= 1")
+        if self.special_mode == SpecialMode.SEPARATE:
+            if self.special_max is None or self.special_max < 1:
+                raise ValueError("SEPARATE mode requires special_max >= 1")
+        if self.special_mode == SpecialMode.NONE:
+            self.special_max = None
         return self
 
 
@@ -157,6 +169,8 @@ class ReportSummary(BaseModel):
     strategy_cum_pnl: dict[str, float]
     null_mean_cum_pnl: float
     strategy_percentiles: dict[str, float]  # empirical percentile vs null cum PnL
+    # strategy_id -> sequential evidence dict
+    sequential_evidence: dict[str, dict[str, Any]] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
     forbidden_hits: list[str] = Field(default_factory=list)
     generated_at: datetime = Field(default_factory=utc_now)

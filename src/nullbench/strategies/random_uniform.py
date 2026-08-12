@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import random
 
-from nullbench.core.models import Draw, GameSpec, StrategySpec, Ticket
+from nullbench.core.hashing import sha256_hex
+from nullbench.core.models import Draw, GameSpec, SpecialMode, StrategySpec, Ticket
 
 
 def propose_random(
@@ -14,9 +15,7 @@ def propose_random(
     period_seed: int,
 ) -> list[Ticket]:
     """history is accepted for API uniformity; random ignores it (no peek)."""
-    del history  # explicit: no look-ahead channel
-    from nullbench.core.hashing import sha256_hex
-
+    del history
     id_mix = int(sha256_hex(spec.id)[:8], 16)
     rng = random.Random(period_seed ^ spec.seed ^ id_mix)
     tickets: list[Ticket] = []
@@ -26,13 +25,15 @@ def propose_random(
         attempts += 1
         nums = tuple(sorted(rng.sample(range(1, game.main_max + 1), game.main_count)))
         special = None
-        if game.special_max is not None:
+        if game.special_mode == SpecialMode.SEPARATE and game.special_max is not None:
             special = rng.randint(1, game.special_max)
         key = nums + ((special,) if special is not None else ())
         if key in seen:
             continue
         seen.add(key)
-        tickets.append(Ticket(numbers=list(nums), special=special, label=f"random-{len(tickets)+1}"))
+        tickets.append(
+            Ticket(numbers=list(nums), special=special, label=f"random-{len(tickets)+1}")
+        )
     if len(tickets) < spec.tickets_per_period:
         raise RuntimeError("failed to sample unique random tickets")
     return tickets

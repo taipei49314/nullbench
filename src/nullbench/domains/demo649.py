@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from pathlib import Path
 
-from nullbench.core.models import Draw, GameSpec
+from nullbench.core.models import Draw, GameSpec, SpecialMode
 
 DOMAIN_ID = "demo649"
 
@@ -15,6 +15,7 @@ GAME = GameSpec(
     main_count=6,
     main_max=49,
     special_max=None,
+    special_mode=SpecialMode.NONE,
     ticket_cost=50.0,
     prize_table={
         "3": 400.0,

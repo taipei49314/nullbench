@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import random
 
-from nullbench.core.models import GameSpec, Ticket
+from nullbench.core.hashing import sha256_hex
+from nullbench.core.models import Draw, GameSpec, PortfolioResult, SpecialMode, Ticket
 from nullbench.core.settle_math import portfolio_cost, portfolio_payout
-from nullbench.core.models import Draw, PortfolioResult
 
 
 def sample_null_tickets(
@@ -16,8 +16,6 @@ def sample_null_tickets(
     period: str,
     base_seed: int,
 ) -> list[Ticket]:
-    from nullbench.core.hashing import sha256_hex
-
     period_mix = int(sha256_hex(period)[:8], 16)
     rng = random.Random(base_seed ^ (portfolio_index * 1_000_003) ^ period_mix)
     tickets: list[Ticket] = []
@@ -27,7 +25,7 @@ def sample_null_tickets(
         attempts += 1
         nums = tuple(sorted(rng.sample(range(1, game.main_max + 1), game.main_count)))
         special = None
-        if game.special_max is not None:
+        if game.special_mode == SpecialMode.SEPARATE and game.special_max is not None:
             special = rng.randint(1, game.special_max)
         key = nums + ((special,) if special is not None else ())
         if key in seen:

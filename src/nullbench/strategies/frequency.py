@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from collections import Counter
 
-from nullbench.core.models import Draw, GameSpec, StrategySpec, Ticket
+from nullbench.core.models import Draw, GameSpec, SpecialMode, StrategySpec, Ticket
 
 
 def propose_frequency(
@@ -15,7 +15,7 @@ def propose_frequency(
     period_seed: int,
 ) -> list[Ticket]:
     window = int(spec.params.get("window", 50))
-    alpha = float(spec.params.get("alpha", 1.0))  # Laplace smoothing
+    alpha = float(spec.params.get("alpha", 1.0))
     use = history[-window:] if window > 0 else history
 
     main_counts = Counter({n: 0 for n in range(1, game.main_max + 1)})
@@ -24,7 +24,7 @@ def propose_frequency(
     main_weights = [main_counts[n] + alpha for n in range(1, game.main_max + 1)]
 
     special_weights: list[float] | None = None
-    if game.special_max is not None:
+    if game.special_mode == SpecialMode.SEPARATE and game.special_max is not None:
         sp_counts = Counter({n: 0 for n in range(1, game.special_max + 1)})
         for d in use:
             if d.special is not None:
