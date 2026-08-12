@@ -13,13 +13,23 @@ Product rule: without M1 green, no public「可稽核 / 永不 backfill」guaran
 | IC-06 | claims.py unused | Reports run `scan_forbidden` / `assert_clean` before write |
 | IC-07 | HTML/JSON script injection | Strategy ids HTML-escaped; chart JSON in `application/json` + unicode escapes |
 | IC-08 | code_fingerprint = version only | Fingerprint hashes strategy + domain **source** |
-| IC-09 | Arbitrary entry-point plugins | Plugins **off** unless `NULLBENCH_TRUST_PLUGINS=1` |
-| IC-10 | Weak ingest/publish trust | Cache provenance JSONL; prefer **OIDC** PyPI publish |
+| IC-09 | Arbitrary entry-point plugins | Plugins **off** unless allowlisted or `NULLBENCH_TRUST_PLUGINS=1` |
+| IC-10 | Weak ingest/publish trust | Cache provenance JSONL; OIDC publish workflow + CI SBOM |
 
-Hardening (0.6.1):
+Hardening (0.6.1+):
 
 - **R-01:** missing tip with non-empty ledger → `verify_chain` fails
-- **R-02:** empty/missing `experiment_hash` / `history_hash` / `code_fingerprint` → settle/semantic refuse (no more `if eh and` skip)
+- **R-02:** empty/missing `experiment_hash` / `history_hash` / `code_fingerprint` → settle/semantic refuse
+
+## Plugin allowlist (M3)
+
+Trust a plugin without global `NULLBENCH_TRUST_PLUGINS=1`:
+
+1. `NULLBENCH_PLUGIN_ALLOWLIST=/path/to/file`, or
+2. `<study>/plugins.allowlist`, or
+3. `~/.config/nullbench/plugins.allowlist`
+
+Format: one id per line (`strategy:foo`, `domain:bar`, or bare `foo`). See `examples/plugins.allowlist`.
 
 ## Commands
 

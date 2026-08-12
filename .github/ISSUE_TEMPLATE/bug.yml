@@ -1,0 +1,30 @@
+name: Bug report
+description: Something broken in nullbench
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For security issues, use SECURITY.md — not this form.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: `nullbench version` or PyPI / commit
+      placeholder: 0.7.0
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal steps (prefer demo649, no network)
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true

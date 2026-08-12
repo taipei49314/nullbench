@@ -179,11 +179,24 @@ def test_ic09_plugin_refused_without_env(tmp_path: Path, monkeypatch: pytest.Mon
     from nullbench.errors import IntegrityError
 
     monkeypatch.delenv("NULLBENCH_TRUST_PLUGINS", raising=False)
+    monkeypatch.delenv("NULLBENCH_PLUGIN_ALLOWLIST", raising=False)
     with pytest.raises(IntegrityError):
         assert_plugins_trusted("evil_plugin", is_domain=False)
     monkeypatch.setenv("NULLBENCH_TRUST_PLUGINS", "1")
     assert_plugins_trusted("evil_plugin", is_domain=False)  # allowed when trusted
 
+
+def test_ic09_plugin_allowlist_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from nullbench.core.integrity import assert_plugins_trusted
+    from nullbench.errors import IntegrityError
+
+    monkeypatch.delenv("NULLBENCH_TRUST_PLUGINS", raising=False)
+    allow = tmp_path / "plugins.allowlist"
+    allow.write_text("strategy:evil_plugin\n", encoding="utf-8")
+    monkeypatch.setenv("NULLBENCH_PLUGIN_ALLOWLIST", str(allow))
+    assert_plugins_trusted("evil_plugin", is_domain=False)
+    with pytest.raises(IntegrityError):
+        assert_plugins_trusted("other_evil", is_domain=False)
 
 def test_tip_mismatch_on_truncation(tmp_path: Path) -> None:
     root = _study(tmp_path)

@@ -93,7 +93,7 @@ def maturity(
             "not a global notary (M4)."
         )
     else:
-        console.print("[red]M1 GATE FAIL[/red] — do not claim 可稽核 / 永不 backfill")
+        console.print("[red]M1 GATE FAIL[/red] — do not claim absolute auditable / never-backfill")
         raise typer.Exit(1)
 
 

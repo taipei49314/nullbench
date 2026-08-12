@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — 2026-08-12
+
+### Public open-source product
+
+- **M2 frozen:** PRD, THREAT_MODEL, CLAIM_POLICY, PUBLIC_API
+- **M3 partial:** plugin allowlist files, CI CycloneDX SBOM artifact, OIDC publish workflow (Trusted Publisher still maintainer-configured)
+- OSS surface: SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, issue/PR templates
+- README rewritten for public adopters; CI badge + public API import smoke
+- `build_report` exported from top-level `nullbench` package
+
 ## 0.6.1 — 2026-08-12
 
 ### Integrity hardening (R-01 / R-02)

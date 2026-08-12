@@ -1,0 +1,16 @@
+# plugins.allowlist example (M3)
+
+# One plugin id per line. Prefix optional:
+#   strategy:<id>
+#   domain:<id>
+#   <id>          → matches either group
+#
+# Usage:
+#   set NULLBENCH_PLUGIN_ALLOWLIST=/path/to/this/file
+#   # or place at: <study>/plugins.allowlist
+#   # or: %USERPROFILE%\.config\nullbench\plugins.allowlist
+#
+# Still safer than NULLBENCH_TRUST_PLUGINS=1 (global trust).
+
+# my_custom_strategy
+# domain:my_game

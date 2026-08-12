@@ -9,10 +9,10 @@ from pathlib import Path
 
 
 LEVELS = (
-    ("M0", "Lab CLI / demo / PyPI alpha", "shipping"),
-    ("M1", "Sealed local study (must-pass gate)", "gate"),
-    ("M2", "PRD + Threat Model + Public API + Claim Policy frozen", "draft"),
-    ("M3", "Trusted Publishing / SBOM / plugin allowlist", "planned"),
+    ("M0", "Lab CLI / demo / PyPI", "done"),
+    ("M1", "Sealed local study (must-pass gate)", "done"),
+    ("M2", "PRD + Threat Model + Public API + Claim Policy frozen", "frozen"),
+    ("M3", "Trusted Publishing / SBOM / plugin allowlist", "partial"),
     ("M4", "Remote sealed study / vault", "planned"),
 )
 
@@ -25,12 +25,13 @@ M1_CHECKLIST = (
     ("M1.6", "Claim lint on reports"),
     ("M1.7", "Stable history order (date, period)"),
     ("M1.8", "Code fingerprint includes sources"),
-    ("M1.9", "Adversarial tests IC-01..08 (pytest -m m1)"),
+    ("M1.9", "Adversarial tests IC-01..08 + R-01/R-02 (pytest -m m1)"),
 )
 
 PRODUCT_GATE = (
     "Without M1 green, do not publicly claim "
-    "「可稽核」or「永不 backfill」as product guarantees."
+    "'auditable' / 'never backfill' (or Chinese equivalents) as absolute "
+    "product guarantees. See CLAIM_POLICY.md."
 )
 
 
@@ -52,10 +53,13 @@ def describe() -> MaturityStatus:
                 "name": n,
                 "role": r,
                 "note": {
-                    "shipping": "Current product class",
+                    "done": "Shipped",
+                    "frozen": "Normative docs frozen at M2",
+                    "partial": "In-repo controls shipped; maintainer must finish PyPI Trusted Publisher setup",
+                    "planned": "Not started as exit criteria",
                     "gate": "Must pass before strong integrity marketing",
                     "draft": "Documents exist as draft; not frozen",
-                    "planned": "Not started as exit criteria",
+                    "shipping": "Current product class",
                 }.get(r, r),
             }
             for i, n, r in LEVELS
@@ -64,10 +68,11 @@ def describe() -> MaturityStatus:
         m1_tests_ok=None,
         product_gate=PRODUCT_GATE,
         allowed_claims=[
-            "Lab / alpha tool",
-            "Pre-register decisions; score against chance",
-            "Detects inconsistent seal drift under M1 model",
-            "Residual risk: consistent full local rewrite (see THREAT_MODEL)",
+            "Open-source null-first decision lab",
+            "M1 local seals (inconsistent-edit detection)",
+            "M2 frozen PRD / threat model / public API / claim policy",
+            "M3: OIDC publish workflow + CI SBOM + plugin allowlist",
+            "Residual risk: consistent full local rewrite until M4 (THREAT_MODEL)",
         ],
         forbidden_until_m1=[
             "可稽核 as absolute guarantee",
@@ -80,7 +85,6 @@ def describe() -> MaturityStatus:
 
 def run_m1_gate(*, verbose: bool = False) -> tuple[bool, str]:
     """Run adversarial M1 suite. Returns (ok, log_tail)."""
-    # Locate package root (repo or site-packages — prefer cwd if tests present)
     candidates = [
         Path.cwd() / "tests",
         Path(__file__).resolve().parents[2] / "tests",
@@ -89,35 +93,24 @@ def run_m1_gate(*, verbose: bool = False) -> tuple[bool, str]:
     if test_dir is None:
         return False, "tests/ directory not found (install from source to run M1 gate)"
 
+    targets = [test_dir / "test_integrity_ic.py"]
+    if (test_dir / "test_m1_gate.py").exists():
+        targets.append(test_dir / "test_m1_gate.py")
     cmd = [
         sys.executable,
         "-m",
         "pytest",
-        str(test_dir / "test_integrity_ic.py"),
-        str(test_dir / "test_m1_gate.py") if (test_dir / "test_m1_gate.py").exists() else str(test_dir / "test_integrity_ic.py"),
+        *[str(t) for t in targets],
         "-m",
         "m1",
         "-q",
         "--tb=line",
     ]
-    # de-dupe if test_m1 missing
-    if not (test_dir / "test_m1_gate.py").exists():
-        cmd = [
-            sys.executable,
-            "-m",
-            "pytest",
-            str(test_dir / "test_integrity_ic.py"),
-            "-m",
-            "m1",
-            "-q",
-            "--tb=line",
-        ]
     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(test_dir.parent))
     log = (proc.stdout or "") + (proc.stderr or "")
     ok = proc.returncode == 0
     if verbose:
         return ok, log
-    # short tail
     lines = [ln for ln in log.strip().splitlines() if ln.strip()]
     tail = "\n".join(lines[-12:]) if lines else f"exit={proc.returncode}"
     return ok, tail

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security report
+    url: https://github.com/taipei49314/nullbench/blob/master/SECURITY.md
+    about: Do not file public issues for unfixed vulnerabilities.
+  - name: Maturity & claim policy
+    url: https://github.com/taipei49314/nullbench/blob/master/docs/MATURITY.md
+    about: What M0–M4 allow you to say about the product.

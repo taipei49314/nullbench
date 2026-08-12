@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nullbench"
-version = "0.6.1"
-description = "Null-first decision lab: pre-register, score vs chance, M1 local seals (alpha)."
+version = "0.7.0"
+description = "Open-source null-first decision lab: pre-register, score vs chance, M1 local seals (M2 specs frozen)."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
