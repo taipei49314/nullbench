@@ -56,12 +56,21 @@ nullbench report --study my-study --open
 | **M0** Lab / PyPI | done |
 | **M1** Local seals + adversarial tests | done |
 | **M2** PRD / threat model / API / claims frozen | frozen |
-| **M3** OIDC publish + SBOM + plugin allowlist | partial (in-repo) |
-| **M4** Remote vault / notary | planned |
+| **M3** OIDC publish + SBOM + plugin allowlist | done |
+| **M4** External vault notary (A5 control) | done |
 
 ```bash
 nullbench maturity
-nullbench maturity --check-m1    # needs source checkout + dev extras
+nullbench maturity --check-m1
+nullbench maturity --check-m4
+```
+
+### M4 notarize
+
+```bash
+nullbench vault init
+nullbench seal notarize --study try1
+nullbench seal verify --study try1
 ```
 
 ## Library

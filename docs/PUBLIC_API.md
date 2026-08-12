@@ -43,6 +43,13 @@ from nullbench import init_study, add_strategy, freeze_period, settle_period, bu
 
 ## CLI product surface (stable jobs)
 
-`doctor`, `next`, `periods`, `demo`, `init`, `strategy`, `freeze`, `settle`, `report`, `maturity`, `ingest`, `formal`, `domains`, `strategies`
+`doctor`, `next`, `periods`, `demo`, `init`, `strategy`, `freeze`, `settle`, `report`, `maturity`, `ingest`, `formal`, `domains`, `strategies`, `seal`, `vault`
+
+### M4 (0.8+)
+
+| Command | Role |
+|---------|------|
+| `vault init` / `vault list` / `vault serve` | External vault lifecycle |
+| `seal export` / `seal notarize` / `seal verify` | Bundle + notary |
 
 Exact option strings may evolve with deprecation notes in CHANGELOG.

@@ -35,6 +35,13 @@ Forbidden as product guarantees:
 
 Still not allowed without M4: absolute never-backfill against A5.
 
+## Allowed after M4
+
+- “Notarized to vault …” / “vault verify pass for receipt …”
+- “Post-notarize consistent rewrite is detected against that vault”
+
+Still forbidden: absolute never-backfill if the vault key is attacker-controlled.
+
 ## Report claims
 
 | Claim status | When |

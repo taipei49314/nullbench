@@ -47,3 +47,9 @@ class DataError(NullbenchError):
 
 class IntegrityError(NullbenchError):
     pass
+
+
+class VaultError(NullbenchError):
+    """M4 vault / notary / sealed-bundle errors."""
+
+    pass

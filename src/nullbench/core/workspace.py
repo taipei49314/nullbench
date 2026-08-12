@@ -234,6 +234,39 @@ def doctor(root: Path | None = None) -> dict:
                     "detail": "ok" if sem_ok else "; ".join(sem_issues[:2]),
                 }
             )
+            # M4: if a receipt exists, verify against vault
+            try:
+                from nullbench.core.seal import verify_study_vault
+
+                v_ok, v_issues, receipt = verify_study_vault(root)
+                if receipt is not None:
+                    checks.append(
+                        {
+                            "name": "vault_receipt",
+                            "ok": v_ok,
+                            "detail": "ok" if v_ok else "; ".join(v_issues[:2]),
+                        }
+                    )
+                    study_info["vault_ok"] = v_ok
+                    study_info["vault_receipt_id"] = receipt.get("receipt_id")
+                else:
+                    checks.append(
+                        {
+                            "name": "vault_receipt",
+                            "ok": True,
+                            "detail": "none (optional M4)",
+                            "optional": True,
+                        }
+                    )
+            except Exception as e:  # noqa: BLE001
+                checks.append(
+                    {
+                        "name": "vault_receipt",
+                        "ok": False,
+                        "detail": str(e),
+                        "optional": True,
+                    }
+                )
         except Exception as e:
             checks.append({"name": "study", "ok": False, "detail": str(e)})
     return {
