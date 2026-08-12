@@ -1,5 +1,14 @@
 # lotto-lab — 虛擬彩票研究室（純模擬，不下注）
 
+> **日常主力請用 [nullbench](https://github.com/taipei49314/nullbench)**（可安裝、可開源、domain 通用）。  
+> 本 repo 是歷史研究檔案庫（agent loop、訊號協議、結構證明）；新實驗與對外工具走 nullbench。
+>
+> ```bash
+> pip install nullbench
+> nullbench demo --name try1
+> nullbench init tw -d taiwan_super --fetch
+> ```
+
 > **本系統為負期望值之純模擬實驗，統計上每期獨立。**
 > 它不預言號碼；它的正式問題是：「任何選號策略的長期績效，是否顯著異於純隨機？」
 > 預期（且樂見）的答案是否——詳見 [PREREG.md](PREREG.md)。
