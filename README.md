@@ -1,11 +1,12 @@
 # lotto-lab — 虛擬彩票研究室（純模擬，不下注）
 
-> **日常主力請用 [nullbench](https://github.com/taipei49314/nullbench)**（可安裝、可開源、domain 通用）。  
+> **日常主力請用 [nullbench](https://pypi.org/project/nullbench/)**（PyPI 可裝、domain 通用、靜態 HTML 報告）。  
 > 本 repo 是歷史研究檔案庫（agent loop、訊號協議、結構證明）；新實驗與對外工具走 nullbench。
 >
 > ```bash
-> pip install nullbench
+> pip install -U nullbench
 > nullbench demo --name try1
+> nullbench report --study try1 --open
 > nullbench init tw -d taiwan_super --fetch
 > ```
 
