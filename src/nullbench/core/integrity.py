@@ -294,10 +294,60 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
     return (len(issues) == 0 and ok_chain), issues
 
 
-def assert_plugins_trusted(kind: str, *, is_domain: bool = False) -> None:
-    """Gate entry-point plugins (IC-09). Builtins always allowed."""
+def _truthy_env(name: str) -> bool:
     import os
 
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def plugin_allowlist_paths(study_root: Path | None = None) -> list[Path]:
+    """Ordered allowlist locations (first existing wins when merging all)."""
+    import os
+
+    paths: list[Path] = []
+    env = os.environ.get("NULLBENCH_PLUGIN_ALLOWLIST", "").strip()
+    if env:
+        paths.append(Path(env))
+    if study_root is not None:
+        paths.append(Path(study_root) / "plugins.allowlist")
+    # XDG-ish / Windows user config
+    home = Path.home()
+    paths.append(home / ".config" / "nullbench" / "plugins.allowlist")
+    return paths
+
+
+def load_plugin_allowlist(study_root: Path | None = None) -> set[str]:
+    """Load plugin ids from allowlist files (M3).
+
+    Lines may be ``strategy:id``, ``domain:id``, or bare ``id``.
+    Comments (``#``) and blanks ignored.
+    """
+    found: set[str] = set()
+    for path in plugin_allowlist_paths(study_root):
+        if not path.is_file():
+            continue
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.split("#", 1)[0].strip()
+            if not line:
+                continue
+            if ":" in line:
+                _group, _, name = line.partition(":")
+                name = name.strip()
+            else:
+                name = line
+            if name:
+                found.add(name)
+                found.add(line)  # also keep prefixed form
+    return found
+
+
+def assert_plugins_trusted(
+    kind: str,
+    *,
+    is_domain: bool = False,
+    study_root: Path | None = None,
+) -> None:
+    """Gate entry-point plugins (IC-09 / M3 allowlist). Builtins always allowed."""
     from nullbench.domains import _BUILTIN as DOMAIN_BUILTIN
     from nullbench.strategies import _BUILTIN as STRAT_BUILTIN
 
@@ -307,11 +357,16 @@ def assert_plugins_trusted(kind: str, *, is_domain: bool = False) -> None:
     else:
         if kind in STRAT_BUILTIN:
             return
-    flag = os.environ.get("NULLBENCH_TRUST_PLUGINS", "").strip().lower()
-    if flag in ("1", "true", "yes", "on"):
+    if _truthy_env("NULLBENCH_TRUST_PLUGINS"):
         return
-    # study-level trust file optional — checked by caller
+    allow = load_plugin_allowlist(study_root)
+    prefixed = f"{'domain' if is_domain else 'strategy'}:{kind}"
+    if kind in allow or prefixed in allow:
+        return
     raise IntegrityError(
         f"refusing untrusted {'domain' if is_domain else 'strategy'} plugin {kind!r}",
-        hint="set NULLBENCH_TRUST_PLUGINS=1 or use builtins only (IC-09)",
+        hint=(
+            "add the id to plugins.allowlist / NULLBENCH_PLUGIN_ALLOWLIST, "
+            "or set NULLBENCH_TRUST_PLUGINS=1 (IC-09/M3)"
+        ),
     )

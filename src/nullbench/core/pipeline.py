@@ -69,7 +69,7 @@ def init_study(
         )
     study.ensure_layout()
     try:
-        assert_plugins_trusted(domain, is_domain=True)
+        assert_plugins_trusted(domain, is_domain=True, study_root=root)
     except IntegrityError as e:
         raise DataError(e.message, hint=e.hint) from e
     game = game_for(domain)
@@ -161,7 +161,7 @@ def add_strategy(
             hint="choose a different --id",
         )
     try:
-        assert_plugins_trusted(kind, is_domain=False)
+        assert_plugins_trusted(kind, is_domain=False, study_root=root)
     except IntegrityError as e:
         raise StrategyError(e.message, hint=e.hint) from e
     get_strategy(kind)
@@ -218,12 +218,12 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
 
     # Trust gate for domain plugins (IC-09)
     try:
-        assert_plugins_trusted(spec.domain, is_domain=True)
+        assert_plugins_trusted(spec.domain, is_domain=True, study_root=root)
     except IntegrityError as e:
         raise FreezeError(e.message, hint=e.hint) from e
     for s in spec.strategies:
         try:
-            assert_plugins_trusted(s.kind, is_domain=False)
+            assert_plugins_trusted(s.kind, is_domain=False, study_root=root)
         except IntegrityError as e:
             raise FreezeError(e.message, hint=e.hint) from e
 

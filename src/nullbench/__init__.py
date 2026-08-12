@@ -1,6 +1,6 @@
-"""nullbench — pre-register decisions, score against chance, never backfill."""
+"""nullbench — null-first decision lab (pre-register, score vs chance)."""
 
-__version__ = "0.6.1"
+__version__ = "0.7.0"
 
 from nullbench.core.models import (
     Draw,
@@ -15,6 +15,7 @@ from nullbench.core.models import (
 )
 from nullbench.core.pipeline import (
     add_strategy,
+    build_report,
     freeze_latest,
     freeze_period,
     init_study,
@@ -38,6 +39,7 @@ __all__ = [
     "StrategyFn",
     "NullbenchError",
     "add_strategy",
+    "build_report",
     "freeze_latest",
     "freeze_period",
     "init_study",

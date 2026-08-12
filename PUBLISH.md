@@ -32,15 +32,17 @@ See `.github/workflows/publish-testpypi.yml`.
 
 ## Production PyPI
 
-### Preferred: OIDC trusted publishing (IC-10)
+### Preferred: OIDC trusted publishing (M3 / IC-10)
 
 Long-lived API tokens in chat/CI secrets are a weak trust chain.
 Configure **Trusted Publisher** on PyPI for this repo, then use
 `.github/workflows/publish-pypi.yml` (no long-lived token).
 
 1. PyPI → Project nullbench → Publishing → Add GitHub publisher  
-2. owner=`taipei49314`, repo=`nullbench`, workflow=`publish-pypi.yml`  
-3. Create a GitHub Release → workflow uploads with OIDC  
+2. owner=`taipei49314`, repo=`nullbench`, workflow=`publish-pypi.yml`, environment=`pypi`  
+3. Tag a release / publish GitHub Release → workflow uploads with OIDC  
+
+CI also uploads a CycloneDX SBOM artifact (`sbom.cdx.json`) on every push/PR.
 
 ### Fallback: API token (short-lived, project-scoped, revoke after use)
 
