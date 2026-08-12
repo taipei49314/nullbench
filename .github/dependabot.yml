@@ -1,0 +1,25 @@
+# Dependabot — keep Actions and Python deps current
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+    # pyproject.toml is the source of truth (no requirements.txt lock)
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "production"
+      - dependency-type: "development"

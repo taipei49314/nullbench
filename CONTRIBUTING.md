@@ -32,15 +32,22 @@ Python **3.11+**.
 5. Run before push:
 
 ```bash
-pytest -q
+ruff check src tests
+ruff format --check src tests
+mypy src/nullbench
+pytest --cov=nullbench --cov-fail-under=70 -q
 pytest -m m1 -q
+pytest -m m4 -q   # if you touched vault/seal
 ```
+
+Maintainer release/ops: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ## Code style
 
 - Match existing modules; prefer small, typed surfaces.
 - Public library API is listed in [docs/PUBLIC_API.md](docs/PUBLIC_API.md) — do not break it without a CHANGELOG note and minor/major bump.
 - Orchestration stays deterministic (no LLM-driven phase transitions).
+- Lint/format: **ruff**; types: **mypy** on `src/nullbench`.
 
 ## Plugins
 

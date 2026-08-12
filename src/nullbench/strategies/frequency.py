@@ -49,7 +49,7 @@ def propose_frequency(
             continue
         seen.add(key)
         tickets.append(
-            Ticket(numbers=list(nums_t), special=special, label=f"freq-{len(tickets)+1}")
+            Ticket(numbers=list(nums_t), special=special, label=f"freq-{len(tickets) + 1}")
         )
     if len(tickets) < spec.tickets_per_period:
         raise RuntimeError("failed to sample unique frequency tickets")
@@ -60,7 +60,7 @@ def _weighted_choice(rng: random.Random, items: list[int], weights: list[float])
     total = sum(weights)
     r = rng.random() * total
     acc = 0.0
-    for item, w in zip(items, weights):
+    for item, w in zip(items, weights, strict=True):
         acc += w
         if r <= acc:
             return item

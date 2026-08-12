@@ -1,0 +1,9 @@
+# CODEOWNERS — default review routing for nullbench
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+*       @taipei49314
+
+/.github/                 @taipei49314
+/src/nullbench/core/      @taipei49314
+/docs/                    @taipei49314
+/pyproject.toml           @taipei49314

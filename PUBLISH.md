@@ -1,5 +1,7 @@
 # Publishing nullbench
 
+See also the full maintainer playbook: **[docs/RUNBOOK.md](docs/RUNBOOK.md)**.
+
 ## Build
 
 ```bash
@@ -9,58 +11,64 @@ python -m build
 
 Produces `dist/nullbench-<version>-*.whl` and `.tar.gz`.
 
-## TestPyPI
+## Production PyPI — Trusted Publisher (required)
+
+OIDC is the supported path. Long-lived tokens are bootstrap-only.
+
+### One-time PyPI configuration
+
+1. Open: https://pypi.org/manage/project/nullbench/settings/publishing/
+2. Add GitHub publisher with **exact** values:
+
+| Field | Value |
+|-------|-------|
+| Owner | `taipei49314` |
+| Repository name | `nullbench` |
+| Workflow name | `publish-pypi.yml` |
+| Environment name | `pypi` |
+
+3. Confirm GitHub → Settings → Environments → `pypi` exists.
+4. Publish a GitHub Release (or run **Publish PyPI** via `workflow_dispatch`).
+
+If you see `invalid-publisher`, the table above does not match what PyPI has stored (most often wrong **Environment** or workflow filename).
+
+### Fallback token (bootstrap)
 
 ```powershell
-# 1) Create account + token: https://test.pypi.org/manage/account/token/
-# 2) Upload
-$env:TWINE_USERNAME = "__token__"
-$env:TWINE_PASSWORD = "pypi-..."   # TestPyPI token
-python -m twine upload --repository testpypi dist/*
-
-# 3) Install from TestPyPI (deps still from real PyPI)
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nullbench
+gh secret set PYPI_API_TOKEN --env pypi
+# then re-run the Publish PyPI workflow
 ```
 
-This environment has **no** TestPyPI / PyPI token stored. Upload must be run on a machine
-with credentials, or via GitHub Actions secrets:
-
-- `TEST_PYPI_API_TOKEN` — for TestPyPI
-- `PYPI_API_TOKEN` — for production PyPI
-
-See `.github/workflows/publish-testpypi.yml`.
-
-## Production PyPI
-
-### Preferred: OIDC trusted publishing (M3 / IC-10)
-
-Long-lived API tokens in chat/CI secrets are a weak trust chain.
-Configure **Trusted Publisher** on PyPI for this repo, then use
-`.github/workflows/publish-pypi.yml` (no long-lived token).
-
-1. PyPI → Project nullbench → Publishing → Add GitHub publisher  
-2. owner=`taipei49314`, repo=`nullbench`, workflow=`publish-pypi.yml`, environment=`pypi`  
-3. Tag a release / publish GitHub Release → workflow uploads with OIDC  
-
-CI also uploads a CycloneDX SBOM artifact (`sbom.cdx.json`) on every push/PR.
-
-### Fallback: API token (short-lived, project-scoped, revoke after use)
+Or local:
 
 ```powershell
 $env:TWINE_USERNAME = "__token__"
-$env:TWINE_PASSWORD = "pypi-..."
+$env:TWINE_PASSWORD = "pypi-..."   # project-scoped; revoke after
 python -m twine upload dist/*
 ```
 
-### Ingest provenance (IC-10)
+## TestPyPI
 
-Taiwan domain ingest writes `data/cache/provenance/<game>.jsonl` with
-SHA-256 of each raw monthly cache file. Past months are treated as immutable
-caches; provenance lets you detect silent cache rewrites.
+```powershell
+$env:TWINE_USERNAME = "__token__"
+$env:TWINE_PASSWORD = "pypi-..."   # TestPyPI token
+python -m twine upload --repository testpypi dist/*
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nullbench
+```
+
+Secrets: `TEST_PYPI_API_TOKEN` (env `testpypi`). Workflow: `.github/workflows/publish-testpypi.yml`.
+
+## SBOM
+
+CI uploads CycloneDX `sbom.cdx.json` on every push/PR (artifact `nullbench-sbom`).
+
+## Ingest provenance (IC-10)
+
+Taiwan domain ingest writes `data/cache/provenance/<game>.jsonl` with SHA-256 of each raw monthly cache file.
 
 ## Optional extras
 
 ```bash
-pip install "nullbench[coverage]"   # OR-Tools
+pip install "nullbench[coverage]"   # OR-Tools combinatorial coverage
 pip install "nullbench[stats]"      # properscoring (+ comparecast on non-Windows)
 ```

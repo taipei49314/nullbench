@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class ClaimStatus(str, Enum):
@@ -79,9 +79,10 @@ class GameSpec(BaseModel):
     def bounds(self) -> GameSpec:
         if self.main_count > self.main_max:
             raise ValueError("main_count cannot exceed main_max")
-        if self.special_mode == SpecialMode.SEPARATE:
-            if self.special_max is None or self.special_max < 1:
-                raise ValueError("SEPARATE mode requires special_max >= 1")
+        if self.special_mode == SpecialMode.SEPARATE and (
+            self.special_max is None or self.special_max < 1
+        ):
+            raise ValueError("SEPARATE mode requires special_max >= 1")
         if self.special_mode == SpecialMode.NONE:
             self.special_max = None
         return self
@@ -102,9 +103,7 @@ class FormalEndpointSpec(BaseModel):
 
     enabled: bool = False
     primary_strategy_id: str | None = None
-    checkpoints: dict[int, float] = Field(
-        default_factory=lambda: {26: 0.005, 52: 0.020}
-    )
+    checkpoints: dict[int, float] = Field(default_factory=lambda: {26: 0.005, 52: 0.020})
     primary_only_for_claim: bool = True
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.2 — 2026-08-12
+
+### Engineering department gates
+
+- CI: `ruff` + `mypy` lint job; pytest `--cov-fail-under=70`
+- Dependabot (Actions + pip), `CODEOWNERS`, maintainer [RUNBOOK](docs/RUNBOOK.md)
+- Trusted Publisher setup documented in PUBLISH.md / RUNBOOK (one-time PyPI UI)
+
 ## 0.8.1 — 2026-08-12
 
 ### Red-team hardening (R-03 / IC-09 / M4 UX)

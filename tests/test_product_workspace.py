@@ -4,7 +4,7 @@ from pathlib import Path
 
 from nullbench.core import pipeline
 from nullbench.core.workspace import doctor, next_actions, period_index
-from nullbench.errors import FreezeError, StudyNotFoundError
+from nullbench.errors import StudyNotFoundError
 
 
 def test_study_md_and_coach(tmp_path: Path) -> None:
@@ -52,5 +52,7 @@ def test_freeze_latest_idempotent_path(tmp_path: Path) -> None:
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
     pipeline.freeze_latest(root)
     # second freeze same period → empty list (idempotent)
-    again = pipeline.freeze_period(root, pipeline.load_draws(root / "data" / "draws.jsonl")[-1].period)
+    again = pipeline.freeze_period(
+        root, pipeline.load_draws(root / "data" / "draws.jsonl")[-1].period
+    )
     assert again == []

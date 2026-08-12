@@ -32,7 +32,7 @@ def propose_random(
             continue
         seen.add(key)
         tickets.append(
-            Ticket(numbers=list(nums), special=special, label=f"random-{len(tickets)+1}")
+            Ticket(numbers=list(nums), special=special, label=f"random-{len(tickets) + 1}")
         )
     if len(tickets) < spec.tickets_per_period:
         raise RuntimeError("failed to sample unique random tickets")

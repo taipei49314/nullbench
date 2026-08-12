@@ -64,9 +64,7 @@ def test_ic01_forged_payout_detected(tmp_path: Path) -> None:
         "n_lines": len(rebuilt),
         "path": "events.jsonl",
     }
-    (Path(root) / "ledger" / "events.jsonl.tip").write_text(
-        json.dumps(tip), encoding="utf-8"
-    )
+    (Path(root) / "ledger" / "events.jsonl.tip").write_text(json.dumps(tip), encoding="utf-8")
     chain_ok, _ = Study(root).ledger().verify_chain()
     assert chain_ok  # chain alone insufficient
     sem_ok, issues = verify_study_semantic(root)
@@ -176,7 +174,6 @@ def test_ic08_code_fingerprint_changes_with_kind(tmp_path: Path) -> None:
 
 def test_ic09_plugin_refused_without_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from nullbench.core.integrity import assert_plugins_trusted
-    from nullbench.errors import IntegrityError
 
     monkeypatch.delenv("NULLBENCH_TRUST_PLUGINS", raising=False)
     monkeypatch.delenv("NULLBENCH_PLUGIN_ALLOWLIST", raising=False)
@@ -188,7 +185,6 @@ def test_ic09_plugin_refused_without_env(tmp_path: Path, monkeypatch: pytest.Mon
 
 def test_ic09_plugin_allowlist_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from nullbench.core.integrity import assert_plugins_trusted
-    from nullbench.errors import IntegrityError
 
     monkeypatch.delenv("NULLBENCH_TRUST_PLUGINS", raising=False)
     allow = tmp_path / "plugins.allowlist"
@@ -197,6 +193,7 @@ def test_ic09_plugin_allowlist_file(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert_plugins_trusted("evil_plugin", is_domain=False)
     with pytest.raises(IntegrityError):
         assert_plugins_trusted("other_evil", is_domain=False)
+
 
 def test_tip_mismatch_on_truncation(tmp_path: Path) -> None:
     root = _study(tmp_path)

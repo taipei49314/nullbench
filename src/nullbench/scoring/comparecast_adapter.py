@@ -172,9 +172,7 @@ def compare_deltas(
     arr = np.asarray(deltas, dtype=float)
     n = len(arr)
     if n == 0:
-        return ComparecastResult(
-            "empty", 0, 0.0, 0.0, 0.0, 1.0, 1.0, alpha, "no data"
-        )
+        return ComparecastResult("empty", 0, 0.0, 0.0, 0.0, 1.0, 1.0, alpha, "no data")
 
     mean_delta = float(arr.mean())
     # Bound range for PM-EB; for PnL use empirical robust bounds

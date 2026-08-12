@@ -91,9 +91,11 @@ Stable surface: [docs/PUBLIC_API.md](docs/PUBLIC_API.md).
 | [THREAT_MODEL](docs/THREAT_MODEL.md) | Adversaries A1–A5 |
 | [CLAIM_POLICY](docs/CLAIM_POLICY.md) | What you may say publicly |
 | [MATURITY](docs/MATURITY.md) | M0–M4 ladder |
+| [RUNBOOK](docs/RUNBOOK.md) | Release, Trusted Publisher, ops |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Layers |
 | [CONTRIBUTING](CONTRIBUTING.md) | How to hack |
 | [SECURITY](SECURITY.md) | How to report issues |
+| [PUBLISH](PUBLISH.md) | Build / PyPI |
 
 ## Contributing
 

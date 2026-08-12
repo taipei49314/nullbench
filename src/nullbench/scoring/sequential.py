@@ -89,5 +89,5 @@ def compare_strategy_to_null(
     """delta_t = strategy_pnl_t - mean_null_pnl_t each period."""
     if len(strategy_period_pnl) != len(null_mean_period_pnl):
         raise ValueError("length mismatch")
-    deltas = [s - n for s, n in zip(strategy_period_pnl, null_mean_period_pnl)]
+    deltas = [s - n for s, n in zip(strategy_period_pnl, null_mean_period_pnl, strict=True)]
     return e_process_from_deltas(deltas)

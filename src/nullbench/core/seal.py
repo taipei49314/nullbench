@@ -163,8 +163,7 @@ def verify_against_receipt(
         )
     if tip.get("n_lines") != receipt.get("tip_n_lines"):
         issues.append(
-            f"tip_n_lines mismatch study={tip.get('n_lines')} "
-            f"receipt={receipt.get('tip_n_lines')}"
+            f"tip_n_lines mismatch study={tip.get('n_lines')} receipt={receipt.get('tip_n_lines')}"
         )
 
     try:
@@ -230,9 +229,7 @@ def verify_study_vault(
 
     if receipt is None:
         if vault.exists() and experiment_id:
-            prior = [
-                r for r in vault.iter_receipts() if r.get("experiment_id") == experiment_id
-            ]
+            prior = [r for r in vault.iter_receipts() if r.get("experiment_id") == experiment_id]
             if prior:
                 return (
                     False,

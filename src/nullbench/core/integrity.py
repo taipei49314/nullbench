@@ -104,8 +104,9 @@ def source_fingerprint(obj: Any) -> str:
     except (OSError, TypeError):
         try:
             mod = inspect.getmodule(obj)
-            if mod and getattr(mod, "__file__", None):
-                p = Path(mod.__file__)
+            file_path = getattr(mod, "__file__", None)
+            if file_path:
+                p = Path(file_path)
                 if p.exists() and p.suffix == ".py":
                     return sha256_hex(p.read_text(encoding="utf-8", errors="replace"))
         except Exception:
@@ -244,8 +245,10 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
                 f"history_hash drift period={fr.get('period')} "
                 f"(IC-03/04: draws reordered or history rewritten)"
             )
-        if oh is not None and fr["period"] in by_period and oh != outcome_hash(
-            by_period[fr["period"]]
+        if (
+            oh is not None
+            and fr["period"] in by_period
+            and oh != outcome_hash(by_period[fr["period"]])
         ):
             issues.append(
                 f"outcome_hash drift period={fr.get('period')} "

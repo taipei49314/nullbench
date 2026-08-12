@@ -51,8 +51,7 @@ def select_max_disjoint_coverage(
             ordered.append(n)
     if len(ordered) < need:
         raise ValueError(
-            f"need {need} distinct numbers for {n_tickets} disjoint tickets; "
-            f"got {len(ordered)}"
+            f"need {need} distinct numbers for {n_tickets} disjoint tickets; got {len(ordered)}"
         )
 
     w = weights or {n: float(len(ordered) - i) for i, n in enumerate(ordered)}
@@ -86,7 +85,7 @@ def _greedy_select(
     sp = _assign_special(game, special)
     for t in range(n_tickets):
         chunk = take[t * game.main_count : (t + 1) * game.main_count]
-        tickets.append(Ticket(numbers=sorted(chunk), special=sp, label=f"cov-{t+1}"))
+        tickets.append(Ticket(numbers=sorted(chunk), special=sp, label=f"cov-{t + 1}"))
     used = sorted({n for tk in tickets for n in tk.numbers})
     tw = sum(weights.get(n, 0.0) for n in used)
     return CoveragePlan(
@@ -140,7 +139,7 @@ def _ortools_select(
     used: list[int] = []
     for t in range(n_tickets):
         nums = [n for n in ordered if solver.Value(x[t, n]) == 1]
-        tickets.append(Ticket(numbers=sorted(nums), special=sp, label=f"cov-{t+1}"))
+        tickets.append(Ticket(numbers=sorted(nums), special=sp, label=f"cov-{t + 1}"))
         used.extend(nums)
     used_sorted = sorted(set(used))
     tw = sum(weights.get(n, 0.0) for n in used_sorted)
