@@ -1,5 +1,10 @@
-# IC-10: prefer OIDC trusted publishing over long-lived API tokens.
-# Configure at https://pypi.org/manage/project/nullbench/settings/publishing/
+# IC-10 / M3: OIDC Trusted Publishing first; API token fallback for bootstrap.
+# Configure Trusted Publisher: https://pypi.org/manage/project/nullbench/settings/publishing/
+# Exact fields matching this workflow:
+#   Owner: taipei49314
+#   Repository: nullbench
+#   Workflow: publish-pypi.yml
+#   Environment: pypi
 name: Publish PyPI
 
 on:
@@ -21,7 +26,22 @@ jobs:
           python-version: "3.11"
       - name: Build
         run: |
-          python -m pip install -U pip build
+          python -m pip install -U pip build twine
           python -m build
       - name: Publish to PyPI (OIDC)
+        id: oidc
+        continue-on-error: true
         uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI (token fallback)
+        if: steps.oidc.outcome != 'success'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -z "$TWINE_PASSWORD" ]; then
+            echo "::error::OIDC Trusted Publisher not configured, and secrets.PYPI_API_TOKEN is empty."
+            echo "Add Trusted Publisher on PyPI (workflow=publish-pypi.yml, environment=pypi)"
+            echo "OR: gh secret set PYPI_API_TOKEN --env pypi"
+            exit 1
+          fi
+          python -m twine upload dist/*
