@@ -1,8 +1,7 @@
 """nullbench — pre-register decisions, score against chance, never backfill."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
-# Public surface for library users
 from nullbench.core.models import (
     Draw,
     ExperimentSpec,
@@ -10,10 +9,19 @@ from nullbench.core.models import (
     GameSpec,
     ReportSummary,
     SettleRecord,
+    SpecialMode,
     StrategySpec,
     Ticket,
 )
-from nullbench.core.pipeline import freeze_period, init_study, settle_period
+from nullbench.core.pipeline import (
+    add_strategy,
+    freeze_latest,
+    freeze_period,
+    init_study,
+    settle_period,
+)
+from nullbench.errors import NullbenchError
+from nullbench.protocols import DomainInfo, StrategyFn
 
 __all__ = [
     "__version__",
@@ -23,8 +31,14 @@ __all__ = [
     "GameSpec",
     "ReportSummary",
     "SettleRecord",
+    "SpecialMode",
     "StrategySpec",
     "Ticket",
+    "DomainInfo",
+    "StrategyFn",
+    "NullbenchError",
+    "add_strategy",
+    "freeze_latest",
     "freeze_period",
     "init_study",
     "settle_period",

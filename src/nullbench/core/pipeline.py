@@ -20,6 +20,14 @@ from nullbench.core.nullbank import evaluate_null_bank
 from nullbench.core.settle_math import portfolio_cost, portfolio_payout
 from nullbench.core.study import Study
 from nullbench.domains import game_for, get_domain
+from nullbench.errors import (
+    DataError,
+    FreezeError,
+    SettleError,
+    StrategyError,
+    StudyExistsError,
+    StudyNotFoundError,
+)
 from nullbench.scoring.summary import period_score_summary
 from nullbench.strategies import get_strategy
 
@@ -35,9 +43,14 @@ def init_study(
     fetch: bool = False,
     max_months: int | None = None,
 ) -> ExperimentSpec:
+    from nullbench.core.workspace import write_study_readme
+
     study = Study(root)
     if study.exists():
-        raise FileExistsError(f"study already exists: {root}")
+        raise StudyExistsError(
+            f"study already exists: {root}",
+            hint="pick a new directory name, or continue with status/next",
+        )
     study.ensure_layout()
     game = game_for(domain)
     mod = get_domain(domain)
@@ -57,17 +70,26 @@ def init_study(
         null_seed=null_seed,
     )
     study.save_experiment(spec)
+    write_study_readme(root, spec)
     return spec
 
 
 def ingest_data(root: Path, *, max_months: int | None = None) -> int:
     """Fetch/refresh domain data into study draws.jsonl. Returns draw count."""
     study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
     spec = study.load_experiment()
     mod = get_domain(spec.domain)
     if not hasattr(mod, "prepare_data"):
-        raise RuntimeError(f"domain {spec.domain!r} has no network prepare_data()")
+        raise DataError(
+            f"domain {spec.domain!r} has no network prepare_data()",
+            hint="use demo649 for offline, or implement prepare_data on a domain pack",
+        )
     n = mod.prepare_data(study.data_dir, max_months=max_months)
+    from nullbench.core.workspace import write_study_readme
+
+    write_study_readme(root, study.load_experiment())
     return int(n)
 
 
@@ -81,11 +103,21 @@ def add_strategy(
     params: dict | None = None,
 ) -> ExperimentSpec:
     study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
     spec = study.load_experiment()
     if strategy_id in spec.strategy_ids():
-        raise ValueError(f"strategy id already exists: {strategy_id}")
-    # Validate kind early
+        raise StrategyError(
+            f"strategy id already exists: {strategy_id}",
+            hint="choose a different --id",
+        )
     get_strategy(kind)
+    ledger = study.ledger()
+    if ledger.events_of("freeze"):
+        raise StrategyError(
+            "cannot add strategies after freezes exist",
+            hint="start a new experiment_id / new study directory",
+        )
     spec.strategies.append(
         StrategySpec(
             id=strategy_id,
@@ -95,13 +127,10 @@ def add_strategy(
             seed=seed,
         )
     )
-    # Changing strategies = same experiment_id only before first freeze
-    ledger = study.ledger()
-    if ledger.events_of("freeze"):
-        raise RuntimeError(
-            "cannot add strategies after freezes exist; start a new experiment_id"
-        )
     study.save_experiment(spec)
+    from nullbench.core.workspace import write_study_readme
+
+    write_study_readme(root, spec)
     return spec
 
 
@@ -134,17 +163,26 @@ def _period_seed(period: str) -> int:
 
 def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
     study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
     spec = study.load_experiment()
     if not spec.strategies:
-        raise RuntimeError("add at least one strategy before freeze")
+        raise FreezeError(
+            "add at least one strategy before freeze",
+            hint=f"nullbench strategy add random --study {root} --tickets 5",
+        )
 
     draws = load_draws(study.draws_path)
     periods = {d.period for d in draws}
     if period not in periods:
-        raise KeyError(f"period {period!r} not found in draws data")
+        sample = sorted(periods)[-3:] if periods else []
+        raise DataError(
+            f"period {period!r} not found in draws data",
+            hint=f"run nullbench periods --study {root}"
+            + (f"  (examples: {sample})" if sample else ""),
+        )
 
     history = _history_before(draws, period)
-    # Late if we somehow already have a settle for this period (should not freeze after)
     ledger = study.ledger()
     settled = {
         e["period"]
@@ -152,7 +190,10 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
         if e.get("experiment_id") == spec.experiment_id
     }
     if period in settled:
-        raise RuntimeError(f"period {period} already settled — never backfill freezes")
+        raise FreezeError(
+            f"period {period} already settled — never backfill freezes",
+            hint="choose a later unsettleable period or start a new experiment",
+        )
 
     existing = {
         (e["strategy_id"], e["period"])
@@ -191,8 +232,50 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
     return records
 
 
+def freeze_latest(root: Path) -> list[FreezeRecord]:
+    """Freeze the last draw period that is not yet settled."""
+    study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
+    draws = load_draws(study.draws_path)
+    if not draws:
+        raise DataError("no draws", hint="ingest or use demo649")
+    spec = study.load_experiment()
+    settled = {
+        e["period"]
+        for e in study.ledger().events_of("settle")
+        if e.get("experiment_id") == spec.experiment_id
+    }
+    for d in reversed(draws):
+        if d.period not in settled:
+            return freeze_period(root, d.period)
+    raise FreezeError("all periods already settled", hint="ingest newer draws")
+
+
+def freeze_last_n(root: Path, n: int) -> list[list[FreezeRecord]]:
+    """Freeze the last n unsettled periods (oldest first among the window)."""
+    if n < 1:
+        raise FreezeError("n must be >= 1")
+    study = Study(root)
+    draws = load_draws(study.draws_path)
+    if not draws:
+        raise DataError("no draws")
+    spec = study.load_experiment()
+    settled = {
+        e["period"]
+        for e in study.ledger().events_of("settle")
+        if e.get("experiment_id") == spec.experiment_id
+    }
+    candidates = [d.period for d in draws if d.period not in settled][-n:]
+    if not candidates:
+        raise FreezeError("no unsettled periods to freeze")
+    return [freeze_period(root, p) for p in candidates]
+
+
 def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
     study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
     spec = study.load_experiment()
     draws = {d.period: d for d in load_draws(study.draws_path)}
     ledger = study.ledger()
@@ -220,9 +303,12 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
         if p in settled:
             continue
         if p not in by_period:
-            raise KeyError(f"no freezes for period {p}")
+            raise SettleError(
+                f"no freezes for period {p}",
+                hint=f"nullbench freeze {p} --study {root}",
+            )
         if p not in draws:
-            raise KeyError(f"no draw for period {p}")
+            raise DataError(f"no draw for period {p}")
         draw = draws[p]
         strategy_results: list[PortfolioResult] = []
         n_tickets = 0

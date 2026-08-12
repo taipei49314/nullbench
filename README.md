@@ -1,8 +1,12 @@
 # nullbench
 
+[![PyPI](https://img.shields.io/pypi/v/nullbench.svg)](https://pypi.org/project/nullbench/)
+[![Python](https://img.shields.io/pypi/pyversions/nullbench.svg)](https://pypi.org/project/nullbench/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **Pre-register decisions. Score them against chance. Never backfill.**
 
-nullbench is a **null-first decision evaluation** lab: freeze choices *before* outcomes, settle against equal-cost pure-chance portfolios, keep an append-only hash-chained ledger, and report descriptive percentiles plus sequential e-diagnostics.
+nullbench is a **null-first decision evaluation** lab: freeze choices *before* outcomes, settle against equal-cost chance portfolios, keep an append-only hash-chained ledger, and report descriptive percentiles plus sequential confidence sequences / e-diagnostics.
 
 It is **not** a lottery predictor. Negative expected-value domains are welcome as *stress tests* for methodology.
 
@@ -12,135 +16,111 @@ It is **not** a lottery predictor. Negative expected-value domains are welcome a
 ## Install
 
 ```bash
-# Python 3.11+
 pip install nullbench
-
-# from source
-pip install -e ".[dev]"
+# optional
+pip install "nullbench[coverage]"   # OR-Tools
+pip install "nullbench[stats]"      # properscoring (+ comparecast non-Windows)
 ```
 
-Optional extras:
+Requires **Python 3.11+**.
+
+## 60-second start
 
 ```bash
-pip install "nullbench[coverage]"   # OR-Tools max-disjoint coverage
-pip install "nullbench[stats]"      # properscoring; comparecast on non-Windows
-# Sequential CS + e-process: pure-Python comparecast algorithms always on
-# (official comparecast needs confseq/MSVC on Windows — we ship a MIT port)
+nullbench doctor
+nullbench demo --name try1
+nullbench next --study try1
 ```
 
-## 5-minute demo
+Open `try1/reports/latest.md` and `try1/STUDY.md`.
+
+## Golden path (manual)
 
 ```bash
-nullbench demo --name demo-study --path .
-
-# step by step
-nullbench init my-study -e exp-v1 -d demo649
+nullbench init my-study -d demo649
 nullbench strategy add random --study my-study --tickets 5 --seed 1
-nullbench strategy add frequency --study my-study --id frequency --tickets 5 --seed 2
-nullbench freeze P0100 --study my-study
-nullbench settle --study my-study --period P0100
+nullbench strategy add frequency --study my-study --id frequency --tickets 5
+nullbench periods --study my-study
+nullbench freeze --study my-study --latest
+nullbench settle --study my-study
 nullbench report --study my-study
-nullbench status --study my-study
-nullbench coverage --study my-study --tickets 5 --top 30
+nullbench next --study my-study
 ```
 
-## Taiwan Lottery domains (network)
+## Product commands
+
+| Command | Purpose |
+|---------|---------|
+| `doctor` | Environment + optional study health |
+| `next` | What to do next in this study |
+| `periods` | Draw list with freeze/settle flags |
+| `demo` | One-shot end-to-end |
+| `init` / `strategy` / `freeze` / `settle` / `report` | Core loop |
+| `ingest` | Taiwan official API domains |
+| `coverage` | Max-disjoint multi-ticket plan |
+| `domains -v` / `strategies -v` | Discovery |
+
+## Taiwan domains
 
 ```bash
-# 威力彩 / 大樂透 — official API, month cache, fail-closed parse
-nullbench init tw-super -d taiwan_super --fetch
-# or: init without fetch, then
-nullbench ingest --study tw-super
-
-nullbench strategy add random --study tw-super -n 5
-# pick a historical period id present in draws.jsonl, freeze BEFORE using that outcome
-nullbench freeze 115000058 --study tw-super
-nullbench settle --study tw-super --period 115000058
-nullbench report --study tw-super
+nullbench init tw -d taiwan_super --fetch
+# or: nullbench ingest --study tw
+nullbench strategy add random --study tw -n 5
+nullbench freeze --study tw --latest
+nullbench settle --study tw
+nullbench report --study tw
 ```
 
-**Conservative valuation:** floating jackpot tiers score as **0** by default so reports cannot be inflated by rare top prizes. Fixed tiers only.
+Floating jackpot tiers value at **0** by default (conservative). Pure simulation — no betting.
 
-Pure simulation. No betting. No predicted numbers.
-
-List domains: `nullbench domains`
-
-## What you get
-
-| Piece | Role |
-|-------|------|
-| **Freeze** | Tickets locked with `content_hash` before outcome use |
-| **Null bank** | N equal-cost random portfolios (default 200) |
-| **Settle** | P&L under prize table; never rewrites freezes |
-| **Ledger** | Append-only JSONL + SHA-256 chain |
-| **Report** | Descriptive percentiles + sequential e-diagnostics |
-| **Claim guard** | Blocks promotional language scans |
-| **Plugins** | `nullbench.strategies` entry points |
-
-## Giants we stand on
-
-| Layer | Package / plan |
-|-------|----------------|
-| Schemas / CLI | **Pydantic v2**, **Typer**, **Rich** |
-| Numerics | **NumPy** |
-| Proper scores | **properscoring** (optional) |
-| Sequential CS + e-process | **comparecast** algorithms (pure-Python port; official package when confseq builds) |
-| Proper scores | **properscoring** optional |
-| Combinatorial coverage | **OR-Tools** CP-SAT (`nullbench coverage`) |
-
-Core honesty machinery (freeze, null bank, ledger, claim lint) stays **ours**.
-
-## Plugin strategies
-
-See [examples/plugin_strategy_readme.md](examples/plugin_strategy_readme.md).
-
-```toml
-[project.entry-points."nullbench.strategies"]
-cold = "mypkg.strats:propose_cold"
-```
-
-## Study layout
+## Architecture (skeleton)
 
 ```text
-my-study/
-  experiment.json
-  data/draws.jsonl
-  data/cache/raw/<game>/YYYY-MM.json   # taiwan only
-  ledger/events.jsonl
-  reports/latest.md
-  reports/latest.json
+CLI / workspace (product)
+        ↓
+   pipeline (freeze → settle → report)
+        ↓
+ models · ledger · domains · strategies · scoring
 ```
 
-## Domains
+- **Contracts:** `protocols.py`, `errors.py`, Pydantic models  
+- **Integrity:** append-only JSONL + SHA-256 chain  
+- **Plugins:** `nullbench.strategies` entry points  
+- **Docs:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/PRODUCT.md](docs/PRODUCT.md)
 
-| Domain | Status |
-|--------|--------|
-| `demo649` | Offline synthetic 6/49 |
-| `taiwan_super` | 威力彩 — official API |
-| `taiwan_lotto649` | 大樂透 — official API |
+## Giants
+
+| Need | We use |
+|------|--------|
+| Schemas / CLI | Pydantic, Typer, Rich |
+| Sequential CS + e-process | comparecast algorithms (pure-Python port; official when confseq builds) |
+| Coverage search | OR-Tools CP-SAT (optional) |
+| Proper scores | properscoring (optional) |
+
+## Library API
+
+```python
+from pathlib import Path
+from nullbench import init_study, add_strategy, freeze_period, settle_period
+
+root = Path("my-study")
+init_study(root, experiment_id="exp-v1")
+add_strategy(root, strategy_id="random", kind="random", tickets=5)
+freeze_period(root, "P0100")
+settle_period(root, "P0100")
+```
 
 ## Design rules
 
-1. **No look-ahead** — strategies only see draws strictly before the period.
-2. **Change params after freezes → new experiment_id**.
-3. **Never backfill** freezes after settle.
-4. **Core path is deterministic**, zero LLM required.
-5. **Reports default descriptive** — e-values are diagnostics, not discovery claims.
-
-## Development / release
-
-```bash
-pip install -e ".[dev]"
-pytest
-python -m build
-# twine upload dist/*   # requires PyPI token
-```
+1. No look-ahead  
+2. Never backfill freezes after settle  
+3. Change params after freezes → new experiment  
+4. Core path: deterministic, zero LLM  
+5. Reports default descriptive  
 
 ## Ethics
 
-- Pure simulation / evaluation. No betting integration.
-- Real-money wagering is out of scope and discouraged.
-- Do not use this tool to market “predicted numbers.”
+Pure simulation / evaluation. No betting integration. Do not market “predicted numbers.”
 
 ## License
 
@@ -148,4 +128,4 @@ MIT — see [LICENSE](LICENSE).
 
 ## Lineage
 
-Methodology DNA from private research (`lotto-lab`): preregistration, equal-cost nulls, hash ledgers, honesty guards. **nullbench** is the public product; `lotto-lab` remains a historical research archive.
+Honesty DNA from private research (`lotto-lab`). **nullbench** is the public product on [PyPI](https://pypi.org/project/nullbench/).

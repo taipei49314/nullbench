@@ -50,10 +50,12 @@ def test_no_backfill_freeze_after_settle(tmp_path: Path) -> None:
     p = draws[-1].period
     pipeline.freeze_period(root, p)
     pipeline.settle_period(root, p)
+    from nullbench.errors import FreezeError
+
     try:
         pipeline.freeze_period(root, p)
         assert False, "should have refused freeze after settle"
-    except RuntimeError as e:
+    except FreezeError as e:
         assert "settled" in str(e).lower() or "backfill" in str(e).lower()
 
 
