@@ -19,11 +19,13 @@ pip install nullbench
 pip install -e ".[dev]"
 ```
 
-Optional scoring giants:
+Optional extras:
 
 ```bash
-pip install "nullbench[stats]"   # properscoring
-# expectation / comparecast adapters activate automatically if installed
+pip install "nullbench[coverage]"   # OR-Tools max-disjoint coverage
+pip install "nullbench[stats]"      # properscoring; comparecast on non-Windows
+# Sequential CS + e-process: pure-Python comparecast algorithms always on
+# (official comparecast needs confseq/MSVC on Windows — we ship a MIT port)
 ```
 
 ## 5-minute demo
@@ -39,6 +41,7 @@ nullbench freeze P0100 --study my-study
 nullbench settle --study my-study --period P0100
 nullbench report --study my-study
 nullbench status --study my-study
+nullbench coverage --study my-study --tickets 5 --top 30
 ```
 
 ## Taiwan Lottery domains (network)
@@ -81,9 +84,9 @@ List domains: `nullbench domains`
 | Schemas / CLI | **Pydantic v2**, **Typer**, **Rich** |
 | Numerics | **NumPy** |
 | Proper scores | **properscoring** (optional) |
-| Sequential e-values | **expectation** when installed; else diagnostic betting e-process |
-| Forecaster comparison | **comparecast** planned thin adapter |
-| Combinatorial coverage | OR-Tools planned extra |
+| Sequential CS + e-process | **comparecast** algorithms (pure-Python port; official package when confseq builds) |
+| Proper scores | **properscoring** optional |
+| Combinatorial coverage | **OR-Tools** CP-SAT (`nullbench coverage`) |
 
 Core honesty machinery (freeze, null bank, ledger, claim lint) stays **ours**.
 

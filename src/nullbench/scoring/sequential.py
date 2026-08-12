@@ -1,14 +1,16 @@
-"""Sequential evidence: e-process style diagnostics.
-
-Prefers the `expectation` package when installed; otherwise a conservative
-stdlib/numpy betting-score e-process on period-level score differentials.
-"""
+"""Sequential evidence: comparecast-first, then expectation, then fallback."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 import numpy as np
+
+from nullbench.scoring.comparecast_adapter import (
+    ComparecastResult,
+    compare_deltas,
+    try_official_comparecast,
+)
 
 
 @dataclass
@@ -19,33 +21,54 @@ class SequentialEvidence:
     e_value: float
     log_e: float
     note: str
+    lcb: float | None = None
+    ucb: float | None = None
+    e_pq: float | None = None
+    e_qp: float | None = None
+    alpha: float = 0.05
+
+
+def _from_comparecast(cc: ComparecastResult) -> SequentialEvidence:
+    # Primary e-value: evidence strategy beats null (e_pq)
+    e = max(cc.e_pq, 1e-12)
+    return SequentialEvidence(
+        backend=cc.backend,
+        n=cc.n,
+        mean_delta=cc.mean_delta,
+        e_value=e,
+        log_e=float(np.log(e)),
+        note=cc.note,
+        lcb=cc.lcb,
+        ucb=cc.ucb,
+        e_pq=cc.e_pq,
+        e_qp=cc.e_qp,
+        alpha=cc.alpha,
+    )
 
 
 def e_process_from_deltas(deltas: list[float], *, wealth0: float = 1.0) -> SequentialEvidence:
-    """
-    Build an anytime-valid-style e-process on mean(delta) > 0 using a simple
-    test martingale: each step multiplies wealth by (1 + λ * tanh(d)).
-
-    This is a *diagnostic* e-value, not a full substitute for a paper-grade
-    e-process. When `expectation` is installed we prefer its capital process.
-    """
+    """Build sequential evidence on mean(delta) > 0."""
+    del wealth0  # kept for API compatibility
     if not deltas:
         return SequentialEvidence("empty", 0, 0.0, 1.0, 0.0, "no periods")
 
-    arr = np.asarray(deltas, dtype=float)
-    mean_delta = float(arr.mean())
+    # 1) official comparecast if importable
+    official = try_official_comparecast(deltas)
+    if official is not None:
+        return _from_comparecast(official)
 
-    # Try giant: expectation
+    # 2) pure-Python comparecast algorithms (default path on Windows)
     try:
-        return _via_expectation(arr)
+        return _from_comparecast(compare_deltas(deltas, method="asymptotic"))
     except Exception:
         pass
 
-    # Fallback: bounded betting score
+    # 3) last-resort betting score
+    arr = np.asarray(deltas, dtype=float)
+    mean_delta = float(arr.mean())
     lam = 0.25
-    wealth = float(wealth0)
+    wealth = 1.0
     for d in arr:
-        # map delta to (-1,1) then bet
         edge = float(np.tanh(d / (np.std(arr) + 1e-6)))
         wealth *= max(1e-12, 1.0 + lam * edge)
     e_val = max(wealth, 1e-12)
@@ -55,40 +78,7 @@ def e_process_from_deltas(deltas: list[float], *, wealth0: float = 1.0) -> Seque
         mean_delta=mean_delta,
         e_value=float(e_val),
         log_e=float(np.log(e_val)),
-        note=(
-            "Diagnostic e-process on period PnL deltas vs null mean. "
-            "Install optional 'expectation' for library-backed sequential tests."
-        ),
-    )
-
-
-def _via_expectation(arr: np.ndarray) -> SequentialEvidence:
-    """Best-effort adapter — API may vary across expectation versions."""
-    import expectation  # type: ignore
-
-    mean_delta = float(arr.mean())
-    # Common patterns: try a few entry points without hard-coding one forever
-    e_val = None
-    backend = "expectation"
-    if hasattr(expectation, "eprocess"):
-        mod = expectation.eprocess
-        if hasattr(mod, "EProcess"):
-            ep = mod.EProcess()
-            for x in arr:
-                if hasattr(ep, "update"):
-                    ep.update(float(x))
-                elif hasattr(ep, "add"):
-                    ep.add(float(x))
-            e_val = float(getattr(ep, "wealth", getattr(ep, "e_value", np.nan)))
-    if e_val is None or not np.isfinite(e_val):
-        raise RuntimeError("expectation installed but no compatible e-process API found")
-    return SequentialEvidence(
-        backend=backend,
-        n=len(arr),
-        mean_delta=mean_delta,
-        e_value=max(e_val, 1e-12),
-        log_e=float(np.log(max(e_val, 1e-12))),
-        note="e-process via expectation package",
+        note="Fallback betting e-process; comparecast path unavailable.",
     )
 
 

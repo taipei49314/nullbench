@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nullbench"
-version = "0.2.0"
+version = "0.3.0"
 description = "Pre-register decisions. Score them against chance. Never backfill."
 readme = "README.md"
 license = "MIT"
@@ -33,6 +33,7 @@ dependencies = [
   "typer>=0.12",
   "rich>=13.7",
   "numpy>=1.26",
+  "scipy>=1.11",
 ]
 
 [project.optional-dependencies]
@@ -45,6 +46,11 @@ dev = [
 # Optional giants — thin adapters live under nullbench.scoring
 stats = [
   "properscoring>=0.1",
+  # comparecast needs confseq (MSVC on Windows); pure-Python port is always on
+  "comparecast>=1.0; platform_system != 'Windows'",
+]
+coverage = [
+  "ortools>=9.8",
 ]
 
 [project.scripts]

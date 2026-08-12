@@ -210,6 +210,62 @@ def status_cmd(
     console.print(f"ledger: {flag} ({info['ledger_msg']})")
 
 
+@app.command("coverage")
+def coverage_cmd(
+    study: Path = typer.Option(..., "--study", "-s"),
+    n_tickets: int = typer.Option(5, "--tickets", "-n"),
+    top: int = typer.Option(30, "--top", help="Use top-N numbers from frequency ranks"),
+    window: int = typer.Option(50, "--window"),
+) -> None:
+    """Max-disjoint multi-ticket coverage plan (OR-Tools if installed)."""
+    from collections import Counter
+
+    from nullbench.coverage import select_max_disjoint_coverage
+
+    root = _root(study)
+    study_obj = Study(root)
+    spec = study_obj.load_experiment() if study_obj.exists() else None
+    if spec is None:
+        raise typer.BadParameter("study not found")
+    draws = pipeline.load_draws(study_obj.draws_path)
+    use = draws[-window:] if window > 0 else draws
+    counts = Counter()
+    for d in use:
+        counts.update(d.numbers)
+    ranked = [n for n, _ in counts.most_common()]
+    # fill missing numbers by id so pool is complete
+    for n in range(1, spec.game.main_max + 1):
+        if n not in counts:
+            ranked.append(n)
+    ranked = ranked[: max(top, n_tickets * spec.game.main_count)]
+    plan = select_max_disjoint_coverage(
+        spec.game, ranked, n_tickets=n_tickets
+    )
+    console.print(f"[green]Coverage plan[/green] backend={plan.backend} union={plan.union_size}")
+    console.print(f"  weight={plan.total_weight:.1f}  {plan.note}")
+    for t in plan.tickets:
+        console.print(f"  {t.label}: {t.numbers}" + (f" +{t.special}" if t.special else ""))
+    out = study_obj.reports_dir / "coverage_plan.json"
+    study_obj.reports_dir.mkdir(parents=True, exist_ok=True)
+    import json
+
+    out.write_text(
+        json.dumps(
+            {
+                "backend": plan.backend,
+                "union_size": plan.union_size,
+                "total_weight": plan.total_weight,
+                "numbers_used": plan.numbers_used,
+                "tickets": [t.model_dump() for t in plan.tickets],
+                "note": plan.note,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    console.print(f"  wrote {out}")
+
+
 @app.command("demo")
 def demo_cmd(
     name: str = typer.Option("demo-study", "--name"),

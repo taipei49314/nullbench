@@ -338,7 +338,6 @@ def build_report(root: Path) -> ReportSummary:
 
     sequential: dict[str, dict] = {}
     for sid, series in period_pnl.items():
-        # align length
         n = min(len(series), len(null_mean_series))
         ev = compare_strategy_to_null(series[:n], null_mean_series[:n])
         sequential[sid] = {
@@ -348,6 +347,11 @@ def build_report(root: Path) -> ReportSummary:
             "e_value": ev.e_value,
             "log_e": ev.log_e,
             "note": ev.note,
+            "lcb": ev.lcb,
+            "ucb": ev.ucb,
+            "e_pq": ev.e_pq,
+            "e_qp": ev.e_qp,
+            "alpha": ev.alpha,
         }
 
     warnings = [
@@ -415,14 +419,20 @@ def render_report_markdown(
         "",
         "## Sequential evidence (strategy − null mean, per period)",
         "",
-        "| Strategy | n | mean Δ | e-value | log E | backend |",
-        "|----------|--:|-------:|--------:|------:|---------|",
+        "| Strategy | n | mean Δ | CS LCB | CS UCB | e_pq | e_qp | backend |",
+        "|----------|--:|-------:|-------:|-------:|-----:|-----:|---------|",
     ]
     for sid, ev in sorted(summary.sequential_evidence.items()):
+        lcb = ev.get("lcb")
+        ucb = ev.get("ucb")
+        lcb_s = f"{lcb:.4f}" if isinstance(lcb, (int, float)) else "—"
+        ucb_s = f"{ucb:.4f}" if isinstance(ucb, (int, float)) else "—"
+        epq = ev.get("e_pq", ev.get("e_value", 1))
+        eqp = ev.get("e_qp", float("nan"))
+        eqp_s = f"{eqp:.4g}" if isinstance(eqp, (int, float)) else "—"
         lines.append(
             f"| `{sid}` | {ev.get('n', 0)} | {ev.get('mean_delta', 0):.4f} | "
-            f"{ev.get('e_value', 1):.4g} | {ev.get('log_e', 0):.4f} | "
-            f"{ev.get('backend', '?')} |"
+            f"{lcb_s} | {ucb_s} | {epq:.4g} | {eqp_s} | {ev.get('backend', '?')} |"
         )
     lines += [
         "",

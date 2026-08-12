@@ -23,3 +23,4 @@ studies/
 # Build artifacts
 dist/
 *.egg-info/
+.vendor_src/
