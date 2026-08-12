@@ -16,7 +16,7 @@ def _uniform_main_probs(main_max: int, main_count: int) -> np.ndarray:
 
 def tickets_to_soft_presence(tickets: list[Ticket], main_max: int) -> np.ndarray:
     """Average one-hot presence across tickets → soft probability-like mass per ball."""
-    mass = np.zeros(main_max, dtype=float)
+    mass: np.ndarray = np.zeros(main_max, dtype=float)
     if not tickets:
         return mass
     for t in tickets:
@@ -39,7 +39,7 @@ def brier_for_main_balls(
     This is a *diagnostic* proper-score style metric on marginals, not a claim
     that tickets define a calibrated joint distribution.
     """
-    y = np.zeros(main_max, dtype=float)
+    y: np.ndarray = np.zeros(main_max, dtype=float)
     for n in draw.numbers:
         if 1 <= n <= main_max:
             y[n - 1] = 1.0
