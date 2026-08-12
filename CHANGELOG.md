@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0 — 2026-08-12
+
+### Maturity gate (M0–M4)
+
+- **Product gate:** no absolute「可稽核 / 永不 backfill」claims without M1 green
+- `nullbench maturity` / `maturity --check-m1`
+- `pytest -m m1` adversarial suite (IC-01…08) — CI enforced
+- Docs: MATURITY, PRD (draft), THREAT_MODEL (draft), CLAIM_POLICY (draft)
+- README / PyPI description toned to lab-alpha + M1 residual risk
+
+### Integrity (carried from 0.5.2)
+
+M1 checklist: experiment/freeze/draw seals, settle verify, claim lint, tip+semantic audit.
+
 ## 0.5.2 — 2026-08-12
 
 ### Security / integrity (IC-01 … IC-10)

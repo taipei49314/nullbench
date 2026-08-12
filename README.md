@@ -4,138 +4,95 @@
 [![Python](https://img.shields.io/pypi/pyversions/nullbench.svg)](https://pypi.org/project/nullbench/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Pre-register decisions. Score them against chance. Never backfill.**
+**Pre-register decisions. Score them against chance.**  
+Lab / alpha — local seals under **M1**; not a global notary.
 
-nullbench is a **null-first decision evaluation** lab: freeze choices *before* outcomes, settle against equal-cost chance portfolios, keep an append-only hash-chained ledger, and report descriptive percentiles plus sequential confidence sequences / e-diagnostics.
+> **Product gate:** without a green M1 gate, do **not** claim absolute「可稽核」or「永不 backfill」.  
+> See [docs/MATURITY.md](docs/MATURITY.md).
 
-It is **not** a lottery predictor. Negative expected-value domains are welcome as *stress tests* for methodology.
+nullbench is a **null-first decision evaluation** lab: freeze choices *before* outcomes, settle against equal-cost chance portfolios, keep an append-only ledger with **semantic seals**, and report descriptive percentiles plus sequential diagnostics.
 
-> Formal question: *Is any strategy distinguishable from pure chance at equal cost?*  
-> Expected (and welcome) answer for fair games: **no**.
+It is **not** a lottery predictor. Negative expected-value domains are welcome as methodology stress tests.
+
+## Maturity (M0 → M4)
+
+| Level | Meaning |
+|-------|---------|
+| **M0** | Lab CLI / demo / PyPI alpha — *shipping* |
+| **M1** | Sealed ExperimentSpec + pin hashes + settle verify + claim lint + adversarial IC-01…08 — *must-pass* |
+| **M2** | PRD + Threat Model + Public API + Claim Policy frozen |
+| **M3** | OIDC trusted publish / SBOM / plugin allowlist |
+| **M4** | Remote sealed study / vault |
+
+```bash
+nullbench maturity
+nullbench maturity --check-m1    # pytest -m m1
+```
 
 ## Install
 
 ```bash
 pip install nullbench
-# optional
-pip install "nullbench[coverage]"   # OR-Tools
-pip install "nullbench[stats]"      # properscoring (+ comparecast non-Windows)
+# from source (needed for maturity --check-m1 tests)
+pip install -e ".[dev]"
 ```
 
-Requires **Python 3.11+**.
+Python **3.11+**.
 
 ## 60-second start
 
 ```bash
 nullbench doctor
 nullbench demo --name try1
+nullbench report --study try1 --open
 nullbench next --study try1
+nullbench maturity --check-m1
 ```
 
-Open `try1/reports/latest.md` and `try1/STUDY.md`.
-
-## Golden path (manual)
+## Golden path
 
 ```bash
 nullbench init my-study -d demo649
 nullbench strategy add random --study my-study --tickets 5 --seed 1
-nullbench strategy add frequency --study my-study --id frequency --tickets 5
-nullbench periods --study my-study
 nullbench freeze --study my-study --latest
 nullbench settle --study my-study
-nullbench report --study my-study
-nullbench next --study my-study
-```
-
-## Product commands
-
-| Command | Purpose |
-|---------|---------|
-| `doctor` | Environment + optional study health |
-| `next` | What to do next in this study |
-| `periods` | Draw list with freeze/settle flags |
-| `demo` | One-shot end-to-end |
-| `init` / `strategy` / `freeze` / `settle` / `report` | Core loop |
-| `ingest` | Taiwan official API domains |
-| `coverage` | Max-disjoint multi-ticket plan |
-| `formal` | Enable alpha-spending looks (26/52) before freezes |
-| `domains -v` / `strategies -v` | Discovery (builtin + plugins) |
-
-After `report`, open **`reports/latest.html`** (single-file static) or `latest.md`:
-
-```bash
 nullbench report --study my-study --open
 ```
 
-## Taiwan domains
+## What M1 seals (local)
 
-```bash
-nullbench init tw -d taiwan_super --fetch
-# or: nullbench ingest --study tw
-nullbench strategy add random --study tw -n 5
-nullbench freeze --study tw --latest
-nullbench settle --study tw
-nullbench report --study tw
-```
+| Seal | Purpose |
+|------|---------|
+| `experiment_hash` | Spec cannot silently change after freeze |
+| `content_hash` | Tickets + seals bound |
+| `history_hash` / `outcome_hash` | Draw history / known outcome pinned |
+| Tip + semantic audit | Forged payouts fail even if chain re-linked |
+| Claim lint | Report text scanned for promotional language |
 
-Floating jackpot tiers value at **0** by default (conservative). Pure simulation — no betting.
+Residual risk: an adversary who rewrites **all** seals consistently still wins until M4. Documented in [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
-## Architecture (skeleton)
+## Commands
 
-```text
-CLI / workspace (product)
-        ↓
-   pipeline (freeze → settle → report)
-        ↓
- models · ledger · domains · strategies · scoring
-```
+| Command | Purpose |
+|---------|---------|
+| `maturity` | Ladder + optional M1 gate |
+| `doctor` | Env + chain + semantic |
+| `next` / `periods` | Coach / navigation |
+| `demo` / `init` / `strategy` / `freeze` / `settle` / `report` | Core loop |
+| `formal` | α-spending 26/52 (before freeze) |
+| `ingest` / `coverage` | Taiwan data / OR-Tools extra |
+| `domains -v` / `strategies -v` | Discovery (plugins need `NULLBENCH_TRUST_PLUGINS=1`) |
 
-- **Contracts:** `protocols.py`, `errors.py`, Pydantic models  
-- **Integrity:** append-only JSONL + SHA-256 chain  
-- **Plugins:** `nullbench.strategies` + `nullbench.domains` entry points  
-- **Formal:** alpha-spending at n=26 (α=0.005) and n=52 (α=0.020)  
-- **Docs:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/PRODUCT.md](docs/PRODUCT.md) · [CHANGELOG.md](CHANGELOG.md)
+## Docs
 
-## Giants
-
-| Need | We use |
-|------|--------|
-| Schemas / CLI | Pydantic, Typer, Rich |
-| Sequential CS + e-process | comparecast algorithms (pure-Python port; official when confseq builds) |
-| Coverage search | OR-Tools CP-SAT (optional) |
-| Proper scores | properscoring (optional) |
-
-## Library API
-
-```python
-from pathlib import Path
-from nullbench import init_study, add_strategy, freeze_period, settle_period
-
-root = Path("my-study")
-init_study(root, experiment_id="exp-v1")
-add_strategy(root, strategy_id="random", kind="random", tickets=5)
-freeze_period(root, "P0100")
-settle_period(root, "P0100")
-```
-
-## Design rules
-
-1. No look-ahead (history ordered by date/period; `history_hash` sealed)  
-2. Never backfill freezes after settle  
-3. Change params after freezes → new experiment (`experiment_hash` sealed)  
-4. Core path: deterministic, zero LLM  
-5. Reports default descriptive; claim language scanned  
-6. Plugins off unless `NULLBENCH_TRUST_PLUGINS=1`  
-7. Ledger tip seal + semantic payout recompute — see [docs/INTEGRITY.md](docs/INTEGRITY.md)
+- [MATURITY.md](docs/MATURITY.md) · [INTEGRITY.md](docs/INTEGRITY.md)
+- [PRD.md](docs/PRD.md) · [THREAT_MODEL.md](docs/THREAT_MODEL.md) · [CLAIM_POLICY.md](docs/CLAIM_POLICY.md) *(M2 drafts)*
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [PRODUCT.md](docs/PRODUCT.md) · [CHANGELOG.md](CHANGELOG.md)
 
 ## Ethics
 
-Pure simulation / evaluation. No betting integration. Do not market “predicted numbers.”
+Pure simulation. No betting integration. Do not market predicted numbers.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
-## Lineage
-
-Honesty DNA from private research (`lotto-lab`). **nullbench** is the public product on [PyPI](https://pypi.org/project/nullbench/).
+MIT

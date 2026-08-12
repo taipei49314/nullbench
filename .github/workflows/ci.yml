@@ -21,7 +21,12 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Test
         run: python -m pytest
+      - name: M1 product gate
+        run: python -m pytest -m m1 --tb=line
+      - name: Maturity CLI
+        run: python -m nullbench maturity
       - name: Demo smoke
         run: |
           python -m nullbench demo --name ci-demo --path /tmp --periods 5
           test -f /tmp/ci-demo/reports/latest.md
+          test -f /tmp/ci-demo/reports/latest.html

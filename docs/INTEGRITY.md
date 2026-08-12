@@ -1,5 +1,8 @@
 # Integrity controls (IC-01 … IC-10)
 
+**M1 gate:** `nullbench maturity --check-m1` or `pytest -m m1`.  
+Product rule: without M1 green, no public「可稽核 / 永不 backfill」guarantee.
+
 | ID | Threat | Mitigation |
 |----|--------|------------|
 | IC-01 | Full ledger rewrite; forged payout | Tip seal + **semantic recompute** of payouts from freeze tickets + sealed draw; `verify_study_semantic`; report refuses if broken |

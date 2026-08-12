@@ -1,24 +1,20 @@
-"""Regression tests for integrity findings IC-01 … IC-09."""
+"""Regression tests for integrity findings IC-01 … IC-09 (M1 gate)."""
 
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import pytest
 
 from nullbench.core import pipeline
-from nullbench.core.integrity import (
-    history_before,
-    history_hash,
-    order_draws,
-    verify_study_semantic,
-)
+from nullbench.core.integrity import history_before, verify_study_semantic
 from nullbench.core.models import Draw
 from nullbench.core.study import Study
 from nullbench.errors import IntegrityError, SettleError
-from nullbench.report.html import _safe_script_json, render_html
+from nullbench.report.html import _safe_script_json
+
+pytestmark = pytest.mark.m1
 
 
 def _study(tmp_path: Path) -> Path:
@@ -132,15 +128,13 @@ def test_ic03_draw_change_after_freeze(tmp_path: Path) -> None:
 
 
 def test_ic04_order_not_file_order() -> None:
-    draws = [
-        Draw(period="B", numbers=[1, 2, 3, 4, 5, 6], date="2020-02-01"),
-        Draw(period="A", numbers=[1, 2, 3, 4, 5, 7], date="2020-01-01"),
-        Draw(period="C", numbers=[1, 2, 3, 4, 5, 8], date="2020-03-01"),
-    ]
-    hist = history_before(draws, "C")
+    a = Draw(period="A", numbers=[1, 2, 3, 4, 5, 7], date="2020-01-01")
+    b = Draw(period="B", numbers=[1, 2, 3, 4, 5, 6], date="2020-02-01")
+    c = Draw(period="C", numbers=[1, 2, 3, 4, 5, 8], date="2020-03-01")
+    # C first in file → naive scan would see zero history
+    hist = history_before([c, b, a], "C")
     assert [d.period for d in hist] == ["A", "B"]
     assert len(hist) == 2
-    # file-order would give B,A if broken
 
 
 def test_ic05_experiment_change_after_freeze(tmp_path: Path) -> None:

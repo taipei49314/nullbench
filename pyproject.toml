@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nullbench"
-version = "0.5.2"
-description = "Pre-register decisions. Score them against chance. Never backfill."
+version = "0.6.0"
+description = "Null-first decision lab: pre-register, score vs chance, M1 local seals (alpha)."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
@@ -67,6 +67,9 @@ packages = ["src/nullbench"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+  "m1: M1 product gate — adversarial integrity IC-01..08 (must pass)",
+]
 
 [tool.ruff]
 line-length = 100

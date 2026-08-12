@@ -59,6 +59,45 @@ def version() -> None:
 
 
 @app.command()
+def maturity(
+    check_m1: bool = typer.Option(
+        False, "--check-m1", help="Run M1 adversarial gate (pytest -m m1)"
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Show maturity ladder M0–M4; optionally run M1 product gate."""
+    from nullbench.maturity import PRODUCT_GATE, describe, run_m1_gate
+
+    status = describe()
+    table = Table(title="nullbench maturity")
+    table.add_column("Level")
+    table.add_column("Name")
+    table.add_column("Role")
+    for lv in status.levels:
+        table.add_row(lv["id"], lv["name"], lv["note"])
+    console.print(table)
+    console.print(Panel(PRODUCT_GATE, title="Product gate", border_style="yellow"))
+    console.print("[bold]M1 checklist[/bold]")
+    for item in status.m1_checklist:
+        console.print(f"  {item['id']}  {item['item']}")
+    if not check_m1:
+        console.print("\nRun gate: [cyan]nullbench maturity --check-m1[/cyan]")
+        return
+    console.print("\n[bold]Running M1 gate (pytest -m m1)…[/bold]")
+    ok, log = run_m1_gate(verbose=verbose)
+    console.print(log)
+    if ok:
+        console.print("[green]M1 GATE PASS[/green] — local seals adversarial suite green")
+        console.print(
+            "You may state M1 seals with residual-risk footnote; "
+            "not a global notary (M4)."
+        )
+    else:
+        console.print("[red]M1 GATE FAIL[/red] — do not claim 可稽核 / 永不 backfill")
+        raise typer.Exit(1)
+
+
+@app.command()
 def doctor(
     study: Optional[Path] = typer.Option(None, "--study", "-s"),
 ) -> None:

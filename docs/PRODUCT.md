@@ -2,7 +2,8 @@
 
 ## One-liner
 
-**Pre-register decisions. Score them against chance. Never backfill.**
+**Pre-register decisions. Score them against chance.**  
+(M1 local seals; do not claim absolute never-backfill without `maturity --check-m1` green.)
 
 ## Who it is for
 
