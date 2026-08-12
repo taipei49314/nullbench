@@ -245,8 +245,10 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
                 f"history_hash drift period={fr.get('period')} "
                 f"(IC-03/04: draws reordered or history rewritten)"
             )
-        if oh is not None and fr["period"] in by_period and oh != outcome_hash(
-            by_period[fr["period"]]
+        if (
+            oh is not None
+            and fr["period"] in by_period
+            and oh != outcome_hash(by_period[fr["period"]])
         ):
             issues.append(
                 f"outcome_hash drift period={fr.get('period')} "

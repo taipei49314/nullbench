@@ -229,9 +229,7 @@ def verify_study_vault(
 
     if receipt is None:
         if vault.exists() and experiment_id:
-            prior = [
-                r for r in vault.iter_receipts() if r.get("experiment_id") == experiment_id
-            ]
+            prior = [r for r in vault.iter_receipts() if r.get("experiment_id") == experiment_id]
             if prior:
                 return (
                     False,
