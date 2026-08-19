@@ -54,7 +54,7 @@ stats = [
 ]
 # combinatorial coverage search (OR-Tools) — not code-coverage tooling
 coverage = [
-  "ortools>=9.8",
+  "ortools>=9.15.6755",
 ]
 
 [project.scripts]
