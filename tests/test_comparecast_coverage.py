@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib.util
+
 import numpy as np
 
 from nullbench.coverage import select_max_disjoint_coverage
@@ -40,4 +42,5 @@ def test_coverage_disjoint() -> None:
     assert len(plan.tickets) == 5
     all_nums = [n for t in plan.tickets for n in t.numbers]
     assert len(all_nums) == len(set(all_nums))
-    assert plan.backend in ("ortools.cp_sat", "greedy")
+    expected_backend = "ortools.cp_sat" if importlib.util.find_spec("ortools") else "greedy"
+    assert plan.backend == expected_backend
