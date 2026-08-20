@@ -1,18 +1,10 @@
-import fs from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { manifestFixture } from "../test-fixtures/manifest";
 import MechanismObservatory from "./MechanismObservatory";
 
-const manifest = JSON.parse(
-  fs.readFileSync(
-    new URL(
-      "../../../simulation/results/manifest.json",
-      import.meta.url,
-    ),
-    "utf8",
-  ),
-);
+const manifest = manifestFixture;
 const gameData = manifest.games.super;
 const commonProps = {
   activeGame: "super",
