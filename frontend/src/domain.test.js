@@ -12,7 +12,7 @@ import {
   getProposalMap,
   getRankingMap,
 } from "./domain";
-import fs from "node:fs";
+import { manifestFixture } from "./test-fixtures/manifest";
 
 const sampleGame = {
   final_state: {
@@ -131,12 +131,7 @@ describe("domain indexing helpers", () => {
 });
 
 describe("probability-first portfolio", () => {
-  const manifest = JSON.parse(
-    fs.readFileSync(
-      new URL("../../simulation/results/manifest.json", import.meta.url),
-      "utf8",
-    ),
-  );
+  const manifest = manifestFixture;
 
   it.each(["super", "lotto649"])(
     "keeps the rolling coverage contract deterministic for %s",
