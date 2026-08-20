@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling>=1.32.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
   "pydantic>=2.6",
   "typer>=0.12",
-  "rich>=13.7",
+  "rich>=15.0.0",
   "numpy>=2.4.6",
   "scipy>=1.11",
 ]
@@ -40,10 +40,10 @@ dependencies = [
 dev = [
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "hypothesis>=6.100",
+  "hypothesis>=6.165.9",
   "build>=1.5.0",
   "twine>=5.0",
-  "ruff>=0.16.2",
+  "ruff>=0.16.3",
   "mypy>=1.11",
 ]
 # Optional giants — thin adapters live under nullbench.scoring
@@ -54,7 +54,7 @@ stats = [
 ]
 # combinatorial coverage search (OR-Tools) — not code-coverage tooling
 coverage = [
-  "ortools>=9.8",
+  "ortools>=9.15.6755",
 ]
 
 [project.scripts]

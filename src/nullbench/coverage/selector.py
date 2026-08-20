@@ -113,24 +113,24 @@ def _ortools_select(
     x: dict[tuple[int, int], cp_model.IntVar] = {}
     for t in range(n_tickets):
         for n in ordered:
-            x[t, n] = model.NewBoolVar(f"x_{t}_{n}")
+            x[t, n] = model.new_bool_var(f"x_{t}_{n}")
 
     # each ticket has exactly main_count numbers
     for t in range(n_tickets):
-        model.Add(sum(x[t, n] for n in ordered) == game.main_count)
+        model.add(sum(x[t, n] for n in ordered) == game.main_count)
 
     # each number on at most one ticket (disjoint)
     for n in ordered:
-        model.Add(sum(x[t, n] for t in range(n_tickets)) <= 1)
+        model.add(sum(x[t, n] for t in range(n_tickets)) <= 1)
 
     # maximise total weight of used numbers
-    model.Maximize(
+    model.maximize(
         sum(int(weights.get(n, 0) * 1000) * x[t, n] for t in range(n_tickets) for n in ordered)
     )
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit_s
-    status = solver.Solve(model)
+    status = solver.solve(model)
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         raise RuntimeError(f"CP-SAT failed: {status}")
 
@@ -138,7 +138,7 @@ def _ortools_select(
     tickets: list[Ticket] = []
     used: list[int] = []
     for t in range(n_tickets):
-        nums = [n for n in ordered if solver.Value(x[t, n]) == 1]
+        nums = [n for n in ordered if solver.value(x[t, n]) == 1]
         tickets.append(Ticket(numbers=sorted(nums), special=sp, label=f"cov-{t + 1}"))
         used.extend(nums)
     used_sorted = sorted(set(used))
