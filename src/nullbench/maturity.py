@@ -25,6 +25,10 @@ M1_CHECKLIST = (
     ("M1.7", "Stable history order (date, period)"),
     ("M1.8", "Code fingerprint includes sources"),
     ("M1.9", "Adversarial tests IC-01..08 + R-01/R-02 (pytest -m m1)"),
+    ("M1.10", "Known outcomes require explicit backtest classification (IC-11)"),
+    ("M1.11", "Freeze-v3 ordered-prefix history anchors (IC-12)"),
+    ("M1.12", "Settle-v2 binds registration mode + freeze hashes (IC-13)"),
+    ("M1.13", "Only v3 pre-outcome settlements are formal-eligible"),
 )
 
 M4_CHECKLIST = (
@@ -34,10 +38,13 @@ M4_CHECKLIST = (
     ("M4.4", "Verify study against receipt (A5 rewrite fails)"),
     ("M4.5", "Optional HTTP notary serve/client"),
     ("M4.6", "Doctor reports vault_receipt when present"),
+    ("M4.7", "Archive exact receipt-time bundle before signing receipt-v2"),
+    ("M4.8", "Verify strict ledger descendants without notarizing their current tail"),
 )
 
 PRODUCT_GATE = (
-    "Without M1 green, do not claim absolute 'auditable' / 'never backfill'. "
+    "Never claim absolute 'auditable' / 'never backfill'; state the exact M1/M4 boundary. "
+    "Pre-outcome classification is relative to the study data present at freeze time. "
     "M4 vault verify enables notarized claims relative to that vault only "
     "(compromised vault key is out of scope). See CLAIM_POLICY.md."
 )
@@ -77,9 +84,10 @@ def describe() -> MaturityStatus:
         allowed_claims=[
             "Open-source null-first decision lab",
             "M1 local seals (inconsistent-edit detection)",
+            "Freeze-v3 pre-outcome enforcement relative to current study data",
             "M2 frozen PRD / threat model / public API / claim policy",
             "M3: OIDC publish workflow + CI SBOM + plugin allowlist",
-            "M4: external vault notary; verify detects post-notarize A5 rewrite",
+            "M4: external vault receipt-time archive; exact or bounded ancestor verification",
         ],
         forbidden_until_m1=[
             "可稽核 as absolute guarantee without vault+verify context",
@@ -104,14 +112,11 @@ def run_m1_gate(*, verbose: bool = False) -> tuple[bool, str]:
     if test_dir is None:
         return False, "tests/ directory not found (install from source to run M1 gate)"
 
-    targets = [test_dir / "test_integrity_ic.py"]
-    if (test_dir / "test_m1_gate.py").exists():
-        targets.append(test_dir / "test_m1_gate.py")
     cmd = [
         sys.executable,
         "-m",
         "pytest",
-        *[str(t) for t in targets],
+        str(test_dir),
         "-m",
         "m1",
         "-q",

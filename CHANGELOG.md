@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.0 — 2026-08-30
+
+### Breaking — fail-closed pre-outcome classification
+
+- `freeze PERIOD` now fails closed unless the target outcome is absent; known outcomes require explicit `--backtest`.
+- `--latest` and `--last` are backtest-only, and `demo` is labeled as a descriptive backtest tutorial.
+- Freeze schema v3 binds registration mode, ordered history anchor, full-history hash, frozen time, and outcome presence.
+- Settle schema v2 binds registration mode and sorted freeze content hashes.
+- Existing freeze-v2 evidence remains byte-compatible and is classified as `legacy_backtest` or `legacy_unknown`; neither is formal-eligible.
+- Pending pre-outcome freezes are valid and bulk settle skips them until outcomes arrive.
+- Only settled v3 `pre_outcome` periods advance formal checkpoints; mixed-mode experiments are refused.
+- Windows CLI output safely escapes characters unsupported by the active terminal encoding.
+- `maturity --check-m1` collects the complete marked test suite, including registration attacks.
+- Formal mode now requires one pre-specified primary, and freezes require equal declared/actual ticket counts across arms so the shared null bank is truly equal-cost.
+- Study status runs both chain and semantic verification; relinked semantic tampering is fail-closed.
+- Normal writers, seal operations, and vault receipt/key operations are serialized with crash-safe owner records and atomic receipt copies/log replacement.
+- Receipt-v2 reserves vault-owned id/epoch/time fields, archives the exact bundle before signing, and verifies later study evolution only as a strict append-only descendant with an explicit unnotarized-tail label.
+- Receipt-v1 exact content verification remains compatible, while its client-overridable metadata is never treated as a vault clock.
+- The built-in HTTP notary is loopback-only; clients require TLS for non-loopback URLs, refuse bearer-token redirects, and validate type-exact receipt-v2 responses/server metadata.
+- Verification refuses to hide a broken or rolled-back newest archive by silently downgrading to an older valid receipt. A valid signed study-local receipt missing from the current external log is treated as possible receipt deletion, even when an older receipt remains. Explicit older-receipt investigation remains available through `seal verify --receipt PATH`.
+
 ## 0.8.2 — 2026-08-12
 
 ### Engineering department gates

@@ -113,6 +113,14 @@ def evaluate_formal_endpoint(
             primary_strategy=config.primary_strategy_id,
             note="Formal endpoint disabled on this experiment.",
         )
+    if config.primary_only_for_claim and not config.primary_strategy_id:
+        return FormalEvaluation(
+            n_settled=n_settled,
+            endpoint_open=False,
+            alpha_spent=None,
+            primary_strategy=None,
+            note="Formal endpoint closed: no primary strategy was pre-specified.",
+        )
 
     alpha = config.alpha_at(n_settled)
     if alpha is None:
@@ -137,8 +145,8 @@ def evaluate_formal_endpoint(
     if config.primary_strategy_id and config.primary_strategy_id not in strategy_cum_pnl:
         return FormalEvaluation(
             n_settled=n_settled,
-            endpoint_open=True,
-            alpha_spent=alpha,
+            endpoint_open=False,
+            alpha_spent=None,
             primary_strategy=config.primary_strategy_id,
             note=f"Primary strategy {config.primary_strategy_id!r} missing from results.",
         )

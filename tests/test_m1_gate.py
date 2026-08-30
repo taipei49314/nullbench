@@ -65,7 +65,7 @@ def _fresh(tmp_path: Path, n: int = 25) -> tuple[Path, str]:
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
     draws = pipeline.load_draws(root / "data" / "draws.jsonl")
     p = draws[-1].period
-    pipeline.freeze_period(root, p)
+    pipeline.freeze_period(root, p, backtest=True)
     return root, p
 
 
@@ -76,8 +76,12 @@ def test_m1_seal_experiment_and_freeze_hashes(tmp_path: Path) -> None:
     freezes = [e for e in Study(root).ledger().events_of("freeze") if e.get("period") == p]
     assert freezes
     for fr in freezes:
+        assert fr.get("schema_version") == "3"
+        assert fr.get("registration_mode") == "backtest"
+        assert fr.get("late") is True
         assert fr.get("experiment_hash") == exp_h
         assert fr.get("history_hash")
+        assert fr.get("history_anchor")
         assert fr.get("content_hash")
         assert fr.get("outcome_hash")
         verify_freeze_row(fr)

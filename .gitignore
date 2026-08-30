@@ -24,3 +24,4 @@ studies/
 dist/
 *.egg-info/
 .vendor_src/
+uv.lock

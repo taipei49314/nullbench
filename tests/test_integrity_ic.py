@@ -23,7 +23,7 @@ def _study(tmp_path: Path) -> Path:
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
     draws = pipeline.load_draws(root / "data" / "draws.jsonl")
     p = draws[-1].period
-    pipeline.freeze_period(root, p)
+    pipeline.freeze_period(root, p, backtest=True)
     pipeline.settle_period(root, p)
     return root
 
@@ -78,7 +78,7 @@ def test_ic02_tampered_freeze_tickets_blocked(tmp_path: Path) -> None:
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
     draws = pipeline.load_draws(root / "data" / "draws.jsonl")
     p = draws[-1].period
-    pipeline.freeze_period(root, p)
+    pipeline.freeze_period(root, p, backtest=True)
     led = root / "ledger" / "events.jsonl"
     rows = [json.loads(x) for x in led.read_text(encoding="utf-8").splitlines() if x.strip()]
     for r in rows:
@@ -113,7 +113,7 @@ def test_ic03_draw_change_after_freeze(tmp_path: Path) -> None:
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
     draws = pipeline.load_draws(root / "data" / "draws.jsonl")
     p = draws[-1].period
-    pipeline.freeze_period(root, p)
+    pipeline.freeze_period(root, p, backtest=True)
     # rewrite last draw numbers
     path = root / "data" / "draws.jsonl"
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -141,7 +141,7 @@ def test_ic05_experiment_change_after_freeze(tmp_path: Path) -> None:
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
     draws = pipeline.load_draws(root / "data" / "draws.jsonl")
     p = draws[-1].period
-    pipeline.freeze_period(root, p)
+    pipeline.freeze_period(root, p, backtest=True)
     exp = json.loads((root / "experiment.json").read_text(encoding="utf-8"))
     exp["null_seed"] = 999
     exp["formal"]["checkpoints"] = {"26": 0.99}
@@ -192,7 +192,16 @@ def test_ic09_plugin_allowlist_file(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     monkeypatch.setenv("NULLBENCH_PLUGIN_ALLOWLIST", str(allow))
     assert_plugins_trusted("evil_plugin", is_domain=False)
     with pytest.raises(IntegrityError):
+        assert_plugins_trusted("evil_plugin", is_domain=True)
+    with pytest.raises(IntegrityError):
         assert_plugins_trusted("other_evil", is_domain=False)
+
+    allow.write_text("domain:domain_only\nbare_both\n", encoding="utf-8")
+    assert_plugins_trusted("domain_only", is_domain=True)
+    with pytest.raises(IntegrityError):
+        assert_plugins_trusted("domain_only", is_domain=False)
+    assert_plugins_trusted("bare_both", is_domain=True)
+    assert_plugins_trusted("bare_both", is_domain=False)
 
 
 def test_tip_mismatch_on_truncation(tmp_path: Path) -> None:
@@ -253,7 +262,7 @@ def test_r02_empty_experiment_hash_blocked(tmp_path: Path) -> None:
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
     draws = pipeline.load_draws(root / "data" / "draws.jsonl")
     p = draws[-1].period
-    pipeline.freeze_period(root, p)
+    pipeline.freeze_period(root, p, backtest=True)
     led = root / "ledger" / "events.jsonl"
     rows = [json.loads(x) for x in led.read_text(encoding="utf-8").splitlines() if x.strip()]
     for r in rows:
@@ -262,6 +271,7 @@ def test_r02_empty_experiment_hash_blocked(tmp_path: Path) -> None:
             if r.get("meta"):
                 r["meta"]["null_seed"] = 999
             r["content_hash"] = freeze_content_hash(
+                schema_version=r["schema_version"],
                 experiment_id=r["experiment_id"],
                 period=r["period"],
                 strategy_id=r["strategy_id"],
@@ -270,6 +280,9 @@ def test_r02_empty_experiment_hash_blocked(tmp_path: Path) -> None:
                 history_hash_=r["history_hash"],
                 code_fingerprint_=r["code_fingerprint"],
                 outcome_hash=r.get("outcome_hash"),
+                registration_mode=r.get("registration_mode"),
+                history_anchor=r.get("history_anchor"),
+                frozen_at=r.get("frozen_at"),
             )
     _rebuild_ledger(led, rows)
     exp = json.loads((root / "experiment.json").read_text(encoding="utf-8"))

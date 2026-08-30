@@ -4,15 +4,16 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.7.x   | Yes |
-| 0.6.x   | Best-effort |
-| < 0.6   | No |
+| 0.9.x   | Yes |
+| 0.8.x   | Best-effort |
+| < 0.8   | No |
 
 ## What to report
 
 Please report vulnerabilities that affect:
 
 - Study integrity seals (false verify / silent seal bypass)
+- False pre-outcome classification, schema downgrade, or formal-eligibility bypass
 - Plugin trust gates
 - Report generation (XSS / claim-lint bypass)
 - Release / CI supply chain for this repository
@@ -32,7 +33,7 @@ Include:
 
 ## Threat model pointer
 
-See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md). Full local rewrite of every seal (adversary A5) is a **documented residual** until M4 — reports that only restate A5 are not treated as new vulnerabilities unless they bypass M1 checks for *inconsistent* edits.
+See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md). Full local rewrite of every seal (adversary A5) remains a documented local residual; M4 detects divergence only relative to a trusted receipt and retained receipt-time archive created before the rewrite. Ancestor verification attests the archived prefix, not the current tail. Reports that merely restate this boundary are not treated as new vulnerabilities unless they bypass M1 inconsistent-edit checks or M4 receipt/archive verification.
 
 ## Disclosure
 

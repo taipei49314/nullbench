@@ -9,7 +9,11 @@ import pytest
 
 from nullbench.core import pipeline
 from nullbench.core.hashing import sha256_hex
-from nullbench.core.integrity import freeze_content_hash, verify_study_semantic
+from nullbench.core.integrity import (
+    freeze_content_hash,
+    settle_content_hash,
+    verify_study_semantic,
+)
 from nullbench.core.models import Draw, Ticket
 from nullbench.core.seal import notarize_study, verify_study_vault
 from nullbench.core.settle_math import portfolio_cost, portfolio_payout
@@ -47,7 +51,7 @@ def _study(tmp_path: Path) -> Path:
         root, experiment_id="rt", domain="demo649", demo_draws=20, null_portfolios=30
     )
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
-    pipeline.freeze_latest(root)
+    pipeline.freeze_latest(root, backtest=True)
     pipeline.settle_period(root)
     return root
 
@@ -122,6 +126,7 @@ def test_doctor_fails_when_receipt_deleted_after_notarize(
         tickets[0] = Ticket(numbers=nums, special=tickets[0].special)
         ev["tickets"] = [t.model_dump(mode="json") for t in tickets]
         ev["content_hash"] = freeze_content_hash(
+            schema_version=ev["schema_version"],
             experiment_id=ev["experiment_id"],
             period=ev["period"],
             strategy_id=ev["strategy_id"],
@@ -130,11 +135,17 @@ def test_doctor_fails_when_receipt_deleted_after_notarize(
             history_hash_=ev["history_hash"],
             code_fingerprint_=ev["code_fingerprint"],
             outcome_hash=ev.get("outcome_hash"),
+            registration_mode=ev.get("registration_mode"),
+            history_anchor=ev.get("history_anchor"),
+            frozen_at=ev.get("frozen_at"),
         )
     for ev in rows:
         if ev.get("type") != "settle":
             continue
-        fr = next(e for e in rows if e.get("type") == "freeze" and e["period"] == ev["period"])
+        period_freezes = [
+            e for e in rows if e.get("type") == "freeze" and e["period"] == ev["period"]
+        ]
+        fr = period_freezes[0]
         tickets = [Ticket.model_validate(t) for t in fr["tickets"]]
         draw = by_period[ev["period"]]
         for s in ev.get("strategy_results", []):
@@ -142,8 +153,22 @@ def test_doctor_fails_when_receipt_deleted_after_notarize(
                 payout, _ = portfolio_payout(spec.game, tickets, draw)
                 s["payout"] = payout
                 s["cost"] = portfolio_cost(spec.game, len(tickets))
+        ev["freeze_content_hashes"] = sorted(e["content_hash"] for e in period_freezes)
+        ev["content_hash"] = settle_content_hash(
+            schema_version=ev["schema_version"],
+            experiment_id=ev["experiment_id"],
+            period=ev["period"],
+            draw=ev["draw"],
+            strategy_results=ev["strategy_results"],
+            null_pnl=[r["payout"] - r["cost"] for r in ev["null_results"]],
+            experiment_hash_=ev["experiment_hash"],
+            outcome_hash_=ev["outcome_hash"],
+            registration_mode=ev["registration_mode"],
+            freeze_content_hashes=ev["freeze_content_hashes"],
+        )
     _rebuild(led, rows)
-    assert verify_study_semantic(root)[0] is True
+    sem_ok, sem_issues = verify_study_semantic(root)
+    assert sem_ok, sem_issues
     (root / "vault" / "latest_receipt.json").unlink()
     vok, viss, _ = verify_study_vault(root, vault=vault)
     assert vok is False

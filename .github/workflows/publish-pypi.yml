@@ -28,6 +28,7 @@ jobs:
         run: |
           python -m pip install -U pip build twine
           python -m build
+          python -m twine check dist/*
       - name: Publish to PyPI (OIDC)
         id: oidc
         continue-on-error: true

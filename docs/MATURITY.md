@@ -1,7 +1,9 @@
 # Maturity model
 
-Product gate: **without M1, do not claim absolute “auditable / never backfill”.**  
+Product gate: **never claim absolute “auditable / never backfill”; describe the exact M1 or M4 trust boundary.**
 **0.8+:** M0–M4 shipped in-repo. M4 resists A5 *relative to an external vault*.
+
+**0.9.0:** v3 registration anchors separate pre-outcome evidence from backtest and legacy evidence.
 
 | Level | Name | Status | Exit criteria |
 |-------|------|--------|---------------|
@@ -13,7 +15,10 @@ Product gate: **without M1, do not claim absolute “auditable / never backfill�
 
 ## M1 checklist
 
-See prior releases — `pytest -m m1`.
+- New pre-outcome freezes use schema v3 with `registration_mode=pre_outcome` and an ordered-prefix history anchor.
+- Known outcomes require explicit backtest and remain descriptive-only.
+- Schema-v2 rows remain verifiable as `legacy_backtest` or `legacy_unknown`; they are never upgraded into pre-registration evidence.
+- Run `pytest -m m1`.
 
 ## M4 checklist
 
@@ -25,6 +30,8 @@ See prior releases — `pytest -m m1`.
 | M4.4 | Verify vs receipt | `nullbench seal verify` (A5 rewrite fails) |
 | M4.5 | HTTP notary | `nullbench vault serve` + `NULLBENCH_NOTARY_URL` |
 | M4.6 | Doctor hook | optional `vault_receipt` check |
+| M4.7 | Receipt-time archive | `vault/bundles/<bundle_id>` written before receipt-v2 |
+| M4.8 | Append-only evolution | Exact vs ancestor status; current tail never mislabeled notarized |
 
 ```bash
 nullbench maturity
@@ -37,7 +44,7 @@ pytest -m m4 -q
 
 ```bash
 nullbench vault init
-nullbench demo --name try1
+nullbench demo --name try1   # synthetic backtest; descriptive-only
 nullbench seal notarize --study try1
 nullbench seal verify --study try1
 # optional remote stub
@@ -45,7 +52,10 @@ nullbench vault serve --port 8765
 # NULLBENCH_NOTARY_URL=http://127.0.0.1:8765
 ```
 
+This demo remains a backtest after notarization. For a pre-outcome time anchor, notarize the v3 freeze before ingesting the target result.
+
+The built-in notary is loopback-only. Use HTTPS termination/tunneling for remote clients, retain bundle exports separately, and back up the complete vault including `bundles/`.
+
 ## Claim boundary
 
-M4 lets you say the study tip was **notarized to vault X** and still matches.  
-It does **not** mean the vault key cannot be stolen, or that a different vault cannot be forged.
+M4 lets you say either that the current bundle exactly matches a receipt, or that a named archived receipt-time snapshot remains an unchanged prefix of the current ledger. The second statement does **not** notarize the later tail. M4 does **not** mean the vault key/clock/archive cannot be compromised, or that a different vault cannot be forged.

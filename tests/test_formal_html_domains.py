@@ -46,6 +46,36 @@ def test_formal_open_at_26() -> None:
     assert ev.strategies["a"].reject_h0 is True
 
 
+def test_formal_checkpoint_stays_closed_when_primary_is_missing() -> None:
+    cfg = FormalEndpointConfig(enabled=True, primary_strategy_id="missing")
+    ev = evaluate_formal_endpoint(
+        config=cfg,
+        strategy_cum_pnl={"actual": 5000.0},
+        null_cum_pnl_cloud=[-100.0] * 200,
+        n_settled=26,
+    )
+
+    assert ev.endpoint_open is False
+    assert ev.alpha_spent is None
+    assert ev.strategies == {}
+    assert "missing" in ev.note
+
+
+def test_formal_checkpoint_stays_closed_when_primary_was_never_declared() -> None:
+    cfg = FormalEndpointConfig(enabled=True, primary_strategy_id=None)
+    ev = evaluate_formal_endpoint(
+        config=cfg,
+        strategy_cum_pnl={"a": 5000.0, "b": -5000.0},
+        null_cum_pnl_cloud=[0.0] * 200,
+        n_settled=26,
+    )
+
+    assert ev.endpoint_open is False
+    assert ev.alpha_spent is None
+    assert ev.strategies == {}
+    assert "no primary" in ev.note.lower()
+
+
 def test_html_report_and_formal_in_pipeline(tmp_path: Path) -> None:
     root = tmp_path / "s"
     pipeline.init_study(
@@ -59,13 +89,14 @@ def test_html_report_and_formal_in_pipeline(tmp_path: Path) -> None:
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=3, seed=1)
     draws = pipeline.load_draws(root / "data" / "draws.jsonl")
     for d in draws[-5:]:
-        pipeline.freeze_period(root, d.period)
+        pipeline.freeze_period(root, d.period, backtest=True)
     pipeline.settle_period(root)
     summary = pipeline.build_report(root)
     assert (root / "reports" / "latest.html").exists()
     html = (root / "reports" / "latest.html").read_text(encoding="utf-8")
     assert "nullbench" in html
-    assert summary.formal_endpoint.get("n_settled") == 5
+    assert summary.periods_settled == 5
+    assert summary.formal_endpoint.get("n_settled") == 0
     assert summary.formal_endpoint.get("endpoint_open") is False  # not at 26
 
 

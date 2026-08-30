@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -18,6 +18,45 @@ class ClaimStatus(str, Enum):
 
     DESCRIPTIVE_ONLY = "descriptive_only"
     FORMAL_ENDPOINT = "formal_endpoint"
+
+
+class RegistrationMode(str, Enum):
+    """How a v3 freeze relates to the target outcome."""
+
+    PRE_OUTCOME = "pre_outcome"
+    BACKTEST = "backtest"
+
+
+class SettlementMode(str, Enum):
+    """Registration evidence attached to a settlement."""
+
+    PRE_OUTCOME = "pre_outcome"
+    BACKTEST = "backtest"
+    LEGACY_BACKTEST = "legacy_backtest"
+    LEGACY_UNKNOWN = "legacy_unknown"
+
+
+class HistoryBoundary(BaseModel):
+    """Last draw inside an ordered-prefix history commitment."""
+
+    date: str | None = None
+    period: str
+
+
+class HistoryAnchor(BaseModel):
+    """Causal history boundary sealed by a v3 freeze."""
+
+    algorithm: Literal["ordered_prefix_v1"] = "ordered_prefix_v1"
+    count: int = Field(ge=0)
+    through: HistoryBoundary | None = None
+
+    @model_validator(mode="after")
+    def boundary_matches_count(self) -> HistoryAnchor:
+        if self.count == 0 and self.through is not None:
+            raise ValueError("empty history anchor cannot have a through boundary")
+        if self.count > 0 and self.through is None:
+            raise ValueError("non-empty history anchor requires a through boundary")
+        return self
 
 
 class Ticket(BaseModel):
@@ -130,7 +169,7 @@ class ExperimentSpec(BaseModel):
 class FreezeRecord(BaseModel):
     """Pre-outcome lock. Outcomes after freeze must not rewrite this row."""
 
-    schema_version: str = "2"
+    schema_version: str = "3"
     type: str = "freeze"
     experiment_id: str
     period: str
@@ -140,10 +179,25 @@ class FreezeRecord(BaseModel):
     code_fingerprint: str
     experiment_hash: str = ""
     history_hash: str = ""
-    outcome_hash: str | None = None  # sealed when draw already known at freeze
+    registration_mode: RegistrationMode | None = None
+    history_anchor: HistoryAnchor | None = None
+    outcome_hash: str | None = None
     frozen_at: datetime = Field(default_factory=utc_now)
     late: bool = False
     meta: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def registration_evidence(self) -> FreezeRecord:
+        if self.schema_version != "3":
+            return self
+        if self.registration_mode is None or self.history_anchor is None:
+            raise ValueError("v3 freeze requires registration_mode and history_anchor")
+        if self.registration_mode == RegistrationMode.PRE_OUTCOME:
+            if self.outcome_hash is not None or self.late:
+                raise ValueError("pre_outcome freeze cannot seal an outcome or be late")
+        elif self.outcome_hash is None or not self.late:
+            raise ValueError("backtest freeze requires outcome_hash and late=true")
+        return self
 
 
 class PortfolioResult(BaseModel):
@@ -163,15 +217,28 @@ class PortfolioResult(BaseModel):
 class SettleRecord(BaseModel):
     """Post-outcome settlement for one period."""
 
-    schema_version: str = "1"
+    schema_version: str = "2"
     type: str = "settle"
     experiment_id: str
     period: str
     draw: Draw
     strategy_results: list[PortfolioResult]
     null_results: list[PortfolioResult]
+    registration_mode: SettlementMode | None = None
+    freeze_content_hashes: list[str] = Field(default_factory=list)
     settled_at: datetime = Field(default_factory=utc_now)
     content_hash: str
+
+    @model_validator(mode="after")
+    def settlement_evidence(self) -> SettleRecord:
+        if self.schema_version == "2":
+            if self.registration_mode is None:
+                raise ValueError("v2 settle requires registration_mode")
+            if not self.freeze_content_hashes:
+                raise ValueError("v2 settle requires freeze_content_hashes")
+            if self.freeze_content_hashes != sorted(self.freeze_content_hashes):
+                raise ValueError("freeze_content_hashes must be sorted")
+        return self
 
 
 class ReportSummary(BaseModel):
@@ -186,6 +253,8 @@ class ReportSummary(BaseModel):
     # strategy_id -> sequential evidence dict
     sequential_evidence: dict[str, dict[str, Any]] = Field(default_factory=dict)
     formal_endpoint: dict[str, Any] = Field(default_factory=dict)
+    registration_counts: dict[str, int] = Field(default_factory=dict)
+    formal_eligible_periods: int = 0
     warnings: list[str] = Field(default_factory=list)
     forbidden_hits: list[str] = Field(default_factory=list)
     generated_at: datetime = Field(default_factory=utc_now)

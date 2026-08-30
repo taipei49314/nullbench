@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
+import sys
 from pathlib import Path
 
 import typer
@@ -16,13 +18,36 @@ from nullbench.core.study import Study
 from nullbench.core.workspace import doctor as run_doctor
 from nullbench.core.workspace import next_actions, period_index
 from nullbench.domains import list_domain_infos, list_domains
-from nullbench.errors import NullbenchError
+from nullbench.errors import FreezeError, NullbenchError
 from nullbench.strategies import list_strategies, list_strategy_infos
+
+
+def _configure_output_streams() -> None:
+    """Keep CLI output usable when the terminal cannot encode Unicode."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if not callable(reconfigure):
+            continue
+        encoding = getattr(stream, "encoding", None)
+        if not encoding:
+            continue
+        try:
+            "nullbench → 測試 🙂".encode(encoding)
+        except (LookupError, UnicodeEncodeError):
+            pass
+        else:
+            continue
+        # Captured or embedded streams may reject reconfiguration.
+        with contextlib.suppress(OSError, TypeError, ValueError):
+            reconfigure(errors="backslashreplace")
+
+
+_configure_output_streams()
 
 app = typer.Typer(
     name="nullbench",
     help=(
-        "nullbench — pre-register decisions, score them against chance, never backfill.\n\n"
+        "nullbench — pre-register before outcomes; label backtests honestly.\n\n"
         "Quickstart:  nullbench demo --name try1\n"
         "Coach:       nullbench next --study try1\n"
         "Health:      nullbench doctor"
@@ -164,13 +189,28 @@ def periods_cmd(
     table.add_column("Period")
     table.add_column("Date")
     table.add_column("Frozen")
+    table.add_column("Outcome")
+    table.add_column("Registration")
     table.add_column("Settled")
     for r in rows:
         fr = f"{r['frozen_arms']}/{r['strategies']}"
         if r["fully_frozen"]:
             fr = f"[green]{fr}[/green]"
         st = "[green]yes[/green]" if r["settled"] else "no"
-        table.add_row(r["period"], r.get("date") or "—", fr, st)
+        if r.get("outcome_available"):
+            outcome = "yes"
+        elif r.get("pending"):
+            outcome = "[yellow]pending[/yellow]"
+        else:
+            outcome = "[red]MISSING[/red]"
+        table.add_row(
+            r["period"],
+            r.get("date") or "—",
+            fr,
+            outcome,
+            r.get("registration_mode") or "—",
+            st,
+        )
     console.print(table)
 
 
@@ -224,10 +264,10 @@ def init_cmd(
     name: str = typer.Argument(..., help="Study directory name or path"),
     experiment_id: str = typer.Option("exp-v1", "--experiment-id", "-e"),
     domain: str = typer.Option("demo649", "--domain", "-d"),
-    null_portfolios: int = typer.Option(200, "--nulls"),
-    demo_draws: int = typer.Option(120, "--demo-draws"),
+    null_portfolios: int = typer.Option(200, "--nulls", min=1),
+    demo_draws: int = typer.Option(120, "--demo-draws", min=1),
     fetch: bool = typer.Option(False, "--fetch", help="Fetch network data (taiwan_*)"),
-    max_months: int | None = typer.Option(None, "--max-months"),
+    max_months: int | None = typer.Option(None, "--max-months", min=1),
     formal: bool = typer.Option(
         False, "--formal", help="Enable alpha-spending formal endpoint (26/52)"
     ),
@@ -299,9 +339,9 @@ def strategy_cmd(
     kind: str = typer.Argument(..., help="random | frequency | plugin"),
     study: Path = typer.Option(..., "--study", "-s"),
     strategy_id: str | None = typer.Option(None, "--id"),
-    tickets: int = typer.Option(5, "--tickets", "-n"),
+    tickets: int = typer.Option(5, "--tickets", "-n", min=1),
     seed: int = typer.Option(0, "--seed"),
-    window: int = typer.Option(50, "--window"),
+    window: int = typer.Option(50, "--window", min=1),
 ) -> None:
     """Manage strategies (add)."""
     if action != "add":
@@ -321,38 +361,75 @@ def strategy_cmd(
         _fail(e)
     console.print(f"[green]Added[/green] `{sid}` ({kind}) tickets={tickets}")
     console.print(f"  strategies: {spec.strategy_ids()}")
-    console.print(f"  next → nullbench freeze --study {_root(study)} --latest")
+    console.print(f"  next → nullbench freeze FUTURE_PERIOD --study {_root(study)}")
+    console.print(f"  history → nullbench freeze --study {_root(study)} --latest --backtest")
 
 
 @app.command("freeze")
 def freeze_cmd(
-    period: str | None = typer.Argument(None, help="Period id (or use --latest)"),
+    period: str | None = typer.Argument(None, help="Future period id (or historical id)"),
     study: Path = typer.Option(..., "--study", "-s"),
-    latest: bool = typer.Option(False, "--latest", help="Freeze newest unsettled period"),
-    last: int | None = typer.Option(None, "--last", help="Freeze last N unsettled periods"),
+    latest: bool = typer.Option(False, "--latest", help="Backtest newest unsettled period"),
+    last: int | None = typer.Option(
+        None, "--last", min=1, help="Backtest last N unsettled periods"
+    ),
+    backtest: bool = typer.Option(
+        False,
+        "--backtest",
+        help="Explicitly label known-outcome evaluation as descriptive-only",
+    ),
 ) -> None:
-    """Freeze strategy tickets before using outcomes."""
+    """Pre-register an unrevealed period, or explicitly label a backtest."""
     root = _root(study)
     try:
+        if last is not None and (latest or period is not None):
+            raise FreezeError("choose exactly one of PERIOD, --latest, or --last")
+        if latest and period is not None:
+            raise FreezeError("choose either PERIOD or --latest, not both")
+        if period is None and not latest and last is None:
+            raise FreezeError(
+                "future PERIOD is required for pre-outcome registration",
+                hint="for history, use --latest --backtest or --last N --backtest",
+            )
+        if (latest or last is not None) and not backtest:
+            raise FreezeError(
+                "--latest and --last are backtest-only",
+                hint="add --backtest to acknowledge descriptive historical evaluation",
+            )
         if last is not None:
-            batches = pipeline.freeze_last_n(root, last)
+            batches = pipeline.freeze_last_n(root, last, backtest=True)
             total = sum(len(b) for b in batches)
-            console.print(f"[green]Froze[/green] {total} arm-rows across {len(batches)} period(s)")
+            console.print(
+                f"[yellow]BACKTEST[/yellow] {total} arm-rows across {len(batches)} period(s) "
+                "— descriptive-only"
+            )
             console.print(f"  next → nullbench settle --study {root}")
             return
-        if latest or period is None:
-            records = pipeline.freeze_latest(root)
+        if latest:
+            records = pipeline.freeze_latest(root, backtest=True)
         else:
-            records = pipeline.freeze_period(root, period)
+            assert period is not None
+            records = pipeline.freeze_period(root, period, backtest=backtest)
     except NullbenchError as e:
         _fail(e)
     if not records:
         console.print("[yellow]No new freezes[/yellow] (already frozen)")
     else:
-        console.print(f"[green]Froze[/green] {len(records)} arm(s) for {records[0].period}")
+        record_mode = records[0].registration_mode
+        is_backtest = record_mode is not None and record_mode.value == "backtest"
+        label = "[yellow]BACKTEST[/yellow]" if is_backtest else "[green]Pre-registered[/green]"
+        suffix = " — descriptive-only" if is_backtest else " — outcome pending"
+        console.print(f"{label} {len(records)} arm(s) for {records[0].period}{suffix}")
         for r in records:
             console.print(f"  {r.strategy_id}: {r.content_hash[:12]}…")
-    console.print(f"  next → nullbench settle --study {root}")
+    if (
+        records
+        and records[0].registration_mode is not None
+        and records[0].registration_mode.value == "pre_outcome"
+    ):
+        console.print("  next → ingest/append the outcome, then settle")
+    else:
+        console.print(f"  next → nullbench settle --study {root}")
 
 
 @app.command("settle")
@@ -365,13 +442,21 @@ def settle_cmd(
         recs = pipeline.settle_period(_root(study), period)
     except NullbenchError as e:
         _fail(e)
+    pending = pipeline.status(_root(study)).get("pre_outcome_pending", 0)
     if not recs:
-        console.print("[yellow]Nothing new to settle[/yellow]")
+        if pending:
+            console.print(
+                f"[yellow]Nothing ready to settle[/yellow] ({pending} pre-outcome period(s) pending)"
+            )
+        else:
+            console.print("[yellow]Nothing new to settle[/yellow]")
         return
     console.print(f"[green]Settled[/green] {len(recs)} period(s)")
     for r in recs:
         for s in r.strategy_results:
             console.print(f"  {r.period} `{s.portfolio_id}` pnl={s.pnl:.0f}")
+    if pending:
+        console.print(f"  skipped {pending} pending pre-outcome period(s)")
     console.print(f"  next → nullbench report --study {_root(study)}")
 
 
@@ -430,9 +515,16 @@ def status_cmd(
     as_json: bool = typer.Option(False, "--json"),
 ) -> None:
     """Show study status and ledger integrity."""
-    info = pipeline.status(_root(study))
+    try:
+        info = pipeline.status(_root(study))
+    except NullbenchError as e:
+        _fail(e)
+    except Exception as e:
+        _fail(NullbenchError(f"status failed: {e}"))
     if as_json:
         console.print_json(json.dumps(info))
+        if not info.get("ok"):
+            raise typer.Exit(1)
         return
     if not info.get("ok"):
         console.print(f"[red]{info.get('error')}[/red]")
@@ -441,6 +533,15 @@ def status_cmd(
     console.print(f"experiment: {info['experiment_id']}  domain: {info['domain']}")
     console.print(f"strategies: {info['strategies']}")
     console.print(f"draws={info['draws']} freezes={info['freezes']} settles={info['settles']}")
+    console.print(
+        "registration: "
+        f"pending={info['pre_outcome_pending']} "
+        f"pre_outcome_settled={info['pre_outcome_settled']} "
+        f"backtest_settled={info['backtest_settled']} "
+        f"legacy_backtest={info['legacy_backtest']} "
+        f"legacy_unknown={info['legacy_unknown']} "
+        f"formal_eligible={info['formal_eligible_count']}"
+    )
     flag = "[green]ok[/green]" if info["ledger_ok"] else "[red]BROKEN[/red]"
     console.print(f"ledger: {flag} ({info['ledger_msg']})")
     try:
@@ -502,13 +603,40 @@ def coverage_cmd(
 def demo_cmd(
     name: str = typer.Option("demo-study", "--name"),
     path: Path | None = typer.Option(None, "--path"),
-    settle_last: int = typer.Option(10, "--periods"),
+    settle_last: int = typer.Option(10, "--periods", min=1, max=100),
 ) -> None:
-    """One-shot golden path: init → strategies → freeze/settle → report."""
+    """One-shot historical BACKTEST tutorial; never formal-eligible."""
     parent = path or Path.cwd()
     root = (parent / name).resolve()
     try:
+        if settle_last < 1:
+            raise NullbenchError("demo --periods must be at least 1")
+        console.print(
+            "[yellow]BACKTEST TUTORIAL[/yellow] — historical outcomes; "
+            "not pre-registered or formal-eligible"
+        )
         if root.exists() and (root / "experiment.json").exists():
+            spec = Study(root).load_experiment()
+            actual_strategies = [
+                (s.id, s.kind, s.tickets_per_period, s.seed, s.params) for s in spec.strategies
+            ]
+            expected_strategies = [
+                ("random", "random", 5, 1, {}),
+                ("frequency", "frequency", 5, 2, {"window": 50}),
+            ]
+            demo_contract_matches = (
+                spec.experiment_id == "demo-v1"
+                and spec.domain == "demo649"
+                and spec.null_portfolios == 200
+                and spec.null_seed == 42
+                and not spec.formal.enabled
+                and actual_strategies == expected_strategies
+            )
+            if not demo_contract_matches:
+                raise NullbenchError(
+                    f"refusing to reuse non-demo study: {root}",
+                    hint="choose a new --name so demo cannot modify an existing study",
+                )
             console.print(f"[yellow]Reusing[/yellow] {root}")
         else:
             pipeline.init_study(root, experiment_id="demo-v1", domain="demo649")
@@ -526,15 +654,24 @@ def demo_cmd(
         if len(draws) < settle_last + 20:
             raise NullbenchError("not enough draws for demo")
         targets = [d.period for d in draws[-settle_last:]]
+        demo_study = Study(root)
+        experiment_id = demo_study.load_experiment().experiment_id
+        settled_periods = {
+            event["period"]
+            for event in demo_study.ledger().events_of("settle")
+            if event.get("experiment_id") == experiment_id
+        }
         for p in targets:
-            pipeline.freeze_period(root, p)
+            if p not in settled_periods:
+                pipeline.freeze_period(root, p, backtest=True)
         pipeline.settle_period(root)
         summary = pipeline.build_report(root)
     except NullbenchError as e:
         _fail(e)
     console.print(
         Panel(
-            f"[bold green]Demo complete[/bold green]\n"
+            f"[bold yellow]BACKTEST tutorial complete[/bold yellow]\n"
+            "descriptive-only; not pre-registered or formal-eligible\n"
             f"report → {root / 'reports' / 'latest.md'}\n"
             f"guide  → {root / 'STUDY.md'}\n"
             f"coach  → nullbench next --study {root}",
@@ -653,26 +790,66 @@ def seal_export(
 def seal_notarize(
     study: Path = typer.Option(..., "--study", "-s"),
     vault_path: Path | None = typer.Option(None, "--vault"),
-    remote: bool = typer.Option(False, "--remote", help="Also POST to NULLBENCH_NOTARY_URL if set"),
+    remote: bool = typer.Option(
+        False,
+        "--remote",
+        help="Also POST to the required NULLBENCH_NOTARY_URL",
+    ),
 ) -> None:
     """Notarize study tip into the external vault (A5 control)."""
-    from nullbench.core.seal import notarize_study
+    from nullbench.core.locking import study_lock
+    from nullbench.core.seal import _write_receipt_copy, notarize_study
     from nullbench.core.vault import Vault
 
+    remote_receipt_path: Path | None = None
+    study_root = _root(study)
     try:
         v = Vault(vault_path)
-        receipt = notarize_study(_root(study), vault=v)
+        remote_url: str | None = None
         if remote:
             from nullbench.core import notary_http
 
-            if notary_http.notary_url():
-                remote_receipt = notary_http.post_receipt(
-                    {k: receipt[k] for k in receipt if k != "signature"}
+            remote_url = notary_http.notary_url()
+            if remote_url is None:
+                raise NullbenchError(
+                    "--remote requires NULLBENCH_NOTARY_URL",
+                    hint="set the remote notary URL, or omit --remote for local vault only",
                 )
-                console.print({"remote_receipt_id": remote_receipt.get("receipt_id")})
+        receipt = notarize_study(study_root, vault=v, reuse_existing=True)
+        if remote and remote_url is not None:
+            payload_fields = (
+                "bundle_id",
+                "experiment_id",
+                "experiment_hash",
+                "domain",
+                "tip_line_hash",
+                "tip_n_lines",
+                "file_hashes",
+                "nullbench_version",
+            )
+            try:
+                remote_receipt = notary_http.post_receipt(
+                    {key: receipt[key] for key in payload_fields},
+                    url=remote_url,
+                )
+                remote_receipt_path = study_root / "vault" / "latest_remote_receipt.json"
+                with study_lock(study_root):
+                    _write_receipt_copy(remote_receipt_path, remote_receipt)
+            except NullbenchError as exc:
+                raise NullbenchError(
+                    f"local vault receipt {receipt.get('receipt_id')} was committed, but "
+                    f"remote notarization failed: {exc.message}",
+                    hint="fix the remote endpoint and retry --remote; the local retry is safe",
+                ) from exc
+            console.print(
+                {
+                    "remote_receipt_id": remote_receipt.get("receipt_id"),
+                    "remote_receipt": str(remote_receipt_path),
+                }
+            )
     except NullbenchError as e:
         _fail(e)
-    console.print("[green]Notarized[/green]")
+    console.print("[green]Local vault notarized[/green]")
     console.print(
         {
             "receipt_id": receipt["receipt_id"],
@@ -681,6 +858,11 @@ def seal_notarize(
             "vault": str(v.root),
         }
     )
+    if remote_receipt_path is not None:
+        console.print(
+            "[yellow]Remote receipt saved separately; standard seal verify uses the local "
+            "vault key. Remote authority must verify its own signed receipt.[/yellow]"
+        )
 
 
 @seal_app.command("verify")
@@ -689,7 +871,7 @@ def seal_verify(
     receipt: Path | None = typer.Option(None, "--receipt", "-r"),
     vault_path: Path | None = typer.Option(None, "--vault"),
 ) -> None:
-    """Verify study against a vault receipt (detects A5-style rewrite)."""
+    """Verify an exact bundle or a bounded archived ancestor against a vault receipt."""
     from nullbench.core.seal import verify_study_vault
     from nullbench.core.vault import Vault
 
@@ -700,9 +882,17 @@ def seal_verify(
     except NullbenchError as e:
         _fail(e)
     if ok:
-        console.print("[green]VAULT VERIFY PASS[/green]")
+        ancestor_verified = any(issue.startswith("ANCESTOR VERIFIED:") for issue in issues)
+        if ancestor_verified:
+            console.print(
+                "[green]ANCESTOR VERIFIED[/green] / [yellow]CURRENT BUNDLE NOT NOTARIZED[/yellow]"
+            )
+        else:
+            console.print("[green]VAULT VERIFY PASS[/green]")
         if rec:
             console.print({"receipt_id": rec.get("receipt_id"), "bundle_id": rec.get("bundle_id")})
+        for issue in issues:
+            console.print(f"[yellow]{issue}[/yellow]")
     else:
         console.print("[red]VAULT VERIFY FAIL[/red]")
         for i in issues:

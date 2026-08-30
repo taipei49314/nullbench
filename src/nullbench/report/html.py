@@ -58,6 +58,10 @@ def render_html(
 
     warn_lis = "".join(f"<li>{esc(w)}</li>" for w in summary.warnings)
     formal_block = _formal_section(formal)
+    registration = (
+        ", ".join(f"{mode}={count}" for mode, count in sorted(summary.registration_counts.items()))
+        or "none"
+    )
 
     recent = []
     for s in settles[-8:]:
@@ -148,6 +152,8 @@ svg.spark {{ width: 100%; height: 160px; background: #121a24; border-radius: 8px
   <div><div class="k">Domain</div><div class="v">{esc(spec.domain)}</div></div>
   <div><div class="k">Game</div><div class="v">{esc(spec.game.name)}</div></div>
   <div><div class="k">Periods settled</div><div class="v">{summary.periods_settled}</div></div>
+  <div><div class="k">Formal eligible</div><div class="v">{summary.formal_eligible_periods}</div></div>
+  <div><div class="k">Registration</div><div class="v">{esc(registration)}</div></div>
   <div><div class="k">Null portfolios</div><div class="v">{spec.null_portfolios}</div></div>
   <div><div class="k">Null mean cum P&amp;L</div><div class="v">{summary.null_mean_cum_pnl:.2f}</div></div>
 </section>
@@ -185,7 +191,7 @@ svg.spark {{ width: 100%; height: 160px; background: #121a24; border-radius: 8px
 
 <footer>
   <p>Generated {esc(str(summary.generated_at))} · single-file static HTML · no network required to view</p>
-  <p>Pre-register before outcomes. Never backfill. Not a prediction product.</p>
+  <p>Pre-register before outcomes; label historical evaluations as backtests. Not a prediction product.</p>
 </footer>
 
 <script type="application/json" id="chart-data">{chart_json}</script>

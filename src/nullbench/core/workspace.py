@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from nullbench.core.integrity import registration_class_for_freeze
 from nullbench.core.models import ExperimentSpec
 from nullbench.core.pipeline import load_draws
 from nullbench.core.study import Study
@@ -29,9 +30,9 @@ def write_study_readme(root: Path, spec: ExperimentSpec) -> Path:
         periods_hint = (
             f"- Sample periods: `{draws[0].period}` … `{draws[-1].period}` "
             f"({len(draws)} draws)\n"
-            f"- Try freeze last period: `nullbench freeze {draws[-1].period} "
-            f"--study {root}`\n"
-            f"- Or: `nullbench freeze --study {root} --latest`\n"
+            f"- Historical backtest: `nullbench freeze {draws[-1].period} "
+            f"--study {root} --backtest`\n"
+            f"- Or: `nullbench freeze --study {root} --latest --backtest`\n"
         )
     else:
         periods_hint = (
@@ -40,7 +41,7 @@ def write_study_readme(root: Path, spec: ExperimentSpec) -> Path:
 
     body = f"""# Study: {root.name}
 
-**nullbench** workspace — pre-register decisions, score against chance, never backfill.
+**nullbench** workspace — pre-register before outcomes, label backtests, score against chance.
 
 | Field | Value |
 |-------|-------|
@@ -50,15 +51,35 @@ def write_study_readme(root: Path, spec: ExperimentSpec) -> Path:
 | null portfolios | {spec.null_portfolios} |
 | strategies | {", ".join(spec.strategy_ids()) or "(none yet)"} |
 
-## Golden path
+## Strategy setup (before either track)
+
+Add strategies if they are not already present:
 
 ```bash
 nullbench strategy add random --study {root} --tickets 5 --seed 1
 nullbench strategy add frequency --study {root} --id frequency --tickets 5 --seed 2
-nullbench freeze --study {root} --latest
+```
+
+## Choose exactly one registration track
+
+### Track A — prospective
+
+```bash
+nullbench freeze FUTURE_PERIOD --study {root}
+# after the outcome is appended/ingested:
 nullbench settle --study {root}
 nullbench report --study {root}
 nullbench next --study {root}
+```
+
+### Track B — historical alternative
+
+Use this instead of Track A in this experiment. Historical data must be labeled explicitly and never advances formal endpoints:
+
+```bash
+nullbench freeze --study {root} --latest --backtest
+nullbench settle --study {root}
+nullbench report --study {root}
 ```
 
 ## Data
@@ -70,10 +91,12 @@ nullbench next --study {root}
 {periods_hint}
 ## Rules
 
-1. Freeze **before** using a period's outcome for decisions.
-2. Never rewrite freezes after settle.
-3. Change strategy params after freezes → new `experiment_id`.
-4. Reports are **descriptive** unless you open a formal endpoint.
+1. A pre-outcome target must be absent from `draws.jsonl` at freeze time.
+2. Existing outcomes require explicit backtest mode and are descriptive-only.
+3. Never rewrite or relabel an appended freeze.
+4. Change strategy params after freezes → new `experiment_id`.
+5. Reports are **descriptive** unless eligible pre-outcome data opens a formal endpoint.
+6. One experiment cannot mix prospective, backtest, or legacy registration classes.
 
 ## Ethics
 
@@ -101,17 +124,35 @@ def period_index(root: Path) -> list[dict]:
         if e.get("experiment_id") == spec.experiment_id
     }
     strat_ids = spec.strategy_ids()
+    draw_by_period = {d.period: d for d in draws}
+    freeze_rows: dict[str, list[dict]] = {}
+    for event in ledger.events_of("freeze"):
+        if event.get("experiment_id") == spec.experiment_id:
+            freeze_rows.setdefault(event["period"], []).append(event)
     rows = []
-    for d in draws:
-        n_frozen = sum(1 for s in strat_ids if (d.period, s) in frozen)
+    ordered_periods = [d.period for d in draws]
+    ordered_periods.extend(sorted(set(freeze_rows) - set(ordered_periods)))
+    for period in ordered_periods:
+        d = draw_by_period.get(period)
+        n_frozen = sum(1 for s in strat_ids if (period, s) in frozen)
+        modes = set()
+        for event in freeze_rows.get(period, []):
+            try:
+                modes.add(registration_class_for_freeze(event).value)
+            except IntegrityError:
+                modes.add("invalid")
+        registration = next(iter(modes)) if len(modes) == 1 else ("mixed" if modes else None)
         rows.append(
             {
-                "period": d.period,
-                "date": d.date,
+                "period": period,
+                "date": d.date if d else None,
                 "frozen_arms": n_frozen,
                 "strategies": len(strat_ids),
                 "fully_frozen": bool(strat_ids) and n_frozen == len(strat_ids),
-                "settled": d.period in settled,
+                "settled": period in settled,
+                "outcome_available": d is not None,
+                "registration_mode": registration,
+                "pending": d is None and registration == "pre_outcome",
             }
         )
     return rows
@@ -152,13 +193,36 @@ def next_actions(root: Path) -> list[str]:
         if e["period"] not in settled_periods:
             unsettled_frozen.add(e["period"])
     if unsettled_frozen:
-        actions.append(
-            f"nullbench settle --study {root}   # pending: {sorted(unsettled_frozen)[:5]}"
-        )
+        draw_periods = {d.period for d in draws}
+        revealed = sorted(p for p in unsettled_frozen if p in draw_periods)
+        pending: list[str] = []
+        missing_historical: list[str] = []
+        for period in sorted(set(unsettled_frozen) - set(revealed)):
+            period_freezes = [e for e in freezes if e["period"] == period]
+            try:
+                modes = {registration_class_for_freeze(e).value for e in period_freezes}
+            except IntegrityError:
+                modes = {"invalid"}
+            if modes == {"pre_outcome"}:
+                pending.append(period)
+            else:
+                missing_historical.append(period)
+        if missing_historical:
+            actions.append(f"FIX missing sealed historical outcome(s): {missing_historical[:5]}")
+        if revealed:
+            actions.append(f"nullbench settle --study {root}   # ready: {revealed[:5]}")
+        if pending:
+            actions.append(f"Outcome pending for {pending[:5]} — ingest/append it, then settle")
         return actions
     if not freezes:
         last = draws[-1].period
-        actions.append(f"nullbench freeze --study {root} --latest   # e.g. {last}")
+        actions.append("Choose ONE track; do not run both in the same study:")
+        actions.append(f"nullbench freeze FUTURE_PERIOD --study {root}   # prospective")
+        actions.append(
+            "Historical alternative: initialize a separate NEW_BACKTEST_STUDY, add its "
+            "strategies, then run `nullbench freeze --study NEW_BACKTEST_STUDY "
+            f"--latest --backtest` (for example {last})."
+        )
         actions.append(f"nullbench periods --study {root}")
         return actions
     if settles and not (study.reports_dir / "latest.md").exists():
@@ -166,9 +230,18 @@ def next_actions(root: Path) -> list[str]:
         return actions
     if settles:
         actions.append(f"nullbench report --study {root}   # refresh report")
-        actions.append(
-            f"nullbench freeze --study {root} --latest   # add more periods before looking"
-        )
+        try:
+            modes = {registration_class_for_freeze(e).value for e in freezes}
+        except IntegrityError:
+            modes = {"invalid"}
+        if modes == {"pre_outcome"}:
+            actions.append(
+                f"nullbench freeze FUTURE_PERIOD --study {root}   # register before outcome"
+            )
+        elif modes == {"backtest"}:
+            actions.append(f"nullbench freeze --study {root} --latest --backtest   # more history")
+        else:
+            actions.append("Start a new study for additional v3 registration evidence.")
         actions.append("Remember: descriptive only — e-values are diagnostics, not discoveries.")
         return actions
     actions.append(f"nullbench status --study {root}")
@@ -236,19 +309,34 @@ def doctor(root: Path | None = None) -> dict:
                 }
             )
             # M4: vault receipts are optional until the experiment was notarized
+            local_receipt_present = (root / "vault" / "latest_receipt.json").is_file()
+            vault_state_present = False
             try:
                 from nullbench.core.seal import verify_study_vault
+                from nullbench.core.vault import Vault
+
+                active_vault = Vault()
+                vault_state_present = any(
+                    path.exists()
+                    for path in (
+                        active_vault.meta_path,
+                        active_vault.key_path,
+                        active_vault.receipts_path,
+                    )
+                )
 
                 v_ok, v_issues, receipt = verify_study_vault(root)
-                ever_notarized = receipt is not None or any(
-                    "vault has" in i and "receipt" in i for i in v_issues
+                ever_notarized = (
+                    local_receipt_present
+                    or receipt is not None
+                    or any("vault has" in i and "receipt" in i for i in v_issues)
                 )
                 if ever_notarized:
                     checks.append(
                         {
                             "name": "vault_receipt",
                             "ok": v_ok,
-                            "detail": "ok" if v_ok else "; ".join(v_issues[:2]),
+                            "detail": "; ".join(v_issues[:2]) if v_issues else "ok",
                         }
                     )
                     study_info["vault_ok"] = v_ok
@@ -264,12 +352,13 @@ def doctor(root: Path | None = None) -> dict:
                         }
                     )
             except Exception as e:  # noqa: BLE001
+                optional = not (local_receipt_present or vault_state_present)
                 checks.append(
                     {
                         "name": "vault_receipt",
                         "ok": False,
                         "detail": str(e),
-                        "optional": True,
+                        "optional": optional,
                     }
                 )
         except Exception as e:

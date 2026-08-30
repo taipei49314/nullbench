@@ -11,18 +11,23 @@ def test_study_md_and_coach(tmp_path: Path) -> None:
     root = tmp_path / "s"
     pipeline.init_study(root, experiment_id="p1", domain="demo649", demo_draws=40)
     assert (root / "STUDY.md").exists()
+    guide = (root / "STUDY.md").read_text(encoding="utf-8")
+    assert guide.index("Strategy setup") < guide.index("Track A") < guide.index("Track B")
     actions = next_actions(root)
     assert any("strategy" in a for a in actions)
 
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=3, seed=1)
     actions = next_actions(root)
     assert any("freeze" in a for a in actions)
+    assert any("Choose ONE" in action for action in actions)
+    assert any("NEW_BACKTEST_STUDY" in action for action in actions)
+    assert not any(f"--study {root} --latest --backtest" in action for action in actions)
 
     rows = period_index(root)
     assert len(rows) == 40
     assert rows[-1]["settled"] is False
 
-    recs = pipeline.freeze_latest(root)
+    recs = pipeline.freeze_latest(root, backtest=True)
     assert recs
     actions = next_actions(root)
     assert any("settle" in a for a in actions)
@@ -30,7 +35,8 @@ def test_study_md_and_coach(tmp_path: Path) -> None:
     pipeline.settle_period(root)
     pipeline.build_report(root)
     actions = next_actions(root)
-    assert actions
+    assert any("--backtest" in action for action in actions)
+    assert all("FUTURE_PERIOD" not in action for action in actions)
 
 
 def test_doctor_ok() -> None:
@@ -50,9 +56,11 @@ def test_freeze_latest_idempotent_path(tmp_path: Path) -> None:
     root = tmp_path / "s2"
     pipeline.init_study(root, experiment_id="p2", domain="demo649", demo_draws=30)
     pipeline.add_strategy(root, strategy_id="random", kind="random", tickets=2, seed=1)
-    pipeline.freeze_latest(root)
+    pipeline.freeze_latest(root, backtest=True)
     # second freeze same period → empty list (idempotent)
     again = pipeline.freeze_period(
-        root, pipeline.load_draws(root / "data" / "draws.jsonl")[-1].period
+        root,
+        pipeline.load_draws(root / "data" / "draws.jsonl")[-1].period,
+        backtest=True,
     )
     assert again == []

@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nullbench"
-version = "0.8.2"
-description = "Open-source null-first decision lab with M1 seals and M4 external vault notary."
+version = "0.9.0"
+description = "Fail-closed pre-outcome decision lab with explicit backtests and sealed evidence."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
@@ -72,7 +72,7 @@ packages = ["src/nullbench"]
 testpaths = ["tests"]
 addopts = "-q"
 markers = [
-  "m1: M1 product gate — adversarial integrity IC-01..08 (must pass)",
+  "m1: M1 product gate — adversarial integrity IC-01..13 (must pass)",
   "m4: M4 product gate — vault notary / A5 rewrite detection",
 ]
 

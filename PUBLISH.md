@@ -6,10 +6,18 @@ See also the full maintainer playbook: **[docs/RUNBOOK.md](docs/RUNBOOK.md)**.
 
 ```bash
 pip install -e ".[dev]"
-python -m build
+test -z "$(git status --porcelain)" || { echo "build from a clean tracked tree"; exit 1; }
+version=$(python -c "import nullbench; print(nullbench.__version__)")
+build_dir="dist/$version"
+test ! -e "$build_dir" || { echo "$build_dir already exists"; exit 1; }
+mkdir -p "$build_dir"
+python -m build --outdir "$build_dir"
+test "$(find "$build_dir" -maxdepth 1 -name '*.whl' | wc -l)" -eq 1
+test "$(find "$build_dir" -maxdepth 1 -name '*.tar.gz' | wc -l)" -eq 1
+python -m twine check "$build_dir"/*
 ```
 
-Produces `dist/nullbench-<version>-*.whl` and `.tar.gz`.
+The clean-tree and empty-directory checks keep unrelated or stale artifacts out of the upload glob.
 
 ## Production PyPI — Trusted Publisher (required)
 
@@ -44,7 +52,8 @@ Or local:
 ```powershell
 $env:TWINE_USERNAME = "__token__"
 $env:TWINE_PASSWORD = "pypi-..."   # project-scoped; revoke after
-python -m twine upload dist/*
+$version = python -c "import nullbench; print(nullbench.__version__)"
+python -m twine upload "dist/$version/*"
 ```
 
 ## TestPyPI
@@ -52,7 +61,8 @@ python -m twine upload dist/*
 ```powershell
 $env:TWINE_USERNAME = "__token__"
 $env:TWINE_PASSWORD = "pypi-..."   # TestPyPI token
-python -m twine upload --repository testpypi dist/*
+$version = python -c "import nullbench; print(nullbench.__version__)"
+python -m twine upload --repository testpypi "dist/$version/*"
 pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nullbench
 ```
 

@@ -41,6 +41,12 @@ class SettleError(NullbenchError):
     pass
 
 
+class OutcomePendingError(SettleError):
+    """A valid pre-outcome freeze exists, but its outcome is not available yet."""
+
+    pass
+
+
 class DataError(NullbenchError):
     pass
 

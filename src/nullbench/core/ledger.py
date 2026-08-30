@@ -58,19 +58,32 @@ class Ledger:
         os.replace(tmp, self.tip_path)
 
     def append(self, event: dict[str, Any]) -> dict[str, Any]:
+        return self.append_many([event])[0]
+
+    def append_many(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Append one logical batch with a single preflight and tip update."""
+        if not events:
+            return []
         # Refuse append if tip does not match file (detects silent rewrite)
         self.verify_tip()
         prev = self._last_line_hash()
-        body = {k: v for k, v in event.items() if k not in ("prev_line_hash", "line_hash")}
-        material = {"prev_line_hash": prev, **body}
-        digest = sha256_hex(
-            json.dumps(material, sort_keys=True, separators=(",", ":"), default=str)
-        )
-        row = {**material, "line_hash": digest}
+        rows: list[dict[str, Any]] = []
+        for event in events:
+            body = {k: v for k, v in event.items() if k not in ("prev_line_hash", "line_hash")}
+            material = {"prev_line_hash": prev, **body}
+            digest = sha256_hex(
+                json.dumps(material, sort_keys=True, separators=(",", ":"), default=str)
+            )
+            row = {**material, "line_hash": digest}
+            rows.append(row)
+            prev = digest
         with self.path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(row, ensure_ascii=False, default=str) + "\n")
-        self._write_tip(digest, self._line_count())
-        return row
+            for row in rows:
+                fh.write(json.dumps(row, ensure_ascii=False, default=str) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        self._write_tip(prev, self._line_count())
+        return rows
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         with self.path.open("r", encoding="utf-8") as fh:
@@ -86,18 +99,21 @@ class Ledger:
         prev = "0" * 64
         n = 0
         last_hash = "0" * 64
-        for i, row in enumerate(self, start=1):
-            n = i
-            if row.get("prev_line_hash") != prev:
-                return False, f"line {i}: prev_line_hash mismatch"
-            body = {k: v for k, v in row.items() if k != "line_hash"}
-            expected = sha256_hex(
-                json.dumps(body, sort_keys=True, separators=(",", ":"), default=str)
-            )
-            if row.get("line_hash") != expected:
-                return False, f"line {i}: line_hash mismatch"
-            prev = row["line_hash"]
-            last_hash = prev
+        try:
+            for i, row in enumerate(self, start=1):
+                n = i
+                if row.get("prev_line_hash") != prev:
+                    return False, f"line {i}: prev_line_hash mismatch"
+                body = {k: v for k, v in row.items() if k != "line_hash"}
+                expected = sha256_hex(
+                    json.dumps(body, sort_keys=True, separators=(",", ":"), default=str)
+                )
+                if row.get("line_hash") != expected:
+                    return False, f"line {i}: line_hash mismatch"
+                prev = row["line_hash"]
+                last_hash = prev
+        except (json.JSONDecodeError, KeyError, OSError, TypeError) as exc:
+            return False, f"ledger unreadable: {exc}"
         # Tip seal required whenever the ledger has events (R-01).
         # Deleting the tip must not leave verify_chain green.
         if n > 0 and not self.tip_path.exists():
