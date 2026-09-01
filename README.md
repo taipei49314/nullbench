@@ -5,12 +5,15 @@
 [![Python](https://img.shields.io/pypi/pyversions/nullbench.svg)](https://pypi.org/project/nullbench/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Pre-register decisions. Score them against chance.**
+**Write the decision down before the result. Then score it against chance.**
 
-Open-source **null-first decision lab**: freeze choices before outcomes, settle against equal-cost chance portfolios, keep a sealed local ledger, and report descriptive evidence — not predictions.
+Did your picks beat a pile of random tickets that cost the same? nullbench
+makes that experiment cheap, local, and hard to cheat: freeze first, settle
+later, refuse silent edits.
 
-> **Not** a lottery predictor. No betting integration.  
-> **M1** detects inconsistent local edits. A full consistent rewrite of every seal (adversary A5) remains a residual risk until **M4**. See [CLAIM_POLICY](docs/CLAIM_POLICY.md) and [THREAT_MODEL](docs/THREAT_MODEL.md).
+It is **not** a lottery predictor and has no betting integration. Residual
+risks (what an attacker can still do) live in [CLAIM_POLICY](docs/CLAIM_POLICY.md)
+and [THREAT_MODEL](docs/THREAT_MODEL.md).
 
 ## Why this exists
 
