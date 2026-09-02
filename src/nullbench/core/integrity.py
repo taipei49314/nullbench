@@ -239,7 +239,22 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
                 f"experiment_hash drift after freeze period={fr.get('period')} "
                 f"(IC-05: experiment.json changed)"
             )
-        hist = history_before(draws, fr["period"])
+        # M5.1: v3 rows must be internally consistent — sealed outcome ⇄ late.
+        # Legacy v2 rows predate the honest `late` labeling (M5.0) and are exempt.
+        if fr.get("schema_version") == "3" and bool(fr.get("late")) != (oh is not None):
+            issues.append(
+                f"freeze late/outcome_hash inconsistency period={fr.get('period')} "
+                f"strategy={fr.get('strategy_id')} (M5.1: replay must be late=true, "
+                "prospective must be late=false)"
+            )
+        if oh is None and fr["period"] not in by_period:
+            # Pending prospective freeze (M5.1): nothing before it may have
+            # changed, so the seal must still cover *all* known draws. Any new
+            # draw that arrives before this period is drawn fails here
+            # (fail-closed; re-freeze on a fresh experiment or wait it out).
+            hist = order_draws(draws)
+        else:
+            hist = history_before(draws, fr["period"])
         if hh != history_hash(hist):
             issues.append(
                 f"history_hash drift period={fr.get('period')} "

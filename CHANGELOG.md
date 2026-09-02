@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.9.0 — 2026-09-02
+
+### M5.1 prospective freeze — the north-star mode exists (NORTH_STAR.md)
+
+- **`freeze_prospective()` / `nullbench freeze --next`**: freeze a period whose
+  draw does not exist yet. Hard contract: the period must be absent from
+  `draws.jsonl` at freeze time, `outcome_hash` stays `null`, `late` stays
+  `false`, and the history seal covers **every** draw known at freeze time.
+  Period id is derived from the latest draw (`P0120` → `P0121`,
+  `114000041` → `114000042`) or given explicitly
+- **Freeze schema v3** (new rows): semantic audit enforces
+  `late ⇄ outcome_hash` consistency (replay rows must be `late=true`,
+  prospective rows `late=false`). Legacy v2 rows are exempt from this check
+- **Pending prospective audits**: a prospective freeze whose draw has not
+  arrived yet must still seal *all* current draws — anything changing or
+  arriving before the draw fails the audit (fail-closed)
+- **Reports surface the metric**: `PROSPECTIVE: n/m freeze(s) happened before
+  their outcomes existed` (the north-star evidence line)
+- **Coach**: `next` tells you to wait for the draw (`ingest` → `settle`)
+  instead of suggesting a settle that cannot run yet
+- `freeze_prospective` exported from the public API (PUBLIC_API.md M5 section)
+- Public API import smoke in CI now covers `freeze_prospective`
+
 ## 0.8.3 — 2026-09-02
 
 ### M5.0 honesty pass (NORTH_STAR.md stage M5 adopted)

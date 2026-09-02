@@ -1,6 +1,6 @@
 """nullbench — null-first decision lab (pre-register, score vs chance)."""
 
-__version__ = "0.8.3"
+__version__ = "0.9.0"
 
 from nullbench.core.models import (
     Draw,
@@ -18,6 +18,7 @@ from nullbench.core.pipeline import (
     build_report,
     freeze_latest,
     freeze_period,
+    freeze_prospective,
     init_study,
     settle_period,
 )
@@ -42,6 +43,7 @@ __all__ = [
     "build_report",
     "freeze_latest",
     "freeze_period",
+    "freeze_prospective",
     "init_study",
     "settle_period",
 ]

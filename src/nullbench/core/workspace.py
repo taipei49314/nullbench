@@ -159,6 +159,20 @@ def next_actions(root: Path) -> list[str]:
         if e["period"] not in settled_periods:
             unsettled_frozen.add(e["period"])
     if unsettled_frozen:
+        known = {d.period for d in draws}
+        undrawn = sorted(p for p in unsettled_frozen if p not in known)
+        if undrawn:
+            # Prospective freezes waiting on their draws (M5.1)
+            if spec.domain.startswith("taiwan"):
+                actions.append(
+                    f"nullbench ingest --study {root}   # waiting for draw(s): {undrawn[:5]}"
+                )
+            else:
+                actions.append(
+                    f"waiting for draw(s): {undrawn[:5]} — append them to data/draws.jsonl"
+                )
+            actions.append(f"nullbench settle --study {root}   # only after the draw exists")
+            return actions
         actions.append(
             f"nullbench settle --study {root}   # pending: {sorted(unsettled_frozen)[:5]}"
         )

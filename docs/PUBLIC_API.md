@@ -41,6 +41,12 @@ from nullbench import init_study, add_strategy, freeze_period, settle_period, bu
 - HTML report visual layout
 - Formal α checkpoint constants (documented; changing them is an experiment-breaking change)
 
+### M5 additions (0.9.0)
+
+| Symbol | Role |
+|--------|------|
+| `freeze_prospective` | Freeze a period whose draw does not exist yet (north-star mode); `outcome_hash=None`, `late=False`, history seal covers all known draws |
+
 ## CLI product surface (stable jobs)
 
 `doctor`, `next`, `periods`, `demo`, `init`, `strategy`, `freeze`, `settle`, `report`, `maturity`, `ingest`, `formal`, `domains`, `strategies`, `seal`, `vault`

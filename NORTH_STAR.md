@@ -44,8 +44,8 @@ chance, shown honestly, is the product working.
 
 | Phase | Exit |
 |-------|------|
-| **M5.0 honesty pass** | Replay freezes labeled (`late=true`); reports warn when freezes are replay; demo/docs say replay; CLAIM_POLICY gains M5 language (0.8.3) |
-| **M5.1 prospective freeze** | `freeze --next`: period absent from draws, `outcome_hash` null — enforced by the semantic audit (0.9.0) |
+| **M5.0 honesty pass** | Replay freezes labeled (`late=true`); reports warn when freezes are replay; demo/docs say replay; CLAIM_POLICY gains M5 language (0.8.3) — **shipped** |
+| **M5.1 prospective freeze** | `freeze --next`: period absent from draws, `outcome_hash` null — enforced by the semantic audit (0.9.0) — **shipped** |
 | **M5.2 prospective settle** | settle proves the draw entered `draws.jsonl` *after* the freeze (evidence recorded in the ledger row) |
 | **M5.3 cycle command** | `nullbench cycle`: ingest → settle pending → freeze next → notarize → report |
 | **M5.4 first public study** | Taiwan Super Lotto + Lotto649 studies in parallel, formal endpoint pre-registered, receipt every period |
