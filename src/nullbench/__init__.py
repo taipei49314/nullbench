@@ -1,6 +1,6 @@
 """nullbench — null-first decision lab (pre-register, score vs chance)."""
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 from nullbench.core.models import (
     Draw,

@@ -292,7 +292,10 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
             experiment_hash=exp_h,
             history_hash=h_hash,
             outcome_hash=oh,
-            late=False,
+            # Replay freeze: the outcome already existed when frozen (M5.0).
+            # Prospective freezes (outcome not yet drawn) are the only honest
+            # evidence for the north-star metric; they need M5.1.
+            late=oh is not None,
             meta={
                 "history_draws_used": len(history),
                 "strategy_kind": s.kind,
@@ -594,6 +597,24 @@ def build_report(root: Path) -> ReportSummary:
     if any(k in (spec.domain or "") for k in ("taiwan",)):
         warnings.append(
             "Taiwan floating jackpot tiers are valued at 0 (conservative fixed-only table)."
+        )
+    # M5.0: say it when every freeze sealed an outcome that already existed.
+    # Replay is legitimate for demos/replays, but it is not prospective
+    # evidence — reports must not read as pre-registration (NORTH_STAR M5).
+    all_freezes = [
+        e for e in ledger.events_of("freeze") if e.get("experiment_id") == spec.experiment_id
+    ]
+    n_replay = sum(1 for f in all_freezes if f.get("outcome_hash") is not None or f.get("late"))
+    if all_freezes and n_replay == len(all_freezes):
+        warnings.insert(
+            0,
+            f"REPLAY: all {n_replay} freeze(s) sealed outcomes that already existed "
+            "at freeze time — descriptive demonstration, not prospective "
+            "pre-registration evidence (see NORTH_STAR.md M5).",
+        )
+    elif n_replay:
+        warnings.append(
+            f"{n_replay}/{len(all_freezes)} freeze(s) are replay (outcome known at freeze)."
         )
     if len(settles) < 26:
         warnings.append(f"Only {len(settles)} settled period(s); treat percentiles as unstable.")

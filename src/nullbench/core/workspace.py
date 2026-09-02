@@ -75,6 +75,13 @@ nullbench next --study {root}
 3. Change strategy params after freezes → new `experiment_id`.
 4. Reports are **descriptive** unless you open a formal endpoint.
 
+## Replay vs prospective
+
+Freezing a period whose draw already exists in `data/draws.jsonl` is a
+**replay** freeze (`late=true` in the ledger) — fine for demos and walkthroughs,
+but it is not pre-registration evidence. Prospective freezing (freeze before
+the draw exists) is the north-star mode; see [NORTH_STAR.md](../NORTH_STAR.md).
+
 ## Ethics
 
 Pure simulation. No real-money wagering. Not a prediction product.

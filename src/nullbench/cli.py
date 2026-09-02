@@ -534,7 +534,7 @@ def demo_cmd(
         _fail(e)
     console.print(
         Panel(
-            f"[bold green]Demo complete[/bold green]\n"
+            f"[bold green]Demo complete[/bold green] (replay mode — outcomes were known at freeze)\n"
             f"report → {root / 'reports' / 'latest.md'}\n"
             f"guide  → {root / 'STUDY.md'}\n"
             f"coach  → nullbench next --study {root}",
