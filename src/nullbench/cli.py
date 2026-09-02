@@ -330,10 +330,28 @@ def freeze_cmd(
     study: Path = typer.Option(..., "--study", "-s"),
     latest: bool = typer.Option(False, "--latest", help="Freeze newest unsettled period"),
     last: int | None = typer.Option(None, "--last", help="Freeze last N unsettled periods"),
+    next_period: bool = typer.Option(
+        False,
+        "--next",
+        help="Freeze the next undrawn period (prospective, M5.1 north-star mode)",
+    ),
 ) -> None:
     """Freeze strategy tickets before using outcomes."""
     root = _root(study)
     try:
+        if next_period:
+            records = pipeline.freeze_prospective(root, period)
+            if records:
+                console.print(
+                    f"[green]Froze[/green] {len(records)} arm(s) for {records[0].period} "
+                    "(prospective — the outcome does not exist yet)"
+                )
+                for r in records:
+                    console.print(f"  {r.strategy_id}: {r.content_hash[:12]}…")
+                console.print(f"  next → wait for the draw, then: nullbench settle --study {root}")
+            else:
+                console.print("[yellow]No new freezes[/yellow] (already frozen)")
+            return
         if last is not None:
             batches = pipeline.freeze_last_n(root, last)
             total = sum(len(b) for b in batches)

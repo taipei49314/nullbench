@@ -39,6 +39,18 @@ Hardening (0.8.1+):
 - Doctor fail-closed if vault has receipts for the experiment but tip/receipt missing
 - HTTP notary requires `NULLBENCH_NOTARY_TOKEN` (Bearer); duplicate `tip_line_hash` refused
 
+Hardening (0.9.0 — M5.1 prospective freezes):
+
+- **R-04:** `freeze --next` refuses periods already present in `draws.jsonl`
+  (replay masquerading as prospective); `outcome_hash` must stay null
+- **R-05:** freeze schema v3 rows must satisfy `late ⇄ outcome_hash`
+  (replay ⇒ `late=true`; prospective ⇒ `late=false`); semantic audit enforces
+- **R-06:** a pending prospective freeze (draw not yet arrived) must seal
+  *all* current draws; any earlier-draw change — or any new draw arriving
+  before the target — fails the audit (fail-closed)
+- Beyond-the-machine proof that a freeze preceded its draw still requires the
+  M4 vault: notarize each prospective freeze (NORTH_STAR.md M5.4)
+
 ## Commands
 
 ```bash

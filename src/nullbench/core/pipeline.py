@@ -205,6 +205,34 @@ def _period_seed(period: str) -> int:
     return int(sha256_hex(period)[:8], 16)
 
 
+def _assert_study_plugins_trusted(spec: ExperimentSpec, root: Path) -> None:
+    """Trust gates for the domain and every strategy kind (IC-09)."""
+    try:
+        assert_plugins_trusted(spec.domain, is_domain=True, study_root=root)
+    except IntegrityError as e:
+        raise FreezeError(e.message, hint=e.hint) from e
+    for s in spec.strategies:
+        try:
+            assert_plugins_trusted(s.kind, is_domain=False, study_root=root)
+        except IntegrityError as e:
+            raise FreezeError(e.message, hint=e.hint) from e
+
+
+def _next_period_id(period: str) -> str | None:
+    """Derive the following period id for sequential schemes.
+
+    ``P0120`` → ``P0121``; ``114000041`` → ``114000042``. Returns None when the
+    period id is not ``[prefix]digits`` — callers then need an explicit period.
+    """
+    import re
+
+    m = re.fullmatch(r"([A-Za-z]*)([0-9]+)", period)
+    if m is None:
+        return None
+    prefix, digits = m.group(1), m.group(2)
+    return f"{prefix}{str(int(digits) + 1).zfill(len(digits))}"
+
+
 def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
     study = Study(root)
     if not study.exists():
@@ -217,15 +245,7 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
         )
 
     # Trust gate for domain plugins (IC-09)
-    try:
-        assert_plugins_trusted(spec.domain, is_domain=True, study_root=root)
-    except IntegrityError as e:
-        raise FreezeError(e.message, hint=e.hint) from e
-    for s in spec.strategies:
-        try:
-            assert_plugins_trusted(s.kind, is_domain=False, study_root=root)
-        except IntegrityError as e:
-            raise FreezeError(e.message, hint=e.hint) from e
+    _assert_study_plugins_trusted(spec, root)
 
     draws = load_draws(study.draws_path)
     periods = {d.period for d in draws}
@@ -301,6 +321,114 @@ def freeze_period(root: Path, period: str) -> list[FreezeRecord]:
                 "strategy_kind": s.kind,
                 "null_seed": spec.null_seed,
                 "null_portfolios": spec.null_portfolios,
+            },
+        )
+        ledger.append(rec.model_dump(mode="json"))
+        records.append(rec)
+    return records
+
+
+def freeze_prospective(root: Path, period: str | None = None) -> list[FreezeRecord]:
+    """Freeze a period whose draw does not exist yet — north-star mode (M5.1).
+
+    Hard contract, enforced later by the semantic audit: the period must be
+    absent from ``draws.jsonl`` at freeze time, ``outcome_hash`` stays None,
+    ``late`` stays False, and the history seal covers **every** draw known at
+    freeze time (they are all strictly before a future period). Proves of
+    "before the draw" beyond the study tree need the M4 vault: notarize each
+    prospective freeze (see NORTH_STAR.md M5.4).
+    """
+    study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
+    spec = study.load_experiment()
+    if not spec.strategies:
+        raise FreezeError(
+            "add at least one strategy before freeze",
+            hint=f"nullbench strategy add random --study {root} --tickets 5",
+        )
+    _assert_study_plugins_trusted(spec, root)
+
+    draws = load_draws(study.draws_path)
+    if not draws:
+        raise DataError(
+            "no draws — cannot derive the next period",
+            hint="ingest data first, or pass an explicit future --period",
+        )
+    if period is None:
+        latest = draws[-1].period  # stable (date, period) order
+        period = _next_period_id(latest)
+        if period is None:
+            raise DataError(
+                f"cannot derive the period after {latest!r}",
+                hint="pass the future period id explicitly",
+            )
+    if period in {d.period for d in draws}:
+        raise FreezeError(
+            f"period {period!r} already has a draw — that would be replay, not prospective",
+            hint="freeze a period that has not been drawn yet (M5.1)",
+        )
+
+    history = order_draws(draws)  # everything known so far is strictly before a future period
+    h_hash = history_hash(history)
+    exp_h = experiment_hash(spec)
+
+    ledger = study.ledger()
+    settled = {
+        e["period"]
+        for e in ledger.events_of("settle")
+        if e.get("experiment_id") == spec.experiment_id
+    }
+    if period in settled:
+        raise FreezeError(
+            f"period {period!r} already settled — never backfill freezes",
+            hint="choose a later period or start a new experiment",
+        )
+    existing = {
+        (e["strategy_id"], e["period"])
+        for e in ledger.events_of("freeze")
+        if e.get("experiment_id") == spec.experiment_id
+    }
+
+    kinds = [s.kind for s in spec.strategies]
+    fp = seal_code_fingerprint(strategy_kinds=kinds, domain_id=spec.domain)
+    pseed = _period_seed(period)
+    records: list[FreezeRecord] = []
+
+    for s in spec.strategies:
+        if (s.id, period) in existing:
+            continue
+        fn = get_strategy(s.kind)
+        tickets = fn(spec.game, s, history, pseed)
+        ch = freeze_content_hash(
+            experiment_id=spec.experiment_id,
+            period=period,
+            strategy_id=s.id,
+            tickets=tickets,
+            experiment_hash_=exp_h,
+            history_hash_=h_hash,
+            code_fingerprint_=fp,
+            outcome_hash=None,
+        )
+        rec = FreezeRecord(
+            experiment_id=spec.experiment_id,
+            period=period,
+            strategy_id=s.id,
+            tickets=tickets,
+            content_hash=ch,
+            code_fingerprint=fp,
+            experiment_hash=exp_h,
+            history_hash=h_hash,
+            outcome_hash=None,
+            # Prospective freeze: the outcome does not exist yet (M5.1).
+            late=False,
+            meta={
+                "history_draws_used": len(history),
+                "strategy_kind": s.kind,
+                "null_seed": spec.null_seed,
+                "null_portfolios": spec.null_portfolios,
+                "prospective": True,
+                "known_draws_at_freeze": len(history),
             },
         )
         ledger.append(rec.model_dump(mode="json"))
@@ -615,6 +743,14 @@ def build_report(root: Path) -> ReportSummary:
     elif n_replay:
         warnings.append(
             f"{n_replay}/{len(all_freezes)} freeze(s) are replay (outcome known at freeze)."
+        )
+    n_prospective = len(all_freezes) - n_replay
+    if n_prospective:
+        warnings.insert(
+            0,
+            f"PROSPECTIVE: {n_prospective}/{len(all_freezes)} freeze(s) happened before "
+            "their outcomes existed — this is north-star evidence (NORTH_STAR.md M5); "
+            "notarize each freeze to make it verifiable beyond this machine.",
         )
     if len(settles) < 26:
         warnings.append(f"Only {len(settles)} settled period(s); treat percentiles as unstable.")

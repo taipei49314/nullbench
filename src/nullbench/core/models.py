@@ -128,9 +128,14 @@ class ExperimentSpec(BaseModel):
 
 
 class FreezeRecord(BaseModel):
-    """Pre-outcome lock. Outcomes after freeze must not rewrite this row."""
+    """Pre-outcome lock. Outcomes after freeze must not rewrite this row.
 
-    schema_version: str = "2"
+    Schema v3 (nullbench 0.9.0): ``late`` must agree with ``outcome_hash`` —
+    a sealed outcome means the freeze was replay; ``outcome_hash=None`` with
+    ``late=False`` means prospective (the draw did not exist yet, M5.1).
+    """
+
+    schema_version: str = "3"
     type: str = "freeze"
     experiment_id: str
     period: str
