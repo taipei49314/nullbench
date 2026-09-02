@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.3 — 2026-09-02
+
+### M5.0 honesty pass (NORTH_STAR.md stage M5 adopted)
+
+- **Adopted `NORTH_STAR.md`:** stage M5 — the first real prospective
+  experiment (freeze before the draw exists, settle after, never backfill);
+  north-star metric = prospective streak ≥ 26
+- **Replay freezes now labeled:** `freeze_period` sets `late=true` whenever
+  the outcome already existed at freeze time (it always did for demo/ingest
+  paths — previously the flag was dead and always `false`)
+- **Reports say replay:** `build_report` warns when every freeze sealed a
+  known outcome ("descriptive demonstration, not prospective
+  pre-registration evidence"); partial-replay counts also surfaced
+- Demo panel and generated `STUDY.md` state replay mode explicitly
+- CLAIM_POLICY amended: "frozen before the outcome / prospective evidence"
+  language forbidden until M5.1 ships; "completed a real prospective
+  experiment" forbidden until M5.5 exit
+
 ## 0.8.2 — 2026-08-12
 
 ### Engineering department gates

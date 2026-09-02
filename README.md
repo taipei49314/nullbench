@@ -42,6 +42,11 @@ nullbench report --study try1 --open
 nullbench next --study try1
 ```
 
+The demo is **replay mode**: it freezes periods whose outcomes already
+exist, so it demonstrates the mechanics — not prospective pre-registration.
+The north-star mode (freeze before the draw exists) is stage M5; see
+[NORTH_STAR.md](NORTH_STAR.md).
+
 ## Golden path
 
 ```bash
@@ -88,6 +93,7 @@ Stable surface: [docs/PUBLIC_API.md](docs/PUBLIC_API.md).
 
 | Doc | Purpose |
 |-----|---------|
+| [NORTH_STAR](NORTH_STAR.md) | Stage M5: the first real prospective experiment |
 | [PRD](docs/PRD.md) | Product requirements (frozen) |
 | [PUBLIC_API](docs/PUBLIC_API.md) | Stable imports / CLI jobs |
 | [INTEGRITY](docs/INTEGRITY.md) | Seal model + plugin allowlist |

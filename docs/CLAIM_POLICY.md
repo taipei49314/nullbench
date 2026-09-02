@@ -42,6 +42,20 @@ Still not allowed without M4: absolute never-backfill against A5.
 
 Still forbidden: absolute never-backfill if the vault key is attacker-controlled.
 
+## Amendment (0.8.3 — M5 stage, NORTH_STAR.md)
+
+Stage M5 makes replay vs prospective an explicit honesty boundary:
+
+- Replay freezes (outcome already in `draws.jsonl` at freeze time) are now
+  labeled `late=true`; reports must warn when freezes are replay.
+- **Forbidden until M5.1 ships and a first prospective freeze exists:**
+  “pre-registered before the draw”, “frozen before the outcome”, “prospective
+  evidence”, or any wording implying a freeze happened before the outcome
+  existed.
+- **Forbidden until M5.5 exit (n=26 formal look, end-to-end vault verify,
+  public report):** “completed a real prospective experiment”.
+- Replay demos may still be shown as mechanic walkthroughs, labeled as replay.
+
 ## Report claims
 
 | Claim status | When |
