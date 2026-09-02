@@ -1,20 +1,21 @@
 # Dependabot — keep Actions and Python deps current
+# Version updates are switched off (open-pull-requests-limit: 0 per ecosystem); Dependabot security updates continue. estate-consolidation T-27, 2026-09-02.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
+    open-pull-requests-limit: 0
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "github-actions"
 
   - package-ecosystem: "pip"
+    open-pull-requests-limit: 0
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "python"
