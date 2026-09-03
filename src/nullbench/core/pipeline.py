@@ -41,6 +41,7 @@ from nullbench.errors import (
     DataError,
     FreezeError,
     IntegrityError,
+    NullbenchError,
     SettleError,
     StrategyError,
     StudyExistsError,
@@ -715,6 +716,36 @@ def cycle_study(
         "reported": reported,
         "skipped": skipped,
     }
+
+
+def cycle_many(
+    roots: list[Path],
+    *,
+    allow_unnotarized: bool = False,
+    max_months: int | None = None,
+    vault: Vault | None = None,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Cycle each study independently.
+
+    One study failing does not skip the rest. ``errors`` is non-empty when
+    any study raised; callers should treat that as a failed period loop.
+    """
+    results: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for root in roots:
+        try:
+            payload = cycle_study(
+                root,
+                allow_unnotarized=allow_unnotarized,
+                max_months=max_months,
+                vault=vault,
+            )
+            results.append({"root": str(Path(root).resolve()), "ok": True, **payload})
+        except NullbenchError as e:
+            loc = str(Path(root).resolve())
+            errors.append(f"{loc}: {e.message}")
+            results.append({"root": loc, "ok": False, "error": e.message})
+    return results, errors
 
 
 def build_report(root: Path) -> ReportSummary:
