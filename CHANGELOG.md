@@ -2,6 +2,12 @@
 
 ## 0.9.0 — 2026-09-02
 
+> **Void (2026-09-03).** Tagged and released on GitHub, never published to
+> PyPI: the Publish PyPI workflow failed because the PyPI Trusted Publisher
+> was not configured (estate ledger T-49). This version number will not be
+> reused; the next release gets a new one. The GitHub tag and Release stay
+> as a record.
+
 ### M5.1 prospective freeze — the north-star mode exists (NORTH_STAR.md)
 
 - **`freeze_prospective()` / `nullbench freeze --next`**: freeze a period whose
