@@ -47,6 +47,14 @@ from nullbench import init_study, add_strategy, freeze_period, settle_period, bu
 |--------|------|
 | `freeze_prospective` | Freeze a period whose draw does not exist yet (north-star mode); `outcome_hash=None`, `late=False`, history seal covers all known draws |
 
+### M5.3 additions (unreleased, additive)
+
+| Symbol | Role |
+|--------|------|
+| `cycle_study` | One fail-closed loop: ingest → settle pending → freeze next → notarize → report |
+
+CLI: `nullbench cycle --study …` (`--allow-unnotarized` skips notarize when no vault).
+
 ### M5.2 additions (unreleased, additive)
 
 `SettleRecord` schema v2 fields (new rows; not a breaking change):
@@ -60,7 +68,7 @@ from nullbench import init_study, add_strategy, freeze_period, settle_period, bu
 
 ## CLI product surface (stable jobs)
 
-`doctor`, `next`, `periods`, `demo`, `init`, `strategy`, `freeze`, `settle`, `report`, `maturity`, `ingest`, `formal`, `domains`, `strategies`, `seal`, `vault`
+`doctor`, `next`, `periods`, `demo`, `init`, `strategy`, `freeze`, `settle`, `cycle`, `report`, `maturity`, `ingest`, `formal`, `domains`, `strategies`, `seal`, `vault`
 
 ### M4 (0.8+)
 

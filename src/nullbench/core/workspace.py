@@ -165,12 +165,16 @@ def next_actions(root: Path) -> list[str]:
             # Prospective freezes waiting on their draws (M5.1)
             if spec.domain.startswith("taiwan"):
                 actions.append(
+                    f"nullbench cycle --study {root}   # ingest → settle → freeze next → notarize"
+                )
+                actions.append(
                     f"nullbench ingest --study {root}   # waiting for draw(s): {undrawn[:5]}"
                 )
             else:
                 actions.append(
                     f"waiting for draw(s): {undrawn[:5]} — append them to data/draws.jsonl"
                 )
+                actions.append(f"nullbench cycle --study {root}   # after the draw exists")
             actions.append(f"nullbench settle --study {root}   # only after the draw exists")
             return actions
         actions.append(

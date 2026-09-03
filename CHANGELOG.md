@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### M5.3 cycle command (NORTH_STAR.md)
+
+- **`cycle_study()` / `nullbench cycle`**: one fail-closed loop —
+  ingest (skipped for offline domains) → settle frozen periods that now have
+  a draw → `freeze --next` → notarize → report. Undrawn pending freezes are
+  skipped, not errors. Report is skipped until a settle exists
+- Notarize is required when no vault exists; `--allow-unnotarized` is a
+  local dry-run only
+- NORTH_STAR M5.2 row marked shipped (merged as #29)
+- No package version bump, tag, or PyPI publish (estate T-62)
+
 ### M5.2 prospective settle (NORTH_STAR.md)
 
 - **Settle records timing proof on the ledger row.** A prospective freeze

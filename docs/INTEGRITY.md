@@ -61,6 +61,12 @@ Hardening (M5.2 prospective settle — unreleased):
   claim the opposite. In-tree only — A5 rewrite of freeze+draws+settle
   together still needs the M4 vault
 
+Hardening (M5.3 cycle — unreleased):
+
+- **R-08:** `nullbench cycle` is fail-closed. Ingest / settle / freeze /
+  notarize / report errors stop the loop. Undrawn pending freezes are
+  skipped (not settled). Notarize is required unless `--allow-unnotarized`.
+
 ## Commands
 
 ```bash
