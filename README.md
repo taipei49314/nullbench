@@ -66,7 +66,7 @@ nullbench report --study my-study --open
 | **M2** PRD / threat model / API / claims frozen | frozen |
 | **M3** OIDC publish + SBOM + plugin allowlist | done |
 | **M4** External vault notary (A5 control) | done |
-| **M5** First real prospective experiment | **in progress** — M5.0–M5.2 on master (0.9.0 tag is void, never published to PyPI). M5.3 `nullbench cycle` is in this unreleased branch. See [NORTH_STAR](NORTH_STAR.md) |
+| **M5** First real prospective experiment | **in progress** — M5.0–M5.3 on master (0.9.0 tag is void). M5.4 first freezes: [PUBLIC_STUDY](docs/PUBLIC_STUDY.md). See [NORTH_STAR](NORTH_STAR.md) |
 
 ```bash
 nullbench maturity
@@ -95,6 +95,7 @@ Stable surface: [docs/PUBLIC_API.md](docs/PUBLIC_API.md).
 | Doc | Purpose |
 |-----|---------|
 | [NORTH_STAR](NORTH_STAR.md) | Stage M5: the first real prospective experiment |
+| [PUBLIC_STUDY](docs/PUBLIC_STUDY.md) | M5.4 parallel Taiwan studies + first freeze registry |
 | [PRD](docs/PRD.md) | Product requirements (frozen) |
 | [PUBLIC_API](docs/PUBLIC_API.md) | Stable imports / CLI jobs |
 | [INTEGRITY](docs/INTEGRITY.md) | Seal model + plugin allowlist |

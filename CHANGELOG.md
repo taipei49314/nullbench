@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### M5.4 first public study (NORTH_STAR.md)
+
+- Two parallel Taiwan studies (`taiwan_super` + `taiwan_lotto649`), formal
+  endpoint on (α at n=26/52), first prospective freeze notarized. Public
+  registry: [docs/PUBLIC_STUDY.md](docs/PUBLIC_STUDY.md)
+- **`ingest --max-months` is the most recent N months**, not the first N
+  from 2004/2008 (that would freeze an already-drawn period)
+- Optional `certifi` CAs for Windows ingest (`CERTIFICATE_VERIFY_FAILED`)
+- No package version bump, tag, or PyPI publish (estate T-63)
+
 ### M5.3 cycle command (NORTH_STAR.md)
 
 - **`cycle_study()` / `nullbench cycle`**: one fail-closed loop —

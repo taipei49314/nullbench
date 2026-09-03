@@ -51,7 +51,7 @@ Stage M5 makes replay vs prospective an explicit honesty boundary:
 - **Forbidden until M5.1 ships and a first prospective freeze exists:**
   “pre-registered before the draw”, “frozen before the outcome”, “prospective
   evidence”, or any wording implying a freeze happened before the outcome
-  existed.
+  existed. (M5.4 first freezes: [PUBLIC_STUDY.md](PUBLIC_STUDY.md).)
 - **Forbidden until M5.5 exit (n=26 formal look, end-to-end vault verify,
   public report):** “completed a real prospective experiment”.
 - Replay demos may still be shown as mechanic walkthroughs, labeled as replay.

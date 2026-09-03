@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import ssl
 import time
 import urllib.request
 from collections.abc import Callable
@@ -37,16 +38,27 @@ def _month_iter(start: tuple[int, int], end: tuple[int, int]):
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
 
 
+def _ssl_context() -> ssl.SSLContext:
+    """Prefer certifi CAs when present (Windows Python often lacks the system store)."""
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
 def _fetch_month_raw(game_key: str, y: int, m: int) -> dict[str, Any]:
     ep, _ = ENDPOINTS[game_key]
     url = f"{API_BASE}/{ep}?period&month={y:04d}-{m:02d}&pageNum=1&pageSize=50"
     last_err: Exception | None = None
+    ctx = _ssl_context()
     for attempt in range(RETRIES):
         try:
             req = urllib.request.Request(
                 url, headers={"User-Agent": "nullbench/0.2 (simulation research; no betting)"}
             )
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            with urllib.request.urlopen(req, timeout=TIMEOUT, context=ctx) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             if data.get("rtCode") != 0:
                 raise ValueError(f"rtCode={data.get('rtCode')} rtMsg={data.get('rtMsg')}")
@@ -100,11 +112,15 @@ def ingest(
     raw_dir = cache_dir / "raw" / game_key
     raw_dir.mkdir(parents=True, exist_ok=True)
     end = (today.year, today.month)
+    months = list(_month_iter(START_MONTH[game_key], end))
+    if max_months is not None:
+        # Most recent N months (including the current month). Taking the
+        # *first* N months from 2004/2008 would freeze a long-drawn period
+        # and call it prospective — M5.4 forbids that.
+        months = months[-max_months:]
     total = fetched = 0
-    for y, m in _month_iter(START_MONTH[game_key], end):
+    for y, m in months:
         total += 1
-        if max_months is not None and total > max_months:
-            break
         cache = raw_dir / f"{y:04d}-{m:02d}.json"
         is_current = (y, m) == end
         if cache.exists() and not is_current:
