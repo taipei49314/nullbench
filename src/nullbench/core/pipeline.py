@@ -7,6 +7,7 @@ from pathlib import Path
 from nullbench.core.hashing import content_hash
 from nullbench.core.integrity import (
     assert_plugins_trusted,
+    expected_settle_timing_proof,
     experiment_hash,
     freeze_content_hash,
     history_before,
@@ -538,6 +539,11 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
                     hint="IC-03: restore the sealed draw",
                 )
 
+        try:
+            proof = expected_settle_timing_proof(by_period[p], draws_list, p)
+        except IntegrityError as e:
+            raise SettleError(e.message, hint=e.hint) from e
+
         strategy_results: list[PortfolioResult] = []
         n_tickets = 0
         for f in by_period[p]:
@@ -582,6 +588,10 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
             "null_pnl": [r.pnl for r in null_results],
             "experiment_hash": exp_h,
             "outcome_hash": outcome_hash(draw),
+            "draw_entered_after_freeze": proof["draw_entered_after_freeze"],
+            "freeze_line_hashes": proof["freeze_line_hashes"],
+            "known_draws_at_freeze": proof["known_draws_at_freeze"],
+            "known_draws_at_settle": proof["known_draws_at_settle"],
         }
         rec = SettleRecord(
             experiment_id=spec.experiment_id,
@@ -590,6 +600,10 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
             strategy_results=strategy_results,
             null_results=null_results,
             content_hash=content_hash(payload),
+            draw_entered_after_freeze=bool(proof["draw_entered_after_freeze"]),
+            freeze_line_hashes=list(proof["freeze_line_hashes"]),
+            known_draws_at_freeze=proof["known_draws_at_freeze"],
+            known_draws_at_settle=proof["known_draws_at_settle"],
         )
         ledger_row = rec.model_dump(mode="json")
         ledger_row["null_results"] = [
@@ -751,6 +765,12 @@ def build_report(root: Path) -> ReportSummary:
             f"PROSPECTIVE: {n_prospective}/{len(all_freezes)} freeze(s) happened before "
             "their outcomes existed — this is north-star evidence (NORTH_STAR.md M5); "
             "notarize each freeze to make it verifiable beyond this machine.",
+        )
+    n_after = sum(1 for s in settles if s.get("draw_entered_after_freeze"))
+    if n_after:
+        warnings.append(
+            f"PROSPECTIVE SETTLE: {n_after} period(s) record that the draw entered "
+            "draws.jsonl after the freeze (NORTH_STAR.md M5.2)."
         )
     if len(settles) < 26:
         warnings.append(f"Only {len(settles)} settled period(s); treat percentiles as unstable.")

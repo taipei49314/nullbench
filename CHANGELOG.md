@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### M5.2 prospective settle (NORTH_STAR.md)
+
+- **Settle records timing proof on the ledger row.** A prospective freeze
+  (`outcome_hash` null) can only settle after the period appears in
+  `draws.jsonl` *and* the file has grown since freeze. The settle row stores
+  `draw_entered_after_freeze`, the freeze `line_hash`es, and
+  `known_draws_at_freeze` / `known_draws_at_settle`. Replay settles record
+  the negative (`draw_entered_after_freeze=false`)
+- **Settle schema v2** (new rows): semantic audit enforces the proof
+  (stripping it from a prospective settle, or claiming it on a replay settle,
+  fails even with a relinked chain). Legacy v1 rows stay exempt unless they
+  settle a prospective freeze (fail-closed)
+- Reports surface `PROSPECTIVE SETTLE: n period(s) record that the draw
+  entered draws.jsonl after the freeze`
+- No package version bump, tag, or PyPI publish (estate T-61)
+
 ## 0.9.0 — 2026-09-02
 
 > **Void (2026-09-03).** Tagged and released on GitHub, never published to

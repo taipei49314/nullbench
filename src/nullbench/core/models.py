@@ -166,9 +166,16 @@ class PortfolioResult(BaseModel):
 
 
 class SettleRecord(BaseModel):
-    """Post-outcome settlement for one period."""
+    """Post-outcome settlement for one period.
 
-    schema_version: str = "1"
+    Schema v2 (M5.2): the ledger row records whether the draw entered
+    ``draws.jsonl`` *after* the freeze. Prospective settles must set
+    ``draw_entered_after_freeze=True`` with freeze ``line_hash``es and the
+    known-draw counts; replay settles must not claim that. Legacy v1 rows
+    are exempt unless they settle a prospective freeze (fail-closed).
+    """
+
+    schema_version: str = "2"
     type: str = "settle"
     experiment_id: str
     period: str
@@ -177,6 +184,10 @@ class SettleRecord(BaseModel):
     null_results: list[PortfolioResult]
     settled_at: datetime = Field(default_factory=utc_now)
     content_hash: str
+    draw_entered_after_freeze: bool = False
+    freeze_line_hashes: list[str] = Field(default_factory=list)
+    known_draws_at_freeze: int | None = None
+    known_draws_at_settle: int | None = None
 
 
 class ReportSummary(BaseModel):

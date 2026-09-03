@@ -68,11 +68,18 @@ def test_prospective_roundtrip_settle_and_clean_audit(tmp_path: Path) -> None:
 
     settles = settle_period(study, "P0121")
     assert len(settles) == 1
+    rec = settles[0]
+    assert rec.schema_version == "2"
+    assert rec.draw_entered_after_freeze is True
+    assert rec.known_draws_at_freeze == 120
+    assert rec.known_draws_at_settle == 121
+    assert rec.freeze_line_hashes
     ok, issues = verify_study_semantic(study)
     assert ok, issues
 
     summary = build_report(study)
     assert any(w.startswith("PROSPECTIVE:") for w in summary.warnings)
+    assert any(w.startswith("PROSPECTIVE SETTLE:") for w in summary.warnings)
     assert not any(w.startswith("REPLAY:") for w in summary.warnings)
 
 

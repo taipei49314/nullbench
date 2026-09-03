@@ -51,6 +51,16 @@ Hardening (0.9.0 — M5.1 prospective freezes):
 - Beyond-the-machine proof that a freeze preceded its draw still requires the
   M4 vault: notarize each prospective freeze (NORTH_STAR.md M5.4)
 
+Hardening (M5.2 prospective settle — unreleased):
+
+- **R-07:** settle of a prospective freeze must prove the draw entered
+  `draws.jsonl` *after* the freeze. Evidence on the ledger row:
+  `draw_entered_after_freeze=true`, freeze `line_hash`es,
+  `known_draws_at_freeze` < `known_draws_at_settle`. Semantic audit
+  recomputes this from freeze rows + current draws. Replay settles must not
+  claim the opposite. In-tree only — A5 rewrite of freeze+draws+settle
+  together still needs the M4 vault
+
 ## Commands
 
 ```bash

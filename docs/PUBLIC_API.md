@@ -47,6 +47,17 @@ from nullbench import init_study, add_strategy, freeze_period, settle_period, bu
 |--------|------|
 | `freeze_prospective` | Freeze a period whose draw does not exist yet (north-star mode); `outcome_hash=None`, `late=False`, history seal covers all known draws |
 
+### M5.2 additions (unreleased, additive)
+
+`SettleRecord` schema v2 fields (new rows; not a breaking change):
+
+| Field | Role |
+|-------|------|
+| `draw_entered_after_freeze` | `True` iff this settle proved the period entered `draws.jsonl` after freeze |
+| `freeze_line_hashes` | Freeze row `line_hash`es bound to this settle |
+| `known_draws_at_freeze` | Draw count sealed on the prospective freeze (`None` for replay) |
+| `known_draws_at_settle` | Draw count at settle time |
+
 ## CLI product surface (stable jobs)
 
 `doctor`, `next`, `periods`, `demo`, `init`, `strategy`, `freeze`, `settle`, `report`, `maturity`, `ingest`, `formal`, `domains`, `strategies`, `seal`, `vault`
