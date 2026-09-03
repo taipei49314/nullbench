@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Streak on HTML and doctor
+
+- HTML report meta card: Prospective streak ``n / 26``
+- ``nullbench doctor --study`` check + study blob include ``prospective_streak``
+- No package version bump, tag, or PyPI publish (estate T-69)
+
 ### Prospective streak meter
 
 - Reports and ``nullbench status`` surface **prospective streak**: trailing

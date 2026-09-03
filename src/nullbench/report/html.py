@@ -148,6 +148,7 @@ svg.spark {{ width: 100%; height: 160px; background: #121a24; border-radius: 8px
   <div><div class="k">Domain</div><div class="v">{esc(spec.domain)}</div></div>
   <div><div class="k">Game</div><div class="v">{esc(spec.game.name)}</div></div>
   <div><div class="k">Periods settled</div><div class="v">{summary.periods_settled}</div></div>
+  <div><div class="k">Prospective streak</div><div class="v">{summary.prospective_streak} / 26</div></div>
   <div><div class="k">Null portfolios</div><div class="v">{spec.null_portfolios}</div></div>
   <div><div class="k">Null mean cum P&amp;L</div><div class="v">{summary.null_mean_cum_pnl:.2f}</div></div>
 </section>

@@ -241,6 +241,18 @@ def doctor(root: Path | None = None) -> dict:
 
             sem_ok, sem_issues = verify_study_semantic(root)
             draws = load_draws(study.draws_path)
+            from nullbench.core.pipeline import trailing_prospective_streak
+
+            exp_settles = [
+                e
+                for e in study.ledger().events_of("settle")
+                if e.get("experiment_id") == spec.experiment_id
+            ]
+            exp_settles = sorted(
+                exp_settles,
+                key=lambda e: (e.get("draw", {}).get("date") or "", e.get("period") or ""),
+            )
+            streak = trailing_prospective_streak(exp_settles)
             study_info = {
                 "root": str(study.root),
                 "experiment_id": spec.experiment_id,
@@ -250,7 +262,15 @@ def doctor(root: Path | None = None) -> dict:
                 "ledger_ok": ok,
                 "semantic_ok": sem_ok,
                 "semantic_issues": sem_issues[:5],
+                "prospective_streak": streak,
             }
+            checks.append(
+                {
+                    "name": "prospective_streak",
+                    "ok": True,
+                    "detail": f"{streak} (target 26)",
+                }
+            )
             checks.append({"name": "study", "ok": True, "detail": study.root.name})
             checks.append({"name": "ledger_chain", "ok": ok, "detail": msg})
             checks.append(

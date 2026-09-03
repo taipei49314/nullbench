@@ -63,7 +63,15 @@ def test_one_prospective_settle_streak_is_one(tmp_path: Path) -> None:
     assert "not a completed prospective experiment" in summary.warnings[0].lower()
     md = (Study(study).reports_dir / "latest.md").read_text(encoding="utf-8")
     assert "Prospective streak: **1**" in md
+    html = (Study(study).reports_dir / "latest.html").read_text(encoding="utf-8")
+    assert "Prospective streak" in html
+    assert ">1 / 26<" in html
     assert status(study)["prospective_streak"] == 1
+    from nullbench.core.workspace import doctor
+
+    doc = doctor(study)
+    assert doc["study"]["prospective_streak"] == 1
+    assert any(c["name"] == "prospective_streak" and c["ok"] for c in doc["checks"])
 
 
 def test_replay_breaks_trailing_streak(tmp_path: Path) -> None:
