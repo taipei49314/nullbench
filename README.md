@@ -66,7 +66,7 @@ nullbench report --study my-study --open
 | **M2** PRD / threat model / API / claims frozen | frozen |
 | **M3** OIDC publish + SBOM + plugin allowlist | done |
 | **M4** External vault notary (A5 control) | done |
-| **M5** First real prospective experiment | **in progress** — M5.0 honesty pass + M5.1 `freeze --next` shipped (0.9.0); see [NORTH_STAR](NORTH_STAR.md) |
+| **M5** First real prospective experiment | **in progress** — M5.0 honesty pass + M5.1 `freeze --next` merged on master and tagged 0.9.0 on GitHub. **0.9.0 is void: it was never published to PyPI** (Publish PyPI failed, Trusted Publisher not configured); the next release gets a new number. See [NORTH_STAR](NORTH_STAR.md) |
 
 ```bash
 nullbench maturity
