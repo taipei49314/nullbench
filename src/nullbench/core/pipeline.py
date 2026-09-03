@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from nullbench.core.hashing import content_hash
 from nullbench.core.integrity import (
@@ -34,6 +35,7 @@ from nullbench.core.models import (
 from nullbench.core.nullbank import evaluate_null_bank
 from nullbench.core.settle_math import portfolio_cost, portfolio_payout
 from nullbench.core.study import Study
+from nullbench.core.vault import Vault
 from nullbench.domains import game_for, get_domain
 from nullbench.errors import (
     DataError,
@@ -43,6 +45,7 @@ from nullbench.errors import (
     StrategyError,
     StudyExistsError,
     StudyNotFoundError,
+    VaultError,
 )
 from nullbench.scoring.summary import period_score_summary
 from nullbench.strategies import get_strategy
@@ -628,6 +631,90 @@ def settle_period(root: Path, period: str | None = None) -> list[SettleRecord]:
         ledger.append(ledger_row)
         out.append(rec)
     return out
+
+
+def cycle_study(
+    root: Path,
+    *,
+    allow_unnotarized: bool = False,
+    max_months: int | None = None,
+    vault: Vault | None = None,
+) -> dict[str, Any]:
+    """M5.3 north-star loop: ingest → settle pending → freeze next → notarize → report.
+
+    Fail-closed. Ingest is skipped for offline domains (no ``prepare_data``).
+    Frozen periods without a draw are skipped, not settled. Report is skipped
+    until at least one settle exists. Notarize is required unless a vault is
+    present or ``allow_unnotarized`` is set.
+    """
+    from nullbench.core.seal import notarize_study
+
+    study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
+    spec = study.load_experiment()
+    skipped: list[str] = []
+
+    ingested: int | None = None
+    mod = get_domain(spec.domain)
+    if hasattr(mod, "prepare_data"):
+        ingested = ingest_data(root, max_months=max_months)
+    else:
+        skipped.append(f"ingest: domain {spec.domain!r} has no prepare_data")
+
+    draws = load_draws(study.draws_path)
+    known = {d.period for d in draws}
+    ledger = study.ledger()
+    settled_ids = {
+        e["period"]
+        for e in ledger.events_of("settle")
+        if e.get("experiment_id") == spec.experiment_id
+    }
+    pending = sorted(
+        {
+            e["period"]
+            for e in ledger.events_of("freeze")
+            if e.get("experiment_id") == spec.experiment_id and e["period"] not in settled_ids
+        }
+    )
+    settled: list[SettleRecord] = []
+    for p in pending:
+        if p not in known:
+            skipped.append(f"settle {p}: waiting for draw")
+            continue
+        settled.extend(settle_period(root, p))
+
+    frozen = freeze_prospective(root)
+
+    v = vault if vault is not None else Vault()
+    receipt: dict | None = None
+    if v.exists():
+        receipt = notarize_study(root, vault=v)
+    elif allow_unnotarized:
+        skipped.append("notarize: no vault (--allow-unnotarized)")
+    else:
+        raise VaultError(
+            f"no vault at {v.root}",
+            hint="nullbench vault init   (or pass --allow-unnotarized for a local dry run)",
+        )
+
+    reported = False
+    if study.ledger().events_of("settle"):
+        build_report(root)
+        reported = True
+    else:
+        skipped.append("report: no settlements yet")
+
+    return {
+        "ingested": ingested,
+        "settled_periods": [r.period for r in settled],
+        "frozen_period": frozen[0].period if frozen else None,
+        "frozen_arms": len(frozen),
+        "notarized": receipt is not None,
+        "receipt_id": None if receipt is None else receipt.get("receipt_id"),
+        "reported": reported,
+        "skipped": skipped,
+    }
 
 
 def build_report(root: Path) -> ReportSummary:

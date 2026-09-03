@@ -48,7 +48,7 @@ jobs:
       - name: M4 vault gate
         run: python -m pytest -m m4 --tb=line
       - name: Public API import smoke
-        run: python -c "from nullbench import init_study, add_strategy, freeze_period, freeze_prospective, settle_period, build_report, __version__; print(__version__)"
+        run: python -c "from nullbench import init_study, add_strategy, freeze_period, freeze_prospective, settle_period, cycle_study, build_report, __version__; print(__version__)"
       - name: Maturity CLI
         run: python -m nullbench maturity
       - name: Demo smoke
