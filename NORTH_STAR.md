@@ -29,6 +29,10 @@ no backfill, verifiable by anyone.**
 > the outcome did not yet exist (`outcome_hash = null`, period absent from
 > `draws.jsonl` at freeze time), settled after ingest, with seal verify and
 > vault verify green. **Target: ≥ 26.**
+>
+> In-tree meter (reports / `status`): trailing settles with
+> `draw_entered_after_freeze=true`. Vault-verify-green per period is still
+> the operator's M4 step; the report does not treat streak as an M5.5 exit.
 
 Proxy events (meter = ledger + vault receipts only, never verbal claims):
 

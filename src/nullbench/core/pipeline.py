@@ -748,6 +748,24 @@ def cycle_many(
     return results, errors
 
 
+PROSPECTIVE_STREAK_TARGET = 26
+
+
+def trailing_prospective_streak(settles: list[dict]) -> int:
+    """Count trailing consecutive settles that proved draw-after-freeze.
+
+    Settles must already be in causal order (oldest first). A replay settle
+    (or a v1 row without the M5.2 field) breaks the streak.
+    """
+    n = 0
+    for row in reversed(settles):
+        if row.get("draw_entered_after_freeze") is True:
+            n += 1
+        else:
+            break
+    return n
+
+
 def build_report(root: Path) -> ReportSummary:
     from nullbench.formal.endpoints import FormalEndpointConfig, evaluate_formal_endpoint
     from nullbench.report.html import write_html_report
@@ -890,12 +908,20 @@ def build_report(root: Path) -> ReportSummary:
             f"PROSPECTIVE SETTLE: {n_after} period(s) record that the draw entered "
             "draws.jsonl after the freeze (NORTH_STAR.md M5.2)."
         )
+    streak = trailing_prospective_streak(settles)
+    warnings.insert(
+        0,
+        f"PROSPECTIVE STREAK: {streak} consecutive after-freeze settle(s) "
+        f"(target {PROSPECTIVE_STREAK_TARGET}, NORTH_STAR.md). "
+        "Descriptive only — not a completed prospective experiment.",
+    )
     if len(settles) < 26:
         warnings.append(f"Only {len(settles)} settled period(s); treat percentiles as unstable.")
 
     summary = ReportSummary(
         experiment_id=spec.experiment_id,
         periods_settled=len(settles),
+        prospective_streak=streak,
         claim_status=claim,
         strategy_cum_pnl=cum,
         null_mean_cum_pnl=null_mean,
@@ -974,6 +1000,8 @@ def render_report_markdown(
         "",
         f"- Domain: `{spec.domain}` ({spec.game.name})",
         f"- Periods settled: **{summary.periods_settled}**",
+        f"- Prospective streak: **{summary.prospective_streak}** "
+        f"(target {PROSPECTIVE_STREAK_TARGET})",
         f"- Null portfolios: **{spec.null_portfolios}** (seed={spec.null_seed})",
         "",
         "## Cumulative virtual P&L vs equal-cost chance",
@@ -1063,6 +1091,10 @@ def status(root: Path) -> dict:
     freezes = ledger.events_of("freeze")
     settles = ledger.events_of("settle")
     draws = load_draws(study.draws_path)
+    exp_settles = [e for e in settles if e.get("experiment_id") == spec.experiment_id]
+    exp_settles = sorted(
+        exp_settles, key=lambda e: (e.get("draw", {}).get("date") or "", e.get("period") or "")
+    )
     return {
         "ok": True,
         "root": str(study.root),
@@ -1072,6 +1104,7 @@ def status(root: Path) -> dict:
         "draws": len(draws),
         "freezes": len(freezes),
         "settles": len(settles),
+        "prospective_streak": trailing_prospective_streak(exp_settles),
         "ledger_ok": ok,
         "ledger_msg": msg,
     }

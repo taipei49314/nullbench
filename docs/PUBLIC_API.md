@@ -54,6 +54,9 @@ from nullbench import init_study, add_strategy, freeze_period, settle_period, bu
 | `cycle_study` | One fail-closed loop: ingest → settle pending → freeze next → notarize → report |
 | `cycle_many` | Cycle several studies; one failure does not skip the rest |
 
+`ReportSummary.prospective_streak`: trailing consecutive settles with
+`draw_entered_after_freeze=true` (NORTH_STAR meter; target 26).
+
 CLI: `nullbench cycle --study …` (repeat `--study` for parallel public studies).
 `--allow-unnotarized` skips notarize when no vault.
 
