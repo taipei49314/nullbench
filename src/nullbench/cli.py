@@ -517,6 +517,7 @@ def status_cmd(
     console.print(f"experiment: {info['experiment_id']}  domain: {info['domain']}")
     console.print(f"strategies: {info['strategies']}")
     console.print(f"draws={info['draws']} freezes={info['freezes']} settles={info['settles']}")
+    console.print(f"prospective streak: {info.get('prospective_streak', 0)} (target 26)")
     flag = "[green]ok[/green]" if info["ledger_ok"] else "[red]BROKEN[/red]"
     console.print(f"ledger: {flag} ({info['ledger_msg']})")
     try:

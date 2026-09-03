@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Prospective streak meter
+
+- Reports and ``nullbench status`` surface **prospective streak**: trailing
+  consecutive settles that proved the draw entered ``draws.jsonl`` after
+  freeze. Target 26 (NORTH_STAR.md). Wording stays descriptive — not a
+  completed-experiment claim
+- No package version bump, tag, or PyPI publish (estate T-67)
+
 ### Public study period loop
 
 - ``nullbench cycle --study`` is repeatable: cycle several independent

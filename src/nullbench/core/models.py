@@ -195,6 +195,7 @@ class ReportSummary(BaseModel):
 
     experiment_id: str
     periods_settled: int
+    prospective_streak: int = 0
     claim_status: ClaimStatus = ClaimStatus.DESCRIPTIVE_ONLY
     strategy_cum_pnl: dict[str, float]
     null_mean_cum_pnl: float
