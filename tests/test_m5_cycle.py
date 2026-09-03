@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from nullbench import add_strategy, cycle_study, freeze_prospective, init_study
+from nullbench import add_strategy, cycle_many, cycle_study, freeze_prospective, init_study
 from nullbench.core.integrity import verify_study_semantic
 from nullbench.core.pipeline import load_draws
 from nullbench.core.study import Study
@@ -95,3 +95,27 @@ def test_cycle_skips_undrawn_pending_instead_of_raising(
     assert any("settle P0130: waiting for draw" in s for s in result["skipped"])
     # Latest known draw is still P0120 → next freeze is P0121 (already not P0130).
     assert result["frozen_period"] == "P0121"
+
+
+def test_cycle_many_runs_both_studies(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NULLBENCH_VAULT_DIR", str(tmp_path / "no-vault"))
+    a = _demo_study(tmp_path / "a")
+    b = _demo_study(tmp_path / "b")
+    results, errors = cycle_many([a, b], allow_unnotarized=True)
+    assert errors == []
+    assert [r["ok"] for r in results] == [True, True]
+    assert results[0]["frozen_period"] == "P0121"
+    assert results[1]["frozen_period"] == "P0121"
+
+
+def test_cycle_many_continues_after_one_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("NULLBENCH_VAULT_DIR", str(tmp_path / "no-vault"))
+    missing = tmp_path / "missing"
+    ok = _demo_study(tmp_path / "ok")
+    results, errors = cycle_many([missing, ok], allow_unnotarized=True)
+    assert errors
+    assert results[0]["ok"] is False
+    assert results[1]["ok"] is True
+    assert results[1]["frozen_period"] == "P0121"

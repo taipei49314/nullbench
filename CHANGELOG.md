@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Public study period loop
+
+- ``nullbench cycle --study`` is repeatable: cycle several independent
+  studies in one call. One failure does not skip the rest; exit non-zero
+  if any failed. ``cycle_many()`` is the library helper
+- PUBLIC_STUDY.md: period command for both Taiwan trees
+- No package version bump, tag, or PyPI publish (estate T-65)
+
 ### M5.4 first public study (NORTH_STAR.md)
 
 - Two parallel Taiwan studies (`taiwan_super` + `taiwan_lotto649`), formal

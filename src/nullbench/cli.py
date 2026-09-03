@@ -398,9 +398,26 @@ def settle_cmd(
     console.print(f"  next → nullbench report --study {_root(study)}")
 
 
+def _print_cycle_result(result: dict) -> None:
+    if result.get("ingested") is not None:
+        console.print(f"  ingest  {result['ingested']} draws")
+    if result.get("settled_periods"):
+        console.print(f"  settle  {result['settled_periods']}")
+    if result.get("frozen_period"):
+        console.print(
+            f"  freeze  {result['frozen_period']} ({result['frozen_arms']} arm(s), prospective)"
+        )
+    if result.get("notarized"):
+        console.print(f"  notary  receipt {result['receipt_id']}")
+    if result.get("reported"):
+        console.print(f"  report  → {Path(result['root']) / 'reports' / 'latest.md'}")
+    for s in result.get("skipped") or []:
+        console.print(f"  skip    {s}")
+
+
 @app.command("cycle")
 def cycle_cmd(
-    study: Path = typer.Option(..., "--study", "-s"),
+    study: list[Path] = typer.Option(..., "--study", "-s", help="Study path (repeatable)"),
     allow_unnotarized: bool = typer.Option(
         False,
         "--allow-unnotarized",
@@ -409,33 +426,29 @@ def cycle_cmd(
     max_months: int | None = typer.Option(None, "--max-months"),
     vault_path: Path | None = typer.Option(None, "--vault"),
 ) -> None:
-    """M5.3: ingest → settle pending → freeze next → notarize → report."""
+    """M5.3: ingest → settle pending → freeze next → notarize → report.
+
+    Repeat ``--study`` to cycle independent studies in one call. A failure in
+    one study does not skip the others; the command exits non-zero if any failed.
+    """
     from nullbench.core.vault import Vault
 
-    try:
-        result = pipeline.cycle_study(
-            _root(study),
-            allow_unnotarized=allow_unnotarized,
-            max_months=max_months,
-            vault=Vault(vault_path) if vault_path is not None else None,
-        )
-    except NullbenchError as e:
-        _fail(e)
-    console.print("[green]Cycle[/green]")
-    if result["ingested"] is not None:
-        console.print(f"  ingest  {result['ingested']} draws")
-    if result["settled_periods"]:
-        console.print(f"  settle  {result['settled_periods']}")
-    if result["frozen_period"]:
-        console.print(
-            f"  freeze  {result['frozen_period']} ({result['frozen_arms']} arm(s), prospective)"
-        )
-    if result["notarized"]:
-        console.print(f"  notary  receipt {result['receipt_id']}")
-    if result["reported"]:
-        console.print(f"  report  → {_root(study) / 'reports' / 'latest.md'}")
-    for s in result["skipped"]:
-        console.print(f"  skip    {s}")
+    roots = [_root(s) for s in study]
+    vault = Vault(vault_path) if vault_path is not None else None
+    results, errors = pipeline.cycle_many(
+        roots,
+        allow_unnotarized=allow_unnotarized,
+        max_months=max_months,
+        vault=vault,
+    )
+    for result in results:
+        console.print(f"[green]Cycle[/green] {result['root']}")
+        if result.get("ok") is False:
+            console.print(f"  [red]error:[/red] {result.get('error')}")
+            continue
+        _print_cycle_result(result)
+    if errors:
+        raise typer.Exit(1)
 
 
 @app.command("report")

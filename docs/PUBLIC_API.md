@@ -52,8 +52,10 @@ from nullbench import init_study, add_strategy, freeze_period, settle_period, bu
 | Symbol | Role |
 |--------|------|
 | `cycle_study` | One fail-closed loop: ingest → settle pending → freeze next → notarize → report |
+| `cycle_many` | Cycle several studies; one failure does not skip the rest |
 
-CLI: `nullbench cycle --study …` (`--allow-unnotarized` skips notarize when no vault).
+CLI: `nullbench cycle --study …` (repeat `--study` for parallel public studies).
+`--allow-unnotarized` skips notarize when no vault.
 
 ### M5.2 additions (unreleased, additive)
 

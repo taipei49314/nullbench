@@ -16,6 +16,7 @@ from nullbench.core.models import (
 from nullbench.core.pipeline import (
     add_strategy,
     build_report,
+    cycle_many,
     cycle_study,
     freeze_latest,
     freeze_period,
@@ -42,6 +43,7 @@ __all__ = [
     "NullbenchError",
     "add_strategy",
     "build_report",
+    "cycle_many",
     "cycle_study",
     "freeze_latest",
     "freeze_period",

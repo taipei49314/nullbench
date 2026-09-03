@@ -24,8 +24,19 @@ nullbench strategy add frequency --study ~/nullbench-studies/taiwan-lotto649 --i
 nullbench cycle --study ~/nullbench-studies/taiwan-lotto649
 ```
 
-Each later period: `nullbench cycle --study …` (ingest → settle if drawn →
-freeze next → notarize → report).
+Each later period (both studies, one call; a failure in one does not skip
+the other):
+
+```bash
+# vault for these studies (Windows operator tree):
+#   set NULLBENCH_VAULT_DIR=C:\Users\play\Desktop\nullbench-studies\vault
+nullbench cycle --vault C:\Users\play\Desktop\nullbench-studies\vault ^
+  -s C:\Users\play\Desktop\nullbench-studies\taiwan-super ^
+  -s C:\Users\play\Desktop\nullbench-studies\taiwan-lotto649
+```
+
+Super Lotto typically draws Mon/Thu 20:30 Asia/Taipei; Lotto 649 Tue/Fri.
+Run after the official result is posted, not before.
 
 `--max-months` means the **most recent** N months, including the current
 month. The first `cycle` with no `--max-months` refreshes the full cache
