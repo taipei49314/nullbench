@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import date
+from pathlib import Path
+
 from nullbench.core.models import Draw, Ticket
 from nullbench.core.settle_math import score_ticket
 from nullbench.domains import taiwan_fetch, taiwan_lotto649, taiwan_super
@@ -54,3 +57,16 @@ def test_sequential_e_process() -> None:
     ev = e_process_from_deltas([1.0, 1.0, 1.0, 1.0, 1.0])
     assert ev.n == 5
     assert ev.e_value > 1.0
+
+
+def test_ingest_max_months_takes_most_recent(tmp_path: Path, monkeypatch) -> None:
+    """M5.4: max_months is a window ending at *today*, not 2004/2008."""
+    seen: list[tuple[int, int]] = []
+
+    def fake_fetch(game_key: str, y: int, m: int) -> dict:
+        seen.append((y, m))
+        return {"rtCode": 0, "content": {"superLotto638Res": []}}
+
+    monkeypatch.setattr(taiwan_fetch, "_fetch_month_raw", fake_fetch)
+    taiwan_fetch.ingest("super", tmp_path, today=date(2026, 9, 3), max_months=2, progress=None)
+    assert seen == [(2026, 8), (2026, 9)]

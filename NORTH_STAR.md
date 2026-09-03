@@ -47,8 +47,8 @@ chance, shown honestly, is the product working.
 | **M5.0 honesty pass** | Replay freezes labeled (`late=true`); reports warn when freezes are replay; demo/docs say replay; CLAIM_POLICY gains M5 language (0.8.3) — **shipped** |
 | **M5.1 prospective freeze** | `freeze --next`: period absent from draws, `outcome_hash` null — enforced by the semantic audit (0.9.0 on master; the 0.9.0 tag is void, never published to PyPI) — **shipped** |
 | **M5.2 prospective settle** | settle proves the draw entered `draws.jsonl` *after* the freeze (evidence recorded in the ledger row: `draw_entered_after_freeze`, freeze `line_hash`es, known-draw counts; semantic audit enforces) — **shipped** (no version bump; 0.9.0 tag remains void) |
-| **M5.3 cycle command** | `nullbench cycle`: ingest → settle pending → freeze next → notarize → report — **this PR, pending merge; no version bump** |
-| **M5.4 first public study** | Taiwan Super Lotto + Lotto649 studies in parallel, formal endpoint pre-registered, receipt every period |
+| **M5.3 cycle command** | `nullbench cycle`: ingest → settle pending → freeze next → notarize → report — **shipped** (no version bump) |
+| **M5.4 first public study** | Taiwan Super Lotto + Lotto649 studies in parallel, formal endpoint pre-registered, receipt every period — **first freeze notarized** (see [PUBLIC_STUDY.md](docs/PUBLIC_STUDY.md); ongoing via `cycle`; n=26 is M5.5) |
 | **M5.5 exit claim** | n=26 look done, end-to-end vault verify green, public report — only then may this repo claim "completed a real prospective experiment" |
 
 ## Non-goals (this stage)
