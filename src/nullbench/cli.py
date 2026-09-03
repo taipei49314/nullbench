@@ -390,6 +390,11 @@ def settle_cmd(
     for r in recs:
         for s in r.strategy_results:
             console.print(f"  {r.period} `{s.portfolio_id}` pnl={s.pnl:.0f}")
+        if r.draw_entered_after_freeze:
+            console.print(
+                f"  {r.period} prospective settle: draw entered draws.jsonl after freeze "
+                f"({r.known_draws_at_freeze} → {r.known_draws_at_settle} draws)"
+            )
     console.print(f"  next → nullbench report --study {_root(study)}")
 
 

@@ -179,6 +179,105 @@ def require_freeze_seals(row: dict[str, Any]) -> tuple[str, str, str, str | None
     return eh, hh, fp, oh
 
 
+def expected_settle_timing_proof(
+    period_freezes: list[dict[str, Any]],
+    draws: list[Draw],
+    period: str,
+) -> dict[str, Any]:
+    """Recompute M5.2 timing evidence from freeze rows + current draws.
+
+    Prospective freeze (``outcome_hash is None``): the period must now exist
+    in ``draws.jsonl``, and the file must have grown since freeze. Replay
+    freeze: must not claim the draw arrived after freeze.
+    """
+    freeze_hashes = [str(f.get("line_hash") or "") for f in period_freezes]
+    if any(not h.strip() for h in freeze_hashes):
+        raise IntegrityError(
+            f"M5.2: freeze row missing line_hash period={period}",
+            hint="ledger rows must be chained",
+        )
+    n_settle = len(draws)
+    flags = [f.get("outcome_hash") is None for f in period_freezes]
+    if flags and any(flags) and not all(flags):
+        raise IntegrityError(
+            f"M5.2: mixed prospective/replay freezes period={period}",
+            hint="a period is frozen either before its draw or after, not both",
+        )
+    prospective = bool(flags) and all(flags)
+    if not prospective:
+        return {
+            "draw_entered_after_freeze": False,
+            "freeze_line_hashes": freeze_hashes,
+            "known_draws_at_freeze": None,
+            "known_draws_at_settle": n_settle,
+        }
+    counts: list[int] = []
+    for f in period_freezes:
+        meta = f.get("meta") or {}
+        n = meta.get("known_draws_at_freeze")
+        if n is None:
+            n = meta.get("history_draws_used")
+        if n is None:
+            raise IntegrityError(
+                f"M5.2: prospective freeze missing known_draws_at_freeze period={period}",
+                hint="freeze must record how many draws existed",
+            )
+        counts.append(int(n))
+    if len(set(counts)) != 1:
+        raise IntegrityError(
+            f"M5.2: freeze arms disagree on known_draws_at_freeze period={period}",
+        )
+    n_freeze = counts[0]
+    if period not in {d.period for d in draws}:
+        raise IntegrityError(
+            f"M5.2: prospective freeze has no draw yet period={period}",
+            hint="ingest the period after freeze, then settle",
+        )
+    if n_settle <= n_freeze:
+        raise IntegrityError(
+            f"M5.2: draw did not enter draws.jsonl after freeze period={period} "
+            f"(known_draws_at_freeze={n_freeze}, known_draws_at_settle={n_settle})",
+            hint="ingest a new row after freeze; do not rewrite existing draws",
+        )
+    return {
+        "draw_entered_after_freeze": True,
+        "freeze_line_hashes": freeze_hashes,
+        "known_draws_at_freeze": n_freeze,
+        "known_draws_at_settle": n_settle,
+    }
+
+
+def settle_timing_proof_issues(
+    se: dict[str, Any],
+    period_freezes: list[dict[str, Any]],
+    draws: list[Draw],
+) -> list[str]:
+    """Semantic audit for M5.2: recorded settle proof must match recomputation."""
+    period = str(se.get("period") or "")
+    try:
+        expected = expected_settle_timing_proof(period_freezes, draws, period)
+    except IntegrityError as e:
+        return [str(e.message if hasattr(e, "message") else e)]
+
+    prospective = expected["draw_entered_after_freeze"]
+    if prospective:
+        if se.get("draw_entered_after_freeze") is not True:
+            return [
+                f"M5.2: prospective settle missing draw_entered_after_freeze proof period={period}"
+            ]
+        issues: list[str] = []
+        if list(se.get("freeze_line_hashes") or []) != expected["freeze_line_hashes"]:
+            issues.append(f"M5.2: freeze_line_hashes mismatch period={period}")
+        if se.get("known_draws_at_freeze") != expected["known_draws_at_freeze"]:
+            issues.append(f"M5.2: known_draws_at_freeze mismatch period={period}")
+        if se.get("known_draws_at_settle") != expected["known_draws_at_settle"]:
+            issues.append(f"M5.2: known_draws_at_settle mismatch period={period}")
+        return issues
+    if se.get("draw_entered_after_freeze"):
+        return [f"M5.2: replay settle cannot claim draw_entered_after_freeze period={period}"]
+    return []
+
+
 def verify_freeze_row(row: dict[str, Any]) -> None:
     """Recompute freeze content_hash (IC-02) and require hard seals (R-02)."""
     if row.get("type") != "freeze":
@@ -324,6 +423,8 @@ def verify_study_semantic(root: Path) -> tuple[bool, list[str]]:
                 )
             if abs(float(stored.get("cost", 0)) - cost) > 1e-9:
                 issues.append(f"cost mismatch period={period} strategy={fr['strategy_id']}")
+
+        issues.extend(settle_timing_proof_issues(se, period_freezes, draws))
 
         if n_tickets == 0:
             n_tickets = 5

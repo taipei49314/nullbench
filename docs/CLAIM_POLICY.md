@@ -56,6 +56,13 @@ Stage M5 makes replay vs prospective an explicit honesty boundary:
   public report):** “completed a real prospective experiment”.
 - Replay demos may still be shown as mechanic walkthroughs, labeled as replay.
 
+## Amendment (M5.2 — unreleased, no version bump)
+
+Prospective settle records on the ledger row that the draw entered
+`draws.jsonl` after the freeze (`draw_entered_after_freeze`, freeze
+`line_hash`es, known-draw counts). This does **not** authorize “completed a
+real prospective experiment” (still M5.5).
+
 ## Report claims
 
 | Claim status | When |
