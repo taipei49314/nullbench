@@ -1,3 +1,5 @@
+> **已併入 [taipei49314/nullbench](https://github.com/taipei49314/nullbench)（2026-09-07，估產 T-176）**：本倉全部分支與 tags 以 `archive/lotto-lab/*` 保留在該倉；本倉封存唯讀，不再更新。
+
 # lotto-lab — 虛擬彩票研究室（純模擬，不下注）
 
 > **日常主力請用 [nullbench](https://pypi.org/project/nullbench/)**（PyPI 可裝、domain 通用、靜態 HTML 報告）。  
