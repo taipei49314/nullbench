@@ -1,3 +1,5 @@
+> **已併入 [taipei49314/nullbench](https://github.com/taipei49314/nullbench)（2026-09-07，估產 T-176）**：本倉全部分支與 tags 以 `archive/crucible/*` 保留在該倉；本倉封存唯讀，不再更新。
+
 # crucible
 
 確定性協定模型檢查器。把併發／分散式協定丟進熔爐，窮舉狀態空間，
