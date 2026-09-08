@@ -170,12 +170,16 @@ def next_actions(root: Path) -> list[str]:
                 actions.append(
                     f"nullbench ingest --study {root}   # waiting for draw(s): {undrawn[:5]}"
                 )
+            elif spec.domain == "demo649":
+                actions.append(f"nullbench demo-draw --study {root}   # lab clock: {undrawn[:5]}")
+                actions.append(f"nullbench settle --study {root}   # after demo-draw")
             else:
                 actions.append(
                     f"waiting for draw(s): {undrawn[:5]} — append them to data/draws.jsonl"
                 )
                 actions.append(f"nullbench cycle --study {root}   # after the draw exists")
-            actions.append(f"nullbench settle --study {root}   # only after the draw exists")
+            if spec.domain != "demo649":
+                actions.append(f"nullbench settle --study {root}   # only after the draw exists")
             return actions
         actions.append(
             f"nullbench settle --study {root}   # pending: {sorted(unsettled_frozen)[:5]}"

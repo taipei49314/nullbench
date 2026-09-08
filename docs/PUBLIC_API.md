@@ -60,6 +60,12 @@ from nullbench import init_study, add_strategy, freeze_period, settle_period, bu
 CLI: `nullbench cycle --study …` (repeat `--study` for parallel public studies).
 `--allow-unnotarized` skips notarize when no vault.
 
+### Lab clock (unreleased, additive)
+
+| Symbol / CLI | Role |
+|--------------|------|
+| `demo_draw` / `nullbench demo-draw` | demo649 only: append the immediate next synthetic draw. Refuses redraw and skip. Lets a local `freeze --next` become settleable without Taiwan ingest. |
+
 ### M5.2 additions (unreleased, additive)
 
 `SettleRecord` schema v2 fields (new rows; not a breaking change):
@@ -73,7 +79,7 @@ CLI: `nullbench cycle --study …` (repeat `--study` for parallel public studies
 
 ## CLI product surface (stable jobs)
 
-`doctor`, `next`, `periods`, `demo`, `init`, `strategy`, `freeze`, `settle`, `cycle`, `report`, `maturity`, `ingest`, `formal`, `domains`, `strategies`, `seal`, `vault`
+`doctor`, `next`, `periods`, `demo`, `init`, `strategy`, `freeze`, `demo-draw`, `settle`, `cycle`, `report`, `maturity`, `ingest`, `formal`, `domains`, `strategies`, `seal`, `vault`
 
 ### M4 (0.8+)
 

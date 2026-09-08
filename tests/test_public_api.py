@@ -8,6 +8,7 @@ from nullbench import (
     build_report,
     cycle_many,
     cycle_study,
+    demo_draw,
     freeze_latest,
     freeze_period,
     freeze_prospective,
@@ -27,6 +28,7 @@ def test_public_exports_present() -> None:
     assert callable(freeze_prospective)
     assert callable(cycle_study)
     assert callable(cycle_many)
+    assert callable(demo_draw)
     assert __version__
 
 

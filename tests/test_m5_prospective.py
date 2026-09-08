@@ -100,7 +100,7 @@ def test_coach_waits_for_draw(tmp_path: Path) -> None:
     study = _demo_study(tmp_path)
     freeze_prospective(study)  # P0121 pending
     actions = next_actions(study)
-    assert any("waiting for draw" in a for a in actions)
+    assert any("demo-draw" in a for a in actions)
 
 
 @pytest.mark.m1
