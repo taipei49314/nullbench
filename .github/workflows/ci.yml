@@ -1,14 +1,161 @@
 name: CI
 
+# Hosted ubuntu-latest jobs on this account often fail in two seconds with
+# "The job was not started" (billing). Verification now runs on the estate
+# self-hosted Windows pool and does not use hosted minutes. The original
+# Ubuntu matrix is kept as opt-in workflow_dispatch so it can be re-run
+# unchanged once billing is settled.
+#
+# Self-hosted jobs only run for the owner on this repository (not forks,
+# not Dependabot). Artifact uploads are omitted: the account quota is full.
+
 on:
   push:
     branches: [master, main]
   pull_request:
     branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      hosted:
+        description: Also run the original Ubuntu matrix (uses hosted minutes)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nullbench-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lint:
-    name: ruff + mypy
+  windows-pool:
+    name: lint + test (self-hosted Windows)
+    if: >-
+      github.repository == 'taipei49314/nullbench'
+      && github.actor == 'taipei49314'
+      && github.triggering_actor == 'taipei49314'
+      && (github.event_name != 'pull_request'
+      || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, Windows, X64, ci-box]
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: powershell
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+      REQUESTED_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.REQUESTED_SOURCE_SHA }}
+          persist-credentials: false
+
+      - name: Verify the checkout is the exact requested source and is clean
+        run: |
+          $ErrorActionPreference = "Stop"
+          $actual = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $actual -ne $env:REQUESTED_SOURCE_SHA) {
+            throw "checkout is not the exact requested source"
+          }
+          $status = @(git status --porcelain --untracked-files=all)
+          if ($LASTEXITCODE -ne 0 -or $status.Count -ne 0) { throw "source checkout is not clean" }
+
+      - name: Build a job venv on the host Python 3.11
+        run: |
+          $ErrorActionPreference = "Stop"
+          py -3.11 -c "import sys; assert sys.version_info[:2] == (3, 11); print(sys.version)"
+          if ($LASTEXITCODE -ne 0) { throw "provision Python 3.11 on this host before running this job" }
+          py -3.11 -m venv "$env:RUNNER_TEMP\nullbench-venv"
+          if ($LASTEXITCODE -ne 0) { throw "could not create the job venv" }
+          "NULLBENCH_PYTHON=$env:RUNNER_TEMP\nullbench-venv\Scripts\python.exe" |
+            Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install
+        run: |
+          $ErrorActionPreference = "Stop"
+          & $env:NULLBENCH_PYTHON -m pip install --disable-pip-version-check --quiet --upgrade pip
+          if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+          & $env:NULLBENCH_PYTHON -m pip install --disable-pip-version-check -e ".[dev]"
+          if ($LASTEXITCODE -ne 0) { throw "install failed" }
+
+      - name: Ruff check
+        run: |
+          $ErrorActionPreference = "Stop"
+          & $env:NULLBENCH_PYTHON -m ruff check src tests
+          if ($LASTEXITCODE -ne 0) { throw "ruff check failed" }
+
+      - name: Ruff format check
+        run: |
+          $ErrorActionPreference = "Stop"
+          & $env:NULLBENCH_PYTHON -m ruff format --check src tests
+          if ($LASTEXITCODE -ne 0) { throw "ruff format failed" }
+
+      - name: Mypy
+        run: |
+          $ErrorActionPreference = "Stop"
+          & $env:NULLBENCH_PYTHON -m mypy src/nullbench
+          if ($LASTEXITCODE -ne 0) { throw "mypy failed" }
+
+      - name: Test + coverage
+        run: |
+          $ErrorActionPreference = "Stop"
+          & $env:NULLBENCH_PYTHON -m pytest --cov=nullbench --cov-report=term-missing --cov-fail-under=70
+          if ($LASTEXITCODE -ne 0) { throw "pytest failed" }
+
+      - name: M1 product gate
+        run: |
+          $ErrorActionPreference = "Stop"
+          & $env:NULLBENCH_PYTHON -m pytest -m m1 --tb=line
+          if ($LASTEXITCODE -ne 0) { throw "m1 gate failed" }
+
+      - name: M4 vault gate
+        run: |
+          $ErrorActionPreference = "Stop"
+          & $env:NULLBENCH_PYTHON -m pytest -m m4 --tb=line
+          if ($LASTEXITCODE -ne 0) { throw "m4 gate failed" }
+
+      - name: Public API import smoke
+        run: |
+          $ErrorActionPreference = "Stop"
+          & $env:NULLBENCH_PYTHON -c "from nullbench import init_study, add_strategy, freeze_period, freeze_prospective, settle_period, cycle_study, cycle_many, build_report, __version__; print(__version__)"
+          if ($LASTEXITCODE -ne 0) { throw "public API import failed" }
+
+      - name: Maturity CLI
+        run: |
+          $ErrorActionPreference = "Stop"
+          & $env:NULLBENCH_PYTHON -m nullbench maturity
+          if ($LASTEXITCODE -ne 0) { throw "maturity failed" }
+
+      - name: Demo smoke
+        run: |
+          $ErrorActionPreference = "Stop"
+          $demo = Join-Path $env:RUNNER_TEMP "ci-demo"
+          & $env:NULLBENCH_PYTHON -m nullbench demo --name ci-demo --path $env:RUNNER_TEMP --periods 5
+          if ($LASTEXITCODE -ne 0) { throw "demo failed" }
+          if (-not (Test-Path -LiteralPath (Join-Path $demo "reports\latest.md"))) { throw "demo missing reports/latest.md" }
+          if (-not (Test-Path -LiteralPath (Join-Path $demo "reports\latest.html"))) { throw "demo missing reports/latest.html" }
+
+      - name: Working tree remains unchanged
+        run: |
+          $ErrorActionPreference = "Stop"
+          $status = @(git status --porcelain --untracked-files=all)
+          if ($LASTEXITCODE -ne 0 -or $status.Count -ne 0) {
+            $status | ForEach-Object { Write-Host $_ }
+            throw "the job changed tracked or untracked files"
+          }
+
+  # Original verification, unchanged except artifact uploads removed (quota).
+  # Never runs automatically.
+  lint-hosted:
+    name: ruff + mypy (opt-in Ubuntu)
+    if: github.event_name == 'workflow_dispatch' && inputs.hosted == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -24,7 +171,9 @@ jobs:
       - name: Mypy
         run: python -m mypy src/nullbench
 
-  test:
+  test-hosted:
+    name: test (opt-in Ubuntu)
+    if: github.event_name == 'workflow_dispatch' && inputs.hosted == true
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -41,7 +190,6 @@ jobs:
           python -m pytest \
             --cov=nullbench \
             --cov-report=term-missing \
-            --cov-report=xml \
             --cov-fail-under=70
       - name: M1 product gate
         run: python -m pytest -m m1 --tb=line
@@ -56,15 +204,10 @@ jobs:
           python -m nullbench demo --name ci-demo --path /tmp --periods 5
           test -f /tmp/ci-demo/reports/latest.md
           test -f /tmp/ci-demo/reports/latest.html
-      - name: Upload coverage XML
-        if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v7
-        with:
-          name: coverage-xml
-          path: coverage.xml
 
-  sbom:
-    name: SBOM (M3)
+  sbom-hosted:
+    name: SBOM (opt-in Ubuntu)
+    if: github.event_name == 'workflow_dispatch' && inputs.hosted == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -77,9 +220,6 @@ jobs:
           python -m pip install -e ".[dev]"
           python -m pip install cyclonedx-bom
       - name: Generate CycloneDX SBOM
-        run: cyclonedx-py environment -o sbom.cdx.json
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v7
-        with:
-          name: nullbench-sbom
-          path: sbom.cdx.json
+        run: |
+          cyclonedx-py environment -o sbom.cdx.json
+          sha256sum sbom.cdx.json
