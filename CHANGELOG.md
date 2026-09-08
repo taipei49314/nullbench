@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Doctor certifi / ingest TLS (estate T-243)
+
+- ``nullbench doctor`` reports ``certifi`` (required on Windows, optional elsewhere)
+- Taiwan studies add an ``ingest`` check that names the CA bundle and the
+  ``CERTIFICATE_VERIFY_FAILED`` hint; doctor does not fetch
+- ``ingest`` / ``cycle`` wrap TLS verify failures as ``DataError`` with
+  ``pip install certifi`` — RuntimeError no longer dumps a traceback
+- ``certifi`` is now a runtime dependency (Windows CPython often has no
+  system CA store)
+- No package version bump, tag, or PyPI publish
+
 ### Streak on HTML and doctor
 
 - HTML report meta card: Prospective streak ``n / 26``

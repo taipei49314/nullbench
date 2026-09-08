@@ -212,6 +212,9 @@ def doctor(root: Path | None = None, *, vault_root: Path | None = None) -> dict:
         {"name": "python", "ok": sys.version_info >= (3, 11), "detail": sys.version.split()[0]}
     )
     checks.append({"name": "nullbench", "ok": True, "detail": __version__})
+    from nullbench.core.ingest_tls import CERTIFI_HINT, doctor_certifi_check
+
+    checks.append(doctor_certifi_check())
     for mod, label in (
         ("numpy", "numpy"),
         ("scipy", "scipy"),
@@ -280,6 +283,25 @@ def doctor(root: Path | None = None, *, vault_root: Path | None = None) -> dict:
                     "detail": "ok" if sem_ok else "; ".join(sem_issues[:2]),
                 }
             )
+            if "taiwan" in (spec.domain or ""):
+                ca = doctor_certifi_check()
+                if ca["ok"]:
+                    ingest_detail = (
+                        f"network domain {spec.domain}; SSL uses {ca['detail']}. "
+                        "doctor does not fetch. On CERTIFICATE_VERIFY_FAILED: " + CERTIFI_HINT
+                    )
+                else:
+                    ingest_detail = (
+                        f"network domain {spec.domain}; TLS helper missing. " + CERTIFI_HINT
+                    )
+                checks.append(
+                    {
+                        "name": "ingest",
+                        "ok": True,
+                        "detail": ingest_detail,
+                        "optional": True,
+                    }
+                )
             # M4: vault receipts are optional until the experiment was notarized
             try:
                 from nullbench.core.seal import verify_study_vault
