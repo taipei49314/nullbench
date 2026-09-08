@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import ssl
 import time
 import urllib.request
 from collections.abc import Callable
@@ -38,14 +37,11 @@ def _month_iter(start: tuple[int, int], end: tuple[int, int]):
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
 
 
-def _ssl_context() -> ssl.SSLContext:
+def _ssl_context():
     """Prefer certifi CAs when present (Windows Python often lacks the system store)."""
-    try:
-        import certifi
+    from nullbench.core.ingest_tls import ssl_context
 
-        return ssl.create_default_context(cafile=certifi.where())
-    except ImportError:
-        return ssl.create_default_context()
+    return ssl_context()
 
 
 def _fetch_month_raw(game_key: str, y: int, m: int) -> dict[str, Any]:

@@ -140,7 +140,19 @@ def ingest_data(root: Path, *, max_months: int | None = None) -> int:
             f"domain {spec.domain!r} has no network prepare_data()",
             hint="use demo649 for offline, or implement prepare_data on a domain pack",
         )
-    n = mod.prepare_data(study.data_dir, max_months=max_months)
+    try:
+        n = mod.prepare_data(study.data_dir, max_months=max_months)
+    except NullbenchError:
+        raise
+    except Exception as e:
+        from nullbench.core.ingest_tls import CERTIFI_HINT, ssl_verify_failed
+
+        if ssl_verify_failed(e):
+            raise DataError(f"ingest TLS failed: {e}", hint=CERTIFI_HINT) from e
+        raise DataError(
+            f"ingest failed: {e}",
+            hint="nullbench doctor --study this-study",
+        ) from e
     from nullbench.core.workspace import write_study_readme
 
     write_study_readme(root, study.load_experiment())
@@ -743,8 +755,8 @@ def cycle_many(
             results.append({"root": str(Path(root).resolve()), "ok": True, **payload})
         except NullbenchError as e:
             loc = str(Path(root).resolve())
-            errors.append(f"{loc}: {e.message}")
-            results.append({"root": loc, "ok": False, "error": e.message})
+            errors.append(f"{loc}: {e.format()}")
+            results.append({"root": loc, "ok": False, "error": e.format()})
     return results, errors
 
 
