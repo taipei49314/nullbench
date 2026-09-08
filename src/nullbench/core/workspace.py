@@ -200,7 +200,7 @@ def next_actions(root: Path) -> list[str]:
     return actions
 
 
-def doctor(root: Path | None = None) -> dict:
+def doctor(root: Path | None = None, *, vault_root: Path | None = None) -> dict:
     """Environment + optional study health check."""
     import importlib.util
     import sys
@@ -283,8 +283,11 @@ def doctor(root: Path | None = None) -> dict:
             # M4: vault receipts are optional until the experiment was notarized
             try:
                 from nullbench.core.seal import verify_study_vault
+                from nullbench.core.vault import Vault
 
-                v_ok, v_issues, receipt = verify_study_vault(root)
+                inspected = Vault(vault_root)
+                study_info["vault_path"] = str(inspected.root)
+                v_ok, v_issues, receipt = verify_study_vault(root, vault=inspected)
                 ever_notarized = receipt is not None or any(
                     "vault has" in i and "receipt" in i for i in v_issues
                 )
@@ -293,7 +296,10 @@ def doctor(root: Path | None = None) -> dict:
                         {
                             "name": "vault_receipt",
                             "ok": v_ok,
-                            "detail": "ok" if v_ok else "; ".join(v_issues[:2]),
+                            "detail": (
+                                ("ok" if v_ok else "; ".join(v_issues[:2]))
+                                + f" · {inspected.root}"
+                            ),
                         }
                     )
                     study_info["vault_ok"] = v_ok
@@ -304,7 +310,7 @@ def doctor(root: Path | None = None) -> dict:
                         {
                             "name": "vault_receipt",
                             "ok": True,
-                            "detail": "none (optional M4)",
+                            "detail": f"none (looked at {inspected.root})",
                             "optional": True,
                         }
                     )

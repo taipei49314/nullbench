@@ -114,9 +114,17 @@ def maturity(
 @app.command()
 def doctor(
     study: Path | None = typer.Option(None, "--study", "-s"),
+    vault_path: Path | None = typer.Option(
+        None,
+        "--vault",
+        help="Vault directory to inspect (default: NULLBENCH_VAULT_DIR or ~/.config/nullbench/vault)",
+    ),
 ) -> None:
     """Check environment (and optional study) health."""
-    info = run_doctor(_root(study) if study else None)
+    info = run_doctor(
+        _root(study) if study else None,
+        vault_root=vault_path,
+    )
     table = Table(title="nullbench doctor")
     table.add_column("Check")
     table.add_column("OK")
