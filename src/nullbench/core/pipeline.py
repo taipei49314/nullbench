@@ -453,6 +453,71 @@ def freeze_prospective(root: Path, period: str | None = None) -> list[FreezeReco
     return records
 
 
+def demo_draw(root: Path, period: str | None = None) -> Draw:
+    """Append the immediate next synthetic draw (demo649 lab clock).
+
+    This is not an official result and not Taiwan ingest. It only appends
+    ``_next_period_id(latest)`` — never redraws an existing period, never
+    skips ahead. Previous ``draws.jsonl`` bytes are left unchanged.
+    """
+    study = Study(root)
+    if not study.exists():
+        raise StudyNotFoundError(f"no study at {root}")
+    spec = study.load_experiment()
+    mod = get_domain(spec.domain)
+    if spec.domain != "demo649" or hasattr(mod, "prepare_data"):
+        raise DataError(
+            f"demo-draw is a lab clock for demo649, not {spec.domain!r}",
+            hint="Taiwan studies ingest official draws; do not synthesize them",
+        )
+    draws = load_draws(study.draws_path)
+    if not draws:
+        raise DataError(
+            "no draws — cannot derive the next period",
+            hint="nullbench demo or init with demo649 first",
+        )
+    latest = draws[-1].period
+    nxt = _next_period_id(latest)
+    if nxt is None:
+        raise DataError(
+            f"cannot derive the period after {latest!r}",
+            hint="demo649 periods must look like P0120",
+        )
+    if period is not None and period != nxt:
+        raise DataError(
+            f"demo-draw only appends the immediate next period {nxt!r} (latest is {latest!r})",
+            hint="will not skip or re-draw; freeze --next then demo-draw",
+        )
+    period = nxt
+    if period in {d.period for d in draws}:
+        raise DataError(
+            f"period {period!r} already has a draw — refusing to redraw",
+            hint="that would be backfill",
+        )
+    seed = 2026
+    meta = draws[-1].meta or {}
+    if isinstance(meta.get("seed"), int):
+        seed = int(meta["seed"])
+    import re
+
+    from nullbench.domains.demo649 import generate_synthetic_draws
+
+    parsed = re.fullmatch(r"([A-Za-z]*)([0-9]+)", period)
+    if parsed is None:
+        raise DataError(f"cannot parse period {period!r}")
+    prefix, digits = parsed.group(1) or "P", parsed.group(2)
+    n = int(digits)
+    synth = generate_synthetic_draws(n=n, seed=seed, period_prefix=prefix)
+    draw = synth[-1]
+    if draw.period != period:
+        raise DataError(f"synthetic generator produced {draw.period!r}, expected {period!r}")
+    raw = study.draws_path.read_bytes()
+    if raw and not raw.endswith(b"\n"):
+        raw += b"\n"
+    study.draws_path.write_bytes(raw + (draw.model_dump_json() + "\n").encode("utf-8"))
+    return draw
+
+
 def freeze_latest(root: Path) -> list[FreezeRecord]:
     """Freeze the last draw period that is not yet settled."""
     study = Study(root)

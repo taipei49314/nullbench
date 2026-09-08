@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Demo lab clock (estate T-243 G)
+
+- ``nullbench demo-draw`` / ``demo_draw()``: demo649 only, append the immediate
+  next synthetic period. Refuses redraw and skip. Previous draws.jsonl bytes
+  stay unchanged so a prospective freeze can settle with
+  ``draw_entered_after_freeze=true``
+- Coach ``next`` and ``freeze --next`` point at ``demo-draw`` on demo649
+- Not Taiwan ingest, not an official result, not M5.5
+- No package version bump, tag, or PyPI publish
+
 ### Doctor certifi / ingest TLS (estate T-243)
 
 - ``nullbench doctor`` reports ``certifi`` (required on Windows, optional elsewhere)

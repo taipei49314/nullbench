@@ -356,7 +356,13 @@ def freeze_cmd(
                 )
                 for r in records:
                     console.print(f"  {r.strategy_id}: {r.content_hash[:12]}…")
-                console.print(f"  next → wait for the draw, then: nullbench settle --study {root}")
+                spec = Study(root).load_experiment()
+                if spec.domain == "demo649":
+                    console.print(f"  next → nullbench demo-draw --study {root}")
+                else:
+                    console.print(
+                        f"  next → wait for the draw, then: nullbench settle --study {root}"
+                    )
             else:
                 console.print("[yellow]No new freezes[/yellow] (already frozen)")
             return
@@ -378,6 +384,33 @@ def freeze_cmd(
         console.print(f"[green]Froze[/green] {len(records)} arm(s) for {records[0].period}")
         for r in records:
             console.print(f"  {r.strategy_id}: {r.content_hash[:12]}…")
+    console.print(f"  next → nullbench settle --study {root}")
+
+
+@app.command("demo-draw")
+def demo_draw_cmd(
+    study: Path = typer.Option(..., "--study", "-s"),
+    period: str | None = typer.Option(
+        None,
+        "--period",
+        "-p",
+        help="Must be the immediate next period (default: derived)",
+    ),
+) -> None:
+    """Advance the demo649 lab clock: append the next synthetic draw.
+
+    Not an official result. Refuses to redraw or skip. After freeze --next,
+    this is how a local prospective freeze becomes settleable.
+    """
+    root = _root(study)
+    try:
+        draw = pipeline.demo_draw(root, period)
+    except NullbenchError as e:
+        _fail(e)
+    console.print(
+        f"[green]Demo draw[/green] {draw.period} {draw.numbers} "
+        "(synthetic lab clock, not an official result)"
+    )
     console.print(f"  next → nullbench settle --study {root}")
 
 
