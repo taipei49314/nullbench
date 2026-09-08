@@ -297,8 +297,7 @@ def doctor(root: Path | None = None, *, vault_root: Path | None = None) -> dict:
                             "name": "vault_receipt",
                             "ok": v_ok,
                             "detail": (
-                                ("ok" if v_ok else "; ".join(v_issues[:2]))
-                                + f" · {inspected.root}"
+                                ("ok" if v_ok else "; ".join(v_issues[:2])) + f" · {inspected.root}"
                             ),
                         }
                     )
