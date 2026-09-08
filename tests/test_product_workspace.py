@@ -38,6 +38,23 @@ def test_doctor_ok() -> None:
     assert info["ok"] is True
 
 
+def test_doctor_reports_the_vault_path_it_inspected(tmp_path: Path) -> None:
+    root = tmp_path / "s"
+    pipeline.init_study(root, experiment_id="p-vault", domain="demo649", demo_draws=20)
+    default = doctor(root)
+    vault_row = next(c for c in default["checks"] if c["name"] == "vault_receipt")
+    assert vault_row["ok"] is True
+    assert "looked at" in str(vault_row["detail"])
+    assert default["study"]["vault_path"]
+
+    custom = tmp_path / "operator-vault"
+    custom.mkdir()
+    pointed = doctor(root, vault_root=custom)
+    row = next(c for c in pointed["checks"] if c["name"] == "vault_receipt")
+    assert str(custom.resolve()) in str(row["detail"])
+    assert pointed["study"]["vault_path"] == str(custom.resolve())
+
+
 def test_errors_study_missing(tmp_path: Path) -> None:
     try:
         next_actions(tmp_path / "nope")
