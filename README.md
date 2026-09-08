@@ -1,5 +1,14 @@
 # nullbench
 
+> **已併入歷史（估產 T-176，2026-09-07）。** Folded repositories were imported as `archive/<name>/*` (every branch, tag, and PR head). History only — their code was not merged into this tree. Original GitHub repos are archived (read-only, not deleted).
+>
+> | Source | Default ref here | Also in this repo |
+> |---|---|---|
+> | [`crucible`](https://github.com/taipei49314/crucible) | `archive/crucible/master` | — |
+> | [`lotto-lab`](https://github.com/taipei49314/lotto-lab) | `archive/lotto-lab/master` | 5 other heads |
+>
+> Checkout one history line: `git fetch origin <ref>` then `git log FETCH_HEAD`. List them with `git ls-remote origin 'refs/heads/archive/*' 'refs/tags/archive/*'`.
+
 [![CI](https://github.com/taipei49314/nullbench/actions/workflows/ci.yml/badge.svg)](https://github.com/taipei49314/nullbench/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/nullbench.svg)](https://pypi.org/project/nullbench/)
 [![Python](https://img.shields.io/pypi/pyversions/nullbench.svg)](https://pypi.org/project/nullbench/)
